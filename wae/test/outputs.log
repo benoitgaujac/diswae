@@ -1,0 +1,79 @@
+2019-10-17 12:30:06,196 - Loading MNIST
+2019-10-17 12:30:07,081 - Loading Done: Train size: 60000, Test size: 10000
+2019-10-17 12:30:07,098 - Building the Tensorflow Graph
+2019-10-17 12:30:07,125 - From /Users/benoitgaujac/Library/Python/3.5/lib/python/site-packages/tensorflow/python/framework/op_def_library.py:263: colocate_with (from tensorflow.python.framework.ops) is deprecated and will be removed in a future version.
+Instructions for updating:
+Colocations handled automatically by placer.
+2019-10-17 12:30:07,136 - From /Users/benoitgaujac/Documents/PhD/WAE/code/diswae/ops/batchnorm.py:22: batch_normalization (from tensorflow.python.layers.normalization) is deprecated and will be removed in a future version.
+Instructions for updating:
+Use keras.layers.batch_normalization instead.
+2019-10-17 12:30:07,214 - From /Users/benoitgaujac/Documents/PhD/WAE/code/diswae/networks.py:76: calling dropout (from tensorflow.python.ops.nn_ops) with keep_prob is deprecated and will be removed in a future version.
+Instructions for updating:
+Please use `rate` instead of `keep_prob`. Rate should be set to `rate = 1 - keep_prob`.
+2019-10-17 12:30:07,363 - From /Users/benoitgaujac/Documents/PhD/WAE/code/diswae/networks.py:59: flatten (from tensorflow.python.layers.core) is deprecated and will be removed in a future version.
+Instructions for updating:
+Use keras.layers.flatten instead.
+2019-10-17 12:30:08,769 - From /Users/benoitgaujac/Library/Python/3.5/lib/python/site-packages/tensorflow/python/ops/math_ops.py:3066: to_int32 (from tensorflow.python.ops.math_ops) is deprecated and will be removed in a future version.
+Instructions for updating:
+Use tf.cast instead.
+2019-10-17 12:30:14,943 - Training WAE
+2019-10-17 12:30:19,618 - Latent interpolation..
+2019-10-17 12:30:20,276 - EPOCH: 1/101, BATCH:1/468
+2019-10-17 12:30:20,276 - TRAIN LOSS=201.733
+2019-10-17 12:30:27,813 - Latent interpolation..
+2019-10-17 12:30:28,247 - EPOCH: 1/101, BATCH:101/468
+2019-10-17 12:30:28,247 - TRAIN LOSS=30.939
+2019-10-17 12:31:15,942 - Latent interpolation..
+2019-10-17 12:31:16,560 - EPOCH: 3/101, BATCH:3/468
+2019-10-17 12:31:16,560 - TRAIN LOSS=15.131
+2019-10-17 12:32:15,409 - Latent interpolation..
+2019-10-17 12:32:15,871 - EPOCH: 5/101, BATCH:5/468
+2019-10-17 12:32:15,871 - TRAIN LOSS=14.077
+2019-10-17 12:33:08,444 - Latent interpolation..
+2019-10-17 12:33:08,762 - EPOCH: 7/101, BATCH:7/468
+2019-10-17 12:33:08,763 - TRAIN LOSS=13.261
+2019-10-17 12:33:49,125 - Latent interpolation..
+2019-10-17 12:33:49,599 - EPOCH: 9/101, BATCH:9/468
+2019-10-17 12:33:49,599 - TRAIN LOSS=13.149
+2019-10-17 12:34:26,747 - Latent interpolation..
+2019-10-17 12:34:27,072 - EPOCH: 11/101, BATCH:11/468
+2019-10-17 12:34:27,072 - TRAIN LOSS=11.057
+2019-10-17 12:35:05,724 - Latent interpolation..
+2019-10-17 12:35:06,041 - EPOCH: 13/101, BATCH:13/468
+2019-10-17 12:35:06,041 - TRAIN LOSS=11.698
+2019-10-17 12:35:46,373 - Latent interpolation..
+2019-10-17 12:35:46,793 - EPOCH: 15/101, BATCH:15/468
+2019-10-17 12:35:46,793 - TRAIN LOSS=10.751
+2019-10-17 12:36:30,271 - Latent interpolation..
+2019-10-17 12:36:30,578 - EPOCH: 17/101, BATCH:17/468
+2019-10-17 12:36:30,578 - TRAIN LOSS=11.661
+2019-10-17 12:37:08,219 - Latent interpolation..
+2019-10-17 12:37:08,561 - EPOCH: 19/101, BATCH:19/468
+2019-10-17 12:37:08,561 - TRAIN LOSS=11.203
+2019-10-17 12:37:48,510 - Latent interpolation..
+2019-10-17 12:37:48,811 - EPOCH: 21/101, BATCH:21/468
+2019-10-17 12:37:48,811 - TRAIN LOSS=10.524
+2019-10-17 12:38:32,602 - Latent interpolation..
+2019-10-17 12:38:33,099 - EPOCH: 23/101, BATCH:23/468
+2019-10-17 12:38:33,099 - TRAIN LOSS=9.441
+2019-10-17 12:39:16,650 - Latent interpolation..
+2019-10-17 12:39:16,976 - EPOCH: 25/101, BATCH:25/468
+2019-10-17 12:39:16,976 - TRAIN LOSS=10.811
+2019-10-17 12:40:09,562 - Latent interpolation..
+2019-10-17 12:40:10,044 - EPOCH: 27/101, BATCH:27/468
+2019-10-17 12:40:10,044 - TRAIN LOSS=9.330
+2019-10-17 12:41:06,311 - Latent interpolation..
+2019-10-17 12:41:06,731 - EPOCH: 29/101, BATCH:29/468
+2019-10-17 12:41:06,731 - TRAIN LOSS=10.505
+2019-10-17 12:42:14,835 - Latent interpolation..
+2019-10-17 12:42:15,259 - EPOCH: 31/101, BATCH:31/468
+2019-10-17 12:42:15,259 - TRAIN LOSS=11.253
+2019-10-17 12:43:00,382 - Latent interpolation..
+2019-10-17 12:43:01,038 - EPOCH: 33/101, BATCH:33/468
+2019-10-17 12:43:01,038 - TRAIN LOSS=8.741
+2019-10-17 12:43:47,431 - Latent interpolation..
+2019-10-17 12:43:47,859 - EPOCH: 35/101, BATCH:35/468
+2019-10-17 12:43:47,859 - TRAIN LOSS=9.892
+2019-10-17 12:44:42,224 - Latent interpolation..
+2019-10-17 12:44:42,690 - EPOCH: 37/101, BATCH:37/468
+2019-10-17 12:44:42,690 - TRAIN LOSS=10.105
