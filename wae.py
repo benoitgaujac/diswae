@@ -59,7 +59,6 @@ class WAE(object):
 
         # --- Initialize list container
         encSigmas_stats = []
-        decSigmas_stats = []
         pen_enc_sigma, pen_dec_sigma = 0., 0.
 
         # --- Encoding & decoding
@@ -83,8 +82,7 @@ class WAE(object):
             # - Enc Sigma stats
             Sigma_tr = tf.reduce_mean(enc_Sigma,axis=-1)
             Smean, Svar = tf.nn.moments(Sigma_tr,axes=[0])
-            Sstats = tf.stack([Smean,Svar],axis=-1)
-            encSigmas_stats.append(Sstats)
+            self.encSigmas_stats = tf.stack([Smean,Svar],axis=-1)
         else:
             assert False, 'Unknown encoder %s' % opts['encoder']
         # - Decoding encoded points (i.e. reconstruct)
@@ -106,11 +104,6 @@ class WAE(object):
             # - Dec Sigma penalty
             if opts['pen_dec_sigma']:
                 pen_dec_sigma += opts['lambda_pen_dec_sigma'] * tf.reduce_mean(tf.reduce_sum(tf.abs(tf.log(recon_Sigma)),axis=-1))
-            # Dec Sigma stats
-            Sigma_tr = tf.reduce_mean(recon_Sigma,axis=-1)
-            Smean, Svar = tf.nn.moments(Sigma_tr,axes=[0])
-            Sstats = tf.stack([Smean,Svar],axis=-1)
-            decSigmas_stats.append(Sstats)
         else:
             assert False, 'Unknown encoder %s' % opts['decoder']
         if opts['input_normalize_sym']:
@@ -333,7 +326,7 @@ class WAE(object):
         # - Init all monitoring variables
         Loss, Loss_rec, Loss_rec_test = [], [], []
         Loss_hsic, Loss_dim, Loss_wae = [], [], []
-        enc_Sigmas, dec_Sigmas = [], []
+        enc_Sigmas = []
         mean_blurr, fid_scores = [], [],
         decay, counter = 1., 0
         decay_steps, decay_rate = int(batches_num * opts['epoch_num'] / 5), 0.98
@@ -379,12 +372,9 @@ class WAE(object):
                 Loss_dim.append(loss_dim)
                 Loss_wae.append(loss_wae)
                 if opts['vizu_encSigma']:
-                    [enc_sigmastats,dec_sigmastats] = self.sess.run(
-                                                [self.encSigmas_stats,
-                                                self.decSigmas_stats],
+                    enc_sigmastats = self.sess.run(self.encSigmas_stats,
                                                 feed_dict=feed_dict)
                     enc_Sigmas.append(enc_sigmastats)
-                    dec_Sigmas.append(dec_sigmastats)
 
                 ##### TESTING LOOP #####
                 if counter % opts['print_every']==0 or counter==100:
@@ -414,7 +404,7 @@ class WAE(object):
                                                 [self.reconstructed,
                                                  self.encoded,
                                                  self.decoded],
-                                                feed_dict={self.points:data.test_data[:npics],
+                                                feed_dict={self.points:data.test_data[:10*npics],
                                                            self.samples: fixed_noise,
                                                            self.dropout_rate: 1.,
                                                            self.is_training:False})
@@ -435,8 +425,7 @@ class WAE(object):
                                                 work_dir,'embedded_e%04d_mb%05d.png' % (epoch, it))
                     # Encoded sigma
                     if opts['vizu_encSigma'] and counter>1:
-                        plot_encSigma(opts, enc_Sigmas, dec_Sigmas,
-                                                work_dir,
+                        plot_encSigma(opts, enc_Sigmas, work_dir,
                                                 'encSigma_e%04d_mb%05d.png' % (epoch, it))
                     # Encode anchors points and interpolate
                     if opts['vizu_interpolation']:
@@ -457,6 +446,7 @@ class WAE(object):
                                                            self.dropout_rate: 1.,
                                                            self.is_training: False})
                         inter_anchors = np.reshape(dec_interpolation,[-1,opts['zdim'],num_steps]+im_shape)
+                        inter_anchors = np.transpose(inter_anchors,(1,0,2,3,4,5))
                         plot_interpolation(opts, inter_anchors, work_dir,
                                                 'inter_e%04d_mb%05d.png' % (epoch, it))
 
@@ -503,7 +493,7 @@ class WAE(object):
                     print('')
                     # Saving plots
                     save_train(opts, data.data[200:200+npics], data.test_data[:npics],  # images
-                                     reconstructed_train, reconstructed_test, # reconstructions
+                                     reconstructed_train, reconstructed_test[:npics], # reconstructions
                                      samples,  # model samples
                                      Loss,  # loss
                                      Loss_rec, Loss_rec_test,   # rec losses

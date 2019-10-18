@@ -139,8 +139,8 @@ def save_train(opts, data_train, data_test,
                                 size=20, transform=ax.transAxes)
 
     ### The reconstruction loss curves
-    base = plt.cm.get_cmap('Vega10')
-    # base = plt.cm.get_cmap('tab10')
+    # base = plt.cm.get_cmap('Vega10')
+    base = plt.cm.get_cmap('tab10')
     color_list = base(np.linspace(0, 1, 5))
     ax = plt.subplot(gs[1, 1])
     for i, los, lab in zip([j for j in range(4)],
@@ -164,28 +164,16 @@ def save_train(opts, data_train, data_test,
     plt.close()
 
 
-def plot_encSigma(opts, enc_Sigmas, dec_Sigmas, work_dir, filename):
+def plot_encSigma(opts, enc_Sigmas, work_dir, filename):
     fig = plt.figure()
-    encSig = np.stack(enc_Sigmas,axis=0)
-    if dec_Sigmas:
-        decSig = np.stack(dec_Sigmas,axis=0)
-    shape = np.shape(encSig)
-    base = plt.cm.get_cmap('Vega10')
-    # base = plt.cm.get_cmap('tab10')
-    color_list = base(np.linspace(0, 1, opts['nlatents']+1))
+    enc_Sigmas = np.array(enc_Sigmas)
+    shape = np.shape(enc_Sigmas)
     total_num = shape[0]
     x_step = max(int(total_num / 200), 1)
     x = np.arange(1, total_num + 1, x_step)
-    for i in range(np.shape(encSig)[1]):
-        mean, var = encSig[::x_step,i,0], encSig[::x_step,i,1]
-        y = np.log(mean)
-        plt.plot(x, y, linewidth=1, color=color_list[i], label=r'e$\Sigma_%d$' % i)
-        if i!=0:
-            mean, var = decSig[::x_step,i-1,0], decSig[::x_step,i-1,1]
-            y = np.log(mean)
-            plt.plot(x, y, linewidth=1, linestyle='--', color=color_list[i], label=r'd$\Sigma_%d$' % i)
-        # y = np.log(mean+np.sqrt(var))
-        # plt.plot(x, y, linewidth=1, linestyle='--',color=color_list[i])
+    mean, var = enc_Sigmas[::x_step,0], enc_Sigmas[::x_step,1]
+    y = np.log(mean)
+    plt.plot(x, y, linewidth=1, color='blue', label=r'$\Sigma$')
     plt.grid(axis='y')
     plt.legend(loc='lower left')
     plt.title(r'log norm_Tr$(\Sigma)$ curves')
@@ -227,8 +215,8 @@ def plot_embedded(opts, encoded, decoded, labels, work_dir, filename):
     for i in range(len(embeds)):
         ax = plt.subplot(gs[0, i])
         plt.scatter(embeds[i][:num_pics, 0], embeds[i][:num_pics, 1], alpha=0.7,
-                    # c=labels, s=40, label='Qz test',cmap=discrete_cmap(10, base_cmap='tab10'))
-                    c=labels, s=40, label='Qz test',edgecolors='none',cmap=discrete_cmap(10, base_cmap='Vega10'))
+                    c=labels, s=40, label='Qz test',cmap=discrete_cmap(10, base_cmap='tab10'))
+                    # c=labels, s=40, label='Qz test',edgecolors='none',cmap=discrete_cmap(10, base_cmap='Vega10'))
         if i==len(embeds)-1:
             plt.colorbar()
         plt.scatter(embeds[i][num_pics:, 0], embeds[i][num_pics:, 1],
@@ -579,8 +567,8 @@ def save_latent_interpolation(opts, data_test, label_test, # data, labels
         # ax = plt.subplot(gs[0, i])
         ax = fig.add_subplot(1, len(embeds), i+1)
         plt.scatter(embeds[i][:, 0], embeds[i][:, 1], alpha=0.6,
-                    # c=label_test, s=40, label='Qz test',cmap=discrete_cmap(10, base_cmap='tab10'))
-                    c=label_test, s=40, edgecolors='none',cmap=discrete_cmap(10, base_cmap='Vega10'))
+                    c=label_test, s=40, label='Qz test',cmap=discrete_cmap(10, base_cmap='tab10'))
+                    # c=label_test, s=40, edgecolors='none',cmap=discrete_cmap(10, base_cmap='Vega10'))
         xmin = np.amin(embeds[i][:,0])
         xmax = np.amax(embeds[i][:,0])
         magnify = 0.01
