@@ -90,6 +90,94 @@ config_mnist['d_nfilters'] = [512,256]
 config_mnist['d_nonlinearity'] = 'relu' # soft_plus, relu, leaky_relu, tanh
 
 
+### DSprites config
+config_dsprites = {}
+# Outputs set up
+config_dsprites['verbose'] = False
+config_dsprites['save_every'] = 10000
+config_dsprites['save_final'] = True
+config_dsprites['save_train_data'] = True
+config_dsprites['print_every'] = 100
+config_dsprites['vizu_embedded'] = False
+config_dsprites['embedding'] = 'umap' #vizualisation method of the embeddings: pca, umap
+config_dsprites['vizu_encSigma'] = False
+config_dsprites['vizu_interpolation'] = True
+config_dsprites['fid'] = False
+config_dsprites['work_dir'] = 'results_mnist'
+config_dsprites['plot_num_pics'] = 100
+config_dsprites['plot_num_cols'] = 10
+
+# Data set up
+config_dsprites['dataset'] = 'dsprites'
+config_dsprites['data_dir'] = 'dsprites'
+config_dsprites['input_normalize_sym'] = False
+config_dsprites['DSprites_data_source_url'] = 'https://github.com/deepmind/dsprites-dataset/blob/master/'
+
+# Experiment set up
+config_dsprites['train_dataset_size'] = -1
+config_dsprites['batch_size'] = 128
+config_dsprites['epoch_num'] = 101
+config_dsprites['method'] = 'wae' #vae, wae
+config_dsprites['use_trained'] = False #train from pre-trained model
+config_dsprites['e_pretrain'] = False #pretrained the encoder parameters
+config_dsprites['e_pretrain_it'] = 1000
+config_dsprites['e_pretrain_sample_size'] = 200
+
+# Opt set up
+config_dsprites['optimizer'] = 'adam' # adam, sgd
+config_dsprites['adam_beta1'] = 0.5
+config_dsprites['lr'] = 0.001
+config_dsprites['lr_adv'] = 0.0008
+config_dsprites['e_norm'] = 'batchnorm' #batchnorm, layernorm, none
+config_dsprites['d_norm'] = 'batchnorm' #batchnorm, layernorm, none
+config_dsprites['batch_norm_eps'] = 1e-05
+config_dsprites['batch_norm_momentum'] = 0.99
+
+# Objective set up
+config_dsprites['cost'] = 'l2sq' #l2, l2sq, l2sq_norm, l1
+config_dsprites['penalty'] = 'mmd' #sinkhorn, mmd
+config_dsprites['pen'] = 'wae' #wae, wae_mmd
+config_dsprites['epsilon'] = 0.1 #Sinkhorn regularization parameters
+config_dsprites['L'] = 30 #Sinkhorn iteration
+config_dsprites['mmd_kernel'] = 'IMQ' # RBF, IMQ
+config_dsprites['pen'] = 'wae' # wae, wae_mmd
+config_dsprites['pen_enc_sigma'] = False
+config_dsprites['lambda_pen_enc_sigma'] = 0.001
+config_dsprites['pen_dec_sigma'] = False
+config_dsprites['lambda_pen_dec_sigma'] = 0.0005
+
+# Model set up
+config_dsprites['zdim'] = 8
+config_dsprites['pz_scale'] = 1.
+config_dsprites['prior'] = 'gaussian' # dirichlet, gaussian
+
+# lambda set up
+config_dsprites['lambda'] = [10,10]
+config_dsprites['lambda_schedule'] = 'constant' # adaptive, constant
+
+# NN set up
+config_dsprites['init_std'] = 0.99999
+config_dsprites['init_bias'] = 0.0
+config_dsprites['mlp_init'] = 'glorot_uniform' #normal, he, glorot, glorot_he, glorot_uniform, ('uniform', range)
+config_dsprites['conv_init'] = 'he' #he, glorot, normilized_glorot, truncated_norm
+config_dsprites['filter_size'] = [5,3]
+
+
+config_dsprites['encoder'] = 'gauss' # deterministic, gaussian
+config_dsprites['e_arch'] = 'mlp' # mlp, dcgan
+config_dsprites['e_nlayers'] = 2
+config_dsprites['downsample'] = [None,]*config_dsprites['e_nlayers'] #None, True
+config_dsprites['e_nfilters'] = [512,256]
+config_dsprites['e_nonlinearity'] = 'leaky_relu' # soft_plus, relu, leaky_relu, tanh
+
+config_dsprites['decoder'] = 'det' # deterministic, gaussian
+config_dsprites['d_arch'] = 'mlp' # mlp, dcgan
+config_dsprites['d_nlayers'] = 2
+config_dsprites['upsample'] = [None,]*config_dsprites['d_nlayers'] #None, up
+config_dsprites['d_nfilters'] = [512,256]
+config_dsprites['d_nonlinearity'] = 'relu' # soft_plus, relu, leaky_relu, tanh
+
+
 ### CIFAR 10 config
 config_svhn = {}
 # Outputs set up
