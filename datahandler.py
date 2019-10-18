@@ -12,7 +12,8 @@ import logging
 import gzip
 import tensorflow as tf
 import numpy as np
-from six.moves import cPickle, urllib
+from six.moves import cPickle
+import urllib.request
 from scipy.io import loadmat
 from PIL import Image
 import sys
@@ -58,6 +59,8 @@ def maybe_download(opts):
         maybe_download_file(data_path,'test_32x32.mat',opts['SVHN_data_source_url'])
         if opts['use_extra']:
             maybe_download_file(data_path,'extra_32x32.mat',opts['SVHN_data_source_url'])
+    elif opts['dataset']=='dsprites':
+        maybe_download_file(data_path,'dsprites_ndarray_co1sh3sc6or40x32y32_64x64.npz',opts['DSprites_data_source_url'])
     elif opts['dataset']=='cifar10':
         maybe_download_file(data_path,'cifar-10-python.tar.gz',opts['cifar10_data_source_url'])
         tar = tarfile.open(os.path.join(data_path,'cifar-10-python.tar.gz'))
@@ -428,7 +431,7 @@ class DataHandler(object):
         """
         logging.error('Loading dsprites')
         data_dir = _data_dir(opts)
-        data_file = os.path.join(data_dir, 'dsprites.npz')
+        data_file = os.path.join(data_dir, 'dsprites_ndarray_co1sh3sc6or40x32y32_64x64.npz')
         X = np.load(data_file)['imgs']
         X = X[:, :, :, None]
 

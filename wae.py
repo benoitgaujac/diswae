@@ -433,7 +433,8 @@ class WAE(object):
                         num_steps = 10
                         # encoded stats
                         enc_mean = np.mean(encoded,axis=0)
-                        enc_var = np.mean(np.square(encoded-enc_mean),axis=0)
+                        # enc_var = np.mean(np.square(encoded-enc_mean),axis=0)
+                        enc_var = np.ones(np.shape(enc_mean))
                         # Selecting anchors
                         data_anchors = data.test_data[anchors_ids]
                         # crate linespace
@@ -548,7 +549,6 @@ class WAE(object):
             name = 'res_train_final'
             np.savez(os.path.join(save_path,name),
                         data_test=data.data[200:200+npics], data_train=data.test_data[:npics],
-                        label_test=data.test_labels[:10*npics],
                         encoded = encoded,
                         rec_train=reconstructed_train, rec_test=reconstructed_test[:npics],
                         samples=samples,
