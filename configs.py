@@ -111,7 +111,7 @@ config_dsprites['plot_num_cols'] = 10
 config_dsprites['dataset'] = 'dsprites'
 config_dsprites['data_dir'] = 'dsprites'
 config_dsprites['input_normalize_sym'] = False
-config_dsprites['DSprites_data_source_url'] = 'https://github.com/deepmind/dsprites-dataset/blob/master/'
+config_dsprites['DSprites_data_source_url'] = 'https://github.com/deepmind/dsprites-dataset/blob/master/dsprites_ndarray_co1sh3sc6or40x32y32_64x64.npz?raw=true'
 
 # Experiment set up
 config_dsprites['train_dataset_size'] = -1
