@@ -432,7 +432,7 @@ class DataHandler(object):
         logging.error('Loading dsprites')
         data_dir = _data_dir(opts)
         data_file = os.path.join(data_dir, 'dsprites_ndarray_co1sh3sc6or40x32y32_64x64.npz')
-        X = np.load(data_file)['imgs']
+        X = np.load(data_file,allow_pickle=True)['imgs']
         X = X[:, :, :, None]
 
         seed = 123
