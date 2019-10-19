@@ -93,7 +93,7 @@ def main():
 
     # Working directory
     if FLAGS.work_dir:
-        opts['work_dir'] = FLAGS.work_dir + "_" + str(int(opts['lambda'][0]) + "_" + str(int(opts['lambda'][1]))
+        opts['work_dir'] = FLAGS.work_dir + "_" + str(int(opts['lambda'][0])) + "_" + str(int(opts['lambda'][1]))
 
     # NN set up
     opts['filter_size'] = [4,4,4,4]
