@@ -64,10 +64,6 @@ def main():
     if FLAGS.method:
         opts['method'] = FLAGS.method
 
-    # Working directory
-    if FLAGS.work_dir:
-        opts['work_dir'] = FLAGS.work_dir
-
     # Mode
     if FLAGS.mode=='fid':
         opts['fid'] = True
@@ -75,8 +71,8 @@ def main():
         opts['fid'] = False
 
     # Experiemnts set up
-    opts['epoch_num'] = 2010
-    opts['print_every'] = 200*469
+    opts['epoch_num'] = 500
+    opts['print_every'] = 50*469
     opts['lr'] = 0.001
     opts['dropout_rate'] = 1.
     opts['batch_size'] = 128
@@ -90,23 +86,27 @@ def main():
     opts['zdim'] = 10
 
     # Penalty
-    lmba0 = [1,10,50,100,1000]
-    lmba1 = [1,10,50,100,1000]
+    lmba0 = [1,10,20,50,100,200,500]
+    lmba1 = [1,10,20,50,100,200,500]
     lmba = list(itertools.product(lmba0,lmba1))
     opts['lambda'] = lmba[FLAGS.lmba-1]
 
+    # Working directory
+    if FLAGS.work_dir:
+        opts['work_dir'] = FLAGS.work_dir + "_" + str(int(opts['lambda'][0]) + "_" + str(int(opts['lambda'][1]))
+
     # NN set up
-    opts['filter_size'] = [5,3]
+    opts['filter_size'] = [4,4,4,4]
     opts['mlp_init'] = 'glorot_uniform' #normal, he, glorot, glorot_he, glorot_uniform, ('uniform', range)
     opts['e_arch'] = FLAGS.enet_archi # mlp, dcgan, dcgan_v2, resnet
-    opts['e_nlayers'] = 2
+    opts['e_nlayers'] = 4
     opts['downsample'] = [None,]*opts['e_nlayers'] #None, True
-    opts['e_nfilters'] = [512,256]
+    opts['e_nfilters'] = [32,32,64,64]
     opts['e_nonlinearity'] = 'relu' # soft_plus, relu, leaky_relu, tanh
     opts['d_arch'] =  FLAGS.enet_archi # mlp, dcgan, dcgan_v2, resnet
     opts['upsample'] = [None,]*opts['d_nlayers'] #None, up
-    opts['d_nlayers'] = 2
-    opts['d_nfilters'] = [512,256]
+    opts['d_nlayers'] = 4
+    opts['d_nfilters'] = [32,32,64,64]
 
     # Create directories
     if not tf.gfile.IsDirectory(opts['method']):

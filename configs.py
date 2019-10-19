@@ -147,7 +147,7 @@ config_dsprites['pen_dec_sigma'] = False
 config_dsprites['lambda_pen_dec_sigma'] = 0.0005
 
 # Model set up
-config_dsprites['zdim'] = 8
+config_dsprites['zdim'] = 10
 config_dsprites['pz_scale'] = 1.
 config_dsprites['prior'] = 'gaussian' # dirichlet, gaussian
 
@@ -160,21 +160,21 @@ config_dsprites['init_std'] = 0.99999
 config_dsprites['init_bias'] = 0.0
 config_dsprites['mlp_init'] = 'glorot_uniform' #normal, he, glorot, glorot_he, glorot_uniform, ('uniform', range)
 config_dsprites['conv_init'] = 'he' #he, glorot, normilized_glorot, truncated_norm
-config_dsprites['filter_size'] = [5,3]
+config_dsprites['filter_size'] = [4,4,4,4]
 
 
 config_dsprites['encoder'] = 'gauss' # deterministic, gaussian
-config_dsprites['e_arch'] = 'mlp' # mlp, dcgan
-config_dsprites['e_nlayers'] = 2
+config_dsprites['e_arch'] = 'conv_locatello' # mlp, dcgan
+config_dsprites['e_nlayers'] = 4
 config_dsprites['downsample'] = [None,]*config_dsprites['e_nlayers'] #None, True
-config_dsprites['e_nfilters'] = [512,256]
+config_dsprites['e_nfilters'] = [32,32,64,64]
 config_dsprites['e_nonlinearity'] = 'leaky_relu' # soft_plus, relu, leaky_relu, tanh
 
 config_dsprites['decoder'] = 'det' # deterministic, gaussian
-config_dsprites['d_arch'] = 'mlp' # mlp, dcgan
-config_dsprites['d_nlayers'] = 2
+config_dsprites['d_arch'] = 'conv_locatello' # mlp, dcgan
+config_dsprites['d_nlayers'] = 4
 config_dsprites['upsample'] = [None,]*config_dsprites['d_nlayers'] #None, up
-config_dsprites['d_nfilters'] = [512,256]
+config_dsprites['d_nfilters'] = [32,32,64,64]
 config_dsprites['d_nonlinearity'] = 'relu' # soft_plus, relu, leaky_relu, tanh
 
 

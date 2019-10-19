@@ -36,6 +36,12 @@ def encoder(opts, input, output_dim, scope=None, reuse=False,
                                             reuse,
                                             is_training,
                                             dropout_rate)
+        elif opts['e_arch'] == 'conv_locatello':
+            # Fully convolutional architecture similar to Locatello & al.
+            outputs = locatello_encoder(opts, input, output_dim,
+                                            reuse,
+                                            is_training,
+                                            dropout_rate)
         elif opts['e_arch'] == 'resnet':
             assert False, 'To Do'
             # Resnet archi similar to Improved training of WAGAN
@@ -144,6 +150,30 @@ def dcgan_v2_encoder(opts, input, output_dim, reuse=False,
         outputs = ops.conv2d.Conv2d(opts,layer_x,layer_x.get_shape().as_list()[-1],opts['e_nfilters'][i+1],
                 opts['filter_size'][i],stride=1,scope='hid_final',init=opts['conv_init'])
     assert np.prod(outputs.get_shape().as_list()[-1])==output_dim, 'latent dimension mismatch'
+
+    return outputs
+
+def locatello_encoder(opts, input, output_dim, reuse=False,
+                                            is_training=False,
+                                            dropout_rate=1.):
+    """
+    Archi used by Locatello & al.
+    """
+    layer_x = input
+    # Conv block
+    for i in range(opts['e_nlayers']):
+        layer_x = ops.conv2d.Conv2d(opts, layer_x,layer_x.get_shape().as_list()[-1],opts['e_nfilters'][i],
+                4,stride=2,scope='hid{}/conv'.format(i+1),init=opts['conv_init'])
+        layer_x = ops._ops.non_linear(layer_x,'relu')
+        layer_x = tf.nn.dropout(layer_x, keep_prob=dropout_rate)
+    # 256 FC layer
+    layer_x = tf.reshape(layer_x,[-1,np.prod(layer_x.get_shape().as_list()[1:])])
+    layer_x = ops.linear.Linear(opts,layer_x,np.prod(layer_x.get_shape().as_list()[1:]),
+                256, scope='hid_fc')
+    layer_x = ops._ops.non_linear(layer_x,'relu')
+    # Final FC
+    outputs = ops.linear.Linear(opts,layer_x,np.prod(layer_x.get_shape().as_list()[1:]),
+                output_dim, scope='hid_final')
 
     return outputs
 
@@ -318,6 +348,12 @@ def decoder(opts, input, output_dim, scope=None, reuse=False,
                                             reuse,
                                             is_training,
                                             dropout_rate)
+        elif opts['d_arch'] == 'conv_locatello':
+            # Fully convolutional architecture similar to Locatello & al.
+            outputs = locatello_decoder(opts, input, output_dim,
+                                            reuse,
+                                            is_training,
+                                            dropout_rate)
         elif opts['d_arch'] == 'resnet':
             assert False, 'To Do'
             # Fully convolutional architecture similar to improve Wasserstein nGAN
@@ -480,6 +516,39 @@ def  dcgan_v2_decoder(opts, input, archi, num_layers, num_units,
     # Final linear
     outputs = ops.linear.Linear(opts,layer_x,np.prod(layer_x.get_shape().as_list()[1:]),
                 np.prod(output_dim), scope='hid_final')
+
+    return outputs
+
+def  locatello_decoder(opts, input, output_dim, reuse,
+                                            is_training,
+                                            dropout_rate=1.):
+    """
+    Archi used by Locatello & al.
+    """
+
+    # batch_size
+    batch_size = tf.shape(input)[0]
+    # Linear layers
+    h0 = ops.linear.Linear(opts,input,np.prod(input.get_shape().as_list()[1:]),
+                256, scope='hid0/lin0')
+    h0 = ops._ops.non_linear(h0,'relu')
+    h1 = ops.linear.Linear(opts,h0,np.prod(h0.get_shape().as_list()[1:]),
+                4*4*64, scope='hid0/lin1')
+    h1 = ops._ops.non_linear(h1,'relu')
+    h1 = tf.reshape(h1, [-1, 4, 4, 64])
+    layer_x = h1
+    # Conv block
+    for i in range(opts['d_nlayers'] - 1):
+        scale = 2**(i + 1)
+        _out_shape = [batch_size, 2*layer_x.get_shape().as_list()[1],
+                        2*layer_x.get_shape().as_list()[2],
+                        opts['d_nfilters'][opts['d_nlayers']-1-i]]
+        layer_x = ops.deconv2d.Deconv2D(opts, layer_x, layer_x.get_shape().as_list()[-1], _out_shape,
+                   opts['filter_size'][opts['d_nlayers']-1-i], scope='hid%d/deconv' % i, init= opts['conv_init'])
+        layer_x = ops._ops.non_linear(layer_x,'relu')
+        layer_x = tf.nn.dropout(layer_x, keep_prob=dropout_rate)
+    outputs = ops.deconv2d.Deconv2D(opts, layer_x, layer_x.get_shape().as_list()[-1], [batch_size]+output_dim,
+                opts['filter_size'][0], scope='hid_final/deconv', init= opts['conv_init'])
 
     return outputs
 
