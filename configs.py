@@ -125,7 +125,8 @@ config_dsprites['e_pretrain_sample_size'] = 200
 
 # Opt set up
 config_dsprites['optimizer'] = 'adam' # adam, sgd
-config_dsprites['adam_beta1'] = 0.5
+config_dsprites['adam_beta1'] = 0.9
+config_dsprites['adam_beta2'] = 0.999
 config_dsprites['lr'] = 0.001
 config_dsprites['lr_adv'] = 0.0008
 config_dsprites['e_norm'] = 'batchnorm' #batchnorm, layernorm, none
@@ -134,7 +135,7 @@ config_dsprites['batch_norm_eps'] = 1e-05
 config_dsprites['batch_norm_momentum'] = 0.99
 
 # Objective set up
-config_dsprites['cost'] = 'l1' #l2, l2sq, l2sq_norm, l1
+config_dsprites['cost'] = 'l2sq' #l2, l2sq, l2sq_norm, l1
 config_dsprites['penalty'] = 'mmd' #sinkhorn, mmd
 config_dsprites['pen'] = 'wae' #wae, wae_mmd
 config_dsprites['epsilon'] = 0.1 #Sinkhorn regularization parameters
