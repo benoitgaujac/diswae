@@ -12,7 +12,6 @@ from sklearn.manifold import TSNE
 
 import utils
 
-import pdb
 
 def save_train(opts, data_train, data_test,
                      rec_train, rec_test,

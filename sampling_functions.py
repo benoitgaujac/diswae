@@ -50,7 +50,6 @@ def linespace(opts,n,anchors,std):
     for i in range(nanchors):
         grid = np.transpose(np.linspace(anchors[i]-3*std,anchors[i]+3*std,n,endpoint=True))   #shape: [zdim,n]
         interpolation = []
-        inter = np.stack([anchors[i] for j in range(n)],axis=0)
         for d in range(opts['zdim']):
             int = np.stack([anchors[i] for j in range(n)],axis=0)
             int[:,d]=grid[d]

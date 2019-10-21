@@ -1,15 +1,7 @@
-import sys
-import time
-import os
-from math import sqrt, cos, sin, pow, pi
-import numpy as np
+from math import pi
 import tensorflow as tf
 
 import utils
-from datahandler import datashapes
-from ops._ops import logsumexp, logsumexp_v2
-
-import pdb
 
 
 def kl_penalty(pz_mean, pz_sigma, encoded_mean, encoded_sigma):

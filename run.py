@@ -1,25 +1,25 @@
 import os
-import sys
 import logging
 import argparse
 import configs
-from wae import WAE
+from train import WAE
 from datahandler import DataHandler
 import utils
 
 import tensorflow as tf
-import itertools
-
-import pdb
 
 parser = argparse.ArgumentParser()
 # Args for experiment
+parser.add_argument("--model", default='WAE',
+                    help='model to train [WAE/betaVAE/...]')
 parser.add_argument("--mode", default='train',
                     help='mode to run [train/vizu/fid/test]')
 parser.add_argument("--exp", default='mnist',
                     help='dataset [mnist/cifar10/].'\
                     ' celebA/dsprites Not implemented yet')
 parser.add_argument("--method", default='wae')
+parser.add_argument("--data_dir", type=str, default='../data',
+                    help='directory in which data is stored')
 parser.add_argument("--work_dir")
 parser.add_argument("--enet_archi", default='mlp',
                     help='encoder networks architecture [mlp/dcgan_v2/resnet]')
@@ -44,10 +44,6 @@ def main():
         opts = configs.config_celebA_small
     elif FLAGS.exp == 'mnist':
         opts = configs.config_mnist
-    elif FLAGS.exp == 'fashion_mnist':
-        opts = configs.config_mnist
-        opts['dataset'] = 'zalando'
-        opts['data_dir'] = 'zalando'
     elif FLAGS.exp == 'mnist_small':
         opts = configs.config_mnist_small
     elif FLAGS.exp == 'cifar10':
@@ -65,6 +61,8 @@ def main():
     if FLAGS.method:
         opts['method'] = FLAGS.method
 
+    # Data directory
+    opts['data_dir'] = FLAGS.data_dir
     # Working directory
     if FLAGS.work_dir:
         opts['work_dir'] = FLAGS.work_dir
@@ -77,7 +75,7 @@ def main():
 
     # Experiemnts set up
     opts['epoch_num'] = 1001
-    opts['print_every'] = 100*469
+    opts['print_every'] = 100
     opts['lr'] = 0.001
     opts['dropout_rate'] = 1.
     opts['batch_size'] = 128
@@ -139,7 +137,7 @@ def main():
             text.write('Parameters:\n')
             for key in opts:
                 text.write('%s : %s\n' % (key, opts[key]))
-        wae.train(data, FLAGS.weights_file)
+        wae.train(data, FLAGS.weights_file, )
     # elif FLAGS.mode=="vizu":
     #     opts['rec_loss_nsamples'] = 1
     #     opts['sample_recons'] = False
