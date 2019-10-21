@@ -86,7 +86,7 @@ def main():
     opts['zdim'] = 10
 
     # Penalty
-    lmba0 = [1,2,5,10,20,50,100,200
+    lmba0 = [1,2,5,10,20,50,100,200]
     lmba1 = [1,2,5,10,20,50,100,200]
     lmba = list(itertools.product(lmba0,lmba1))
     opts['lambda'] = lmba[FLAGS.lmba-1]
