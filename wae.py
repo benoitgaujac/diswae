@@ -134,7 +134,6 @@ class WAE(object):
         else:
             decoded=tf.nn.sigmoid(decoded)
         self.decoded = tf.reshape(decoded,[-1]+datashapes[opts['dataset']])
-
         # --- Objectives, penalties, sigma pen, FID
         shuffle_mask = [tf.constant(np.random.choice(np.arange(opts['batch_size']),opts['batch_size'],False)) for i in range(opts['zdim'])]
         shuffled_mean = []

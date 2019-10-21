@@ -134,7 +134,7 @@ config_dsprites['batch_norm_eps'] = 1e-05
 config_dsprites['batch_norm_momentum'] = 0.99
 
 # Objective set up
-config_dsprites['cost'] = 'l2sq' #l2, l2sq, l2sq_norm, l1
+config_dsprites['cost'] = 'l1' #l2, l2sq, l2sq_norm, l1
 config_dsprites['penalty'] = 'mmd' #sinkhorn, mmd
 config_dsprites['pen'] = 'wae' #wae, wae_mmd
 config_dsprites['epsilon'] = 0.1 #Sinkhorn regularization parameters
@@ -159,7 +159,7 @@ config_dsprites['lambda_schedule'] = 'constant' # adaptive, constant
 config_dsprites['init_std'] = 0.99999
 config_dsprites['init_bias'] = 0.0
 config_dsprites['mlp_init'] = 'glorot_uniform' #normal, he, glorot, glorot_he, glorot_uniform, ('uniform', range)
-config_dsprites['conv_init'] = 'he' #he, glorot, normilized_glorot, truncated_norm
+config_dsprites['conv_init'] = 'normilized_glorot' #he, glorot, normilized_glorot, truncated_norm
 config_dsprites['filter_size'] = [4,4,4,4]
 
 
@@ -174,7 +174,7 @@ config_dsprites['decoder'] = 'det' # deterministic, gaussian
 config_dsprites['d_arch'] = 'conv_locatello' # mlp, dcgan
 config_dsprites['d_nlayers'] = 4
 config_dsprites['upsample'] = [None,]*config_dsprites['d_nlayers'] #None, up
-config_dsprites['d_nfilters'] = [32,32,64,64]
+config_dsprites['d_nfilters'] = [32,32,32,64]
 config_dsprites['d_nonlinearity'] = 'relu' # soft_plus, relu, leaky_relu, tanh
 
 

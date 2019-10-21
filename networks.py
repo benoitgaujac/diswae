@@ -163,7 +163,7 @@ def locatello_encoder(opts, input, output_dim, reuse=False,
     # Conv block
     for i in range(opts['e_nlayers']):
         layer_x = ops.conv2d.Conv2d(opts, layer_x,layer_x.get_shape().as_list()[-1],opts['e_nfilters'][i],
-                4,stride=2,scope='hid{}/conv'.format(i+1),init=opts['conv_init'])
+                opts['filter_size'][i],stride=2,scope='hid{}/conv'.format(i+1),init=opts['conv_init'])
         layer_x = ops._ops.non_linear(layer_x,'relu')
         layer_x = tf.nn.dropout(layer_x, keep_prob=dropout_rate)
     # 256 FC layer
@@ -539,7 +539,6 @@ def  locatello_decoder(opts, input, output_dim, reuse,
     layer_x = h1
     # Conv block
     for i in range(opts['d_nlayers'] - 1):
-        scale = 2**(i + 1)
         _out_shape = [batch_size, 2*layer_x.get_shape().as_list()[1],
                         2*layer_x.get_shape().as_list()[2],
                         opts['d_nfilters'][opts['d_nlayers']-1-i]]
@@ -548,7 +547,7 @@ def  locatello_decoder(opts, input, output_dim, reuse,
         layer_x = ops._ops.non_linear(layer_x,'relu')
         layer_x = tf.nn.dropout(layer_x, keep_prob=dropout_rate)
     outputs = ops.deconv2d.Deconv2D(opts, layer_x, layer_x.get_shape().as_list()[-1], [batch_size]+output_dim,
-                opts['filter_size'][0], scope='hid_final/deconv', init= opts['conv_init'])
+                opts['filter_size'][0], stride=2, scope='hid_final/deconv', init= opts['conv_init'])
 
     return outputs
 

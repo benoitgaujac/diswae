@@ -143,11 +143,12 @@ def save_train(opts, data_train, data_test,
     base = plt.cm.get_cmap('tab10')
     color_list = base(np.linspace(0, 1, 5))
     ax = plt.subplot(gs[1, 1])
-    for i, los, lab in zip([j for j in range(4)],
+    for i, los, lmba, lab in zip([j for j in range(4)],
                             [loss_rec, loss_hsic, loss_dim, loss_wae],
+                            [1., opts['lambda'][1],opts['lambda'][0],min(opts['lambda'])],
                             ['rec','|hsci|]','|dimwise|','|wae|']):
         l = np.array(los)
-        y = np.log(np.abs(l[::x_step]))
+        y = np.log(lmba*np.abs(l[::x_step]))
         plt.plot(x, y, linewidth=2, color=color_list[i], label=lab)
     plt.grid(axis='y')
     plt.legend(loc='upper right')
