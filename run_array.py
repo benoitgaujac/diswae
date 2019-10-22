@@ -32,8 +32,8 @@ parser.add_argument("--dnet_archi", default='mlp',
                     help='decoder networks architecture [mlp/dcgan_v2/resnet]')
 parser.add_argument("--idx_lmba", type=int, default=0,
                     help='idx lambda setup')
-parser.add_argument("--beta", type=float, default=10.,
-                    help='beta coeff for BetaVAE model')
+parser.add_argument("--idx_beta", type=float, default=10.,
+                    help='idx lambda setup')
 parser.add_argument("--weights_file")
 parser.add_argument('--gpu_id', default='cpu',
                     help='gpu id for DGX box. Default is cpu')
@@ -66,8 +66,8 @@ def main():
         assert False, 'Unknown experiment dataset'
 
     # Select training method
-    if FLAGS.method:
-        opts['method'] = FLAGS.method
+    if FLAGS.model:
+        opts['model'] = FLAGS.model
 
     # Data directory
     opts['data_dir'] = FLAGS.data_dir
@@ -93,15 +93,14 @@ def main():
 
     # Objective Function Coefficients
     if opts['model'] == 'WAE':
-        opts['lambda'] = [FLAGS.lmba0, FLAGS.lmba1]
+        # Penalty
+        lmba0 = [10**i for i in range(-2,3)]
+        lmba1 = [10**i for i in range(-2,3)]
+        lmba = list(itertools.product(lmba0,lmba1))
+        opts['lambda'] = lmba[FLAGS.lmba-1]
     elif opts['model'] == 'BetaVAE':
-        opts['beta'] = FLAGS.beta
-
-    # Penalty
-    lmba0 = [10**i for i in range(-2,3)]
-    lmba1 = [10**i for i in range(-2,3)]
-    lmba = list(itertools.product(lmba0,lmba1))
-    opts['lambda'] = lmba[FLAGS.lmba-1]
+        beta = [10**i for i in range(-2,3)]
+        opts['beta'] = beta[FLAGS.beta-1]
 
     # NN set up
     opts['filter_size'] = [4,4,4,4]
