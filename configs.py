@@ -43,6 +43,7 @@ config_mnist['e_norm'] = 'batchnorm' #batchnorm, layernorm, none
 config_mnist['d_norm'] = 'batchnorm' #batchnorm, layernorm, none
 config_mnist['batch_norm_eps'] = 1e-05
 config_mnist['batch_norm_momentum'] = 0.99
+config_mnist['dropout_rate'] = 1.
 
 # Objective set up
 config_mnist['cost'] = 'l2sq' #l2, l2sq, l2sq_norm, l1
@@ -131,6 +132,7 @@ config_dsprites['e_norm'] = 'batchnorm' #batchnorm, layernorm, none
 config_dsprites['d_norm'] = 'batchnorm' #batchnorm, layernorm, none
 config_dsprites['batch_norm_eps'] = 1e-05
 config_dsprites['batch_norm_momentum'] = 0.99
+config_dsprites['dropout_rate'] = 1.
 
 # Objective set up
 config_dsprites['cost'] = 'l2sq' #l2, l2sq, l2sq_norm, l1
@@ -218,6 +220,7 @@ config_smallNORB['e_norm'] = 'batchnorm' #batchnorm, layernorm, none
 config_smallNORB['d_norm'] = 'batchnorm' #batchnorm, layernorm, none
 config_smallNORB['batch_norm_eps'] = 1e-05
 config_smallNORB['batch_norm_momentum'] = 0.99
+config_smallNORB['dropout_rate'] = 1.
 
 # Objective set up
 config_smallNORB['cost'] = 'l2sq' #l2, l2sq, l2sq_norm, l1
@@ -305,6 +308,7 @@ config_svhn['e_norm'] = 'batchnorm' #batchnorm, layernorm, none
 config_svhn['d_norm'] = 'layernorm' #batchnorm, layernorm, none
 config_svhn['batch_norm_eps'] = 1e-05
 config_svhn['batch_norm_momentum'] = 0.99
+config_svhn['dropout_rate'] = 1.
 
 # Objective set up
 config_svhn['coef_rec'] = 1. # coef recon loss
