@@ -2,7 +2,7 @@ import os
 import logging
 import argparse
 import configs
-from train import WAE
+from train import WAE, BetaVAE
 from datahandler import DataHandler
 import utils
 
@@ -10,14 +10,13 @@ import tensorflow as tf
 
 parser = argparse.ArgumentParser()
 # Args for experiment
-parser.add_argument("--model", default='WAE',
-                    help='model to train [WAE/betaVAE/...]')
+parser.add_argument("--model", default='BetaVAE',
+                    help='model to train [WAE/BetaVAE/...]')
 parser.add_argument("--mode", default='train',
                     help='mode to run [train/vizu/fid/test]')
 parser.add_argument("--exp", default='mnist',
                     help='dataset [mnist/cifar10/].'\
                     ' celebA/dsprites Not implemented yet')
-parser.add_argument("--method", default='wae')
 parser.add_argument("--data_dir", type=str, default='../data',
                     help='directory in which data is stored')
 parser.add_argument("--work_dir")
@@ -26,9 +25,11 @@ parser.add_argument("--enet_archi", default='mlp',
 parser.add_argument("--dnet_archi", default='mlp',
                     help='decoder networks architecture [mlp/dcgan_v2/resnet]')
 parser.add_argument("--lmba0", type=float, default=10.,
-                    help='lambda dimension wise match')
+                    help='lambda dimension wise match for WAE')
 parser.add_argument("--lmba1", type=float, default=10.,
-                    help='lambda hsic')
+                    help='lambda hsic for WAE')
+parser.add_argument("--beta", type=float, default=10.,
+                    help='beta coeff for BetaVAE model')
 parser.add_argument("--weights_file")
 parser.add_argument('--gpu_id', default='cpu',
                     help='gpu id for DGX box. Default is cpu')
@@ -58,8 +59,8 @@ def main():
         assert False, 'Unknown experiment dataset'
 
     # Select training method
-    if FLAGS.method:
-        opts['method'] = FLAGS.method
+    if FLAGS.model:
+        opts['model'] = FLAGS.model
 
     # Data directory
     opts['data_dir'] = FLAGS.data_dir
@@ -86,8 +87,11 @@ def main():
     # Model set up
     opts['zdim'] = 8
 
-    # Penalty
-    opts['lambda'] = [FLAGS.lmba0,FLAGS.lmba1]
+    # Objective Function Coefficients
+    if opts['model'] == 'WAE':
+        opts['lambda'] = [FLAGS.lmba0, FLAGS.lmba1]
+    elif opts['model'] == 'BetaVAE':
+        opts['beta'] = FLAGS.beta
 
     # NN set up
     opts['filter_size'] = [5,3]
@@ -103,9 +107,9 @@ def main():
     opts['d_nfilters'] = [512,256]
 
     # Create directories
-    if not tf.gfile.IsDirectory(opts['method']):
-        utils.create_dir(opts['method'])
-    work_dir = os.path.join(opts['method'],opts['work_dir'])
+    if not tf.gfile.IsDirectory(opts['model']):
+        utils.create_dir(opts['model'])
+    work_dir = os.path.join(opts['model'],opts['work_dir'])
     opts['work_dir'] = work_dir
     if not tf.gfile.IsDirectory(work_dir):
         utils.create_dir(work_dir)
@@ -123,12 +127,12 @@ def main():
     tf.reset_default_graph()
 
     # build WAE/VAE
-    if opts['method']=='wae':
-        wae = WAE(opts)
-    # elif opts['method']=='vae':
-    #     wae = VAE(opts)
+    if opts['model']=='WAE':
+        model = WAE(opts)
+    elif opts['model']=='BetaVAE':
+        model = BetaVAE(opts)
     else:
-        assert False, 'Unknown methdo %s' % opts['method']
+        assert False, 'Unknown methdo %s' % opts['model']
 
     # Training/testing/vizu
     if FLAGS.mode=="train":
@@ -137,7 +141,7 @@ def main():
             text.write('Parameters:\n')
             for key in opts:
                 text.write('%s : %s\n' % (key, opts[key]))
-        wae.train(data, FLAGS.weights_file, )
+        model.train(data, FLAGS.weights_file, model=FLAGS.model)
     # elif FLAGS.mode=="vizu":
     #     opts['rec_loss_nsamples'] = 1
     #     opts['sample_recons'] = False

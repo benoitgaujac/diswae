@@ -1,35 +1,22 @@
-# Copyright 2017 Max Planck Society
-# Distributed under the BSD-3 Software license,
-# (See accompanying file ./LICENSE.txt or copy at
-# https://opensource.org/licenses/BSD-3-Clause)
-
 """
-Wasserstein Auto-Encoder models
+Auto-Encoder models
 """
 
-import sys
 import time
 import os
 import logging
 
-from math import sqrt, cos, sin, pi
 import numpy as np
 import tensorflow as tf
 
 import utils
 from sampling_functions import sample_pz, sample_gaussian, linespace
-from loss_functions import matching_penalty, reconstruction_loss
-from plot_functions import save_train, save_latent_interpolation, save_vlae_experiment
+from loss_functions import matching_penalty, reconstruction_loss, kl_penalty
+from plot_functions import save_train
 from plot_functions import plot_embedded, plot_encSigma, plot_interpolation
 from networks import encoder, decoder
 from datahandler import datashapes
 
-# Path to inception model and stats for training set
-sys.path.append('../TTUR')
-sys.path.append('../inception')
-inception_path = '../inception'
-inception_model = os.path.join(inception_path, 'classify_image_graph_def.pb')
-layername = 'FID_Inception_Net/pool_3:0'
 
 
 class Model(object):
@@ -51,9 +38,9 @@ class Model(object):
         self.add_training_placeholders()
 
         # --- Initialize prior parameters
-        mean = np.zeros(opts['zdim'], dtype='float32')
-        Sigma = np.ones(opts['zdim'], dtype='float32')
-        self.pz_params = np.concatenate([mean,Sigma],axis=0)
+        self.pz_mean = np.zeros(opts['zdim'], dtype='float32')
+        self.pz_sigma = np.ones(opts['zdim'], dtype='float32')
+        self.pz_params = np.concatenate([self.pz_mean, self.pz_sigma], axis=0)
 
         # --- Initialize list container
         encSigmas_stats = []
@@ -146,8 +133,6 @@ class Model(object):
     def add_training_placeholders(self):
         self.lr_decay = tf.placeholder(tf.float32, name='rate_decay_ph')
         self.is_training = tf.placeholder(tf.bool, name='is_training_ph')
-        self.lmbd1 = tf.placeholder(tf.float32, name='lambda1_ph')
-        self.lmbd2 = tf.placeholder(tf.float32, name='lambda2_ph')
         self.dropout_rate = tf.placeholder(tf.float32, name='dropout_rate_ph')
         self.batch_size = tf.placeholder(tf.int32, name='batch_size_ph')
 
@@ -221,7 +206,7 @@ class Model(object):
                   o.__dict__['_shape_val'] = tf.TensorShape(new_shape)
         return pool3
 
-    def train(self, data, WEIGHTS_FILE, model='WAE'):
+    def train(self, data, WEIGHTS_FILE, model):
         """
         Train top-down model with chosen method
         """
@@ -236,7 +221,7 @@ class Model(object):
                 raise Exception("weights file doesn't exist")
             self.saver.restore(self.sess, WEIGHTS_FILE)
         else:
-            self.sess.run(self.init)
+            self.sess.run(self.initializer)
             if opts['e_pretrain']:
                 logging.error('Pretraining the encoder\n')
                 self.pretrain_encoder(data)
@@ -267,6 +252,8 @@ class Model(object):
         # - Init all monitoring variables
         if model == 'WAE':
             Loss_hsic, Loss_dim, Loss_wae = [], [], []
+        elif model == 'BetaVAE':
+            Loss_kl = []
         else:
             raise NotImplementedError('Model type not recognised')
 
@@ -276,7 +263,6 @@ class Model(object):
         decay, counter = 1., 0
         decay_steps, decay_rate = int(batches_num * opts['epoch_num'] / 5), 0.98
         wait, wait_lambda = 0, 0
-        wae_lambda = opts['lambda']
         self.start_time = time.time()
         for epoch in range(opts['epoch_num']):
             # Saver
@@ -304,18 +290,11 @@ class Model(object):
                 if model == 'WAE':
                     feed_dict[self.lmbd1] = opts['lambda'][0]
                     feed_dict[self.lmbd2] = opts['lambda'][1]
+                elif model == 'BetaVAE':
+                    feed_dict[self.beta] = opts['beta']
                 else:
                     raise NotImplementedError('Model type not recognised')
 
-                # Update encoder and decoder
-                # [_, loss, loss_rec, loss_hsic, loss_dim, loss_wae] = self.sess.run([
-                #                                 self.vae_opt,
-                #                                 self.objective,
-                #                                 self.loss_reconstruct,
-                #                                 self.hsic_match_penalty,
-                #                                 self.dimension_wise_match_penalty,
-                #                                 self.wae_match_penalty],
-                #                                 feed_dict=feed_dict)
                 [_, loss, loss_breakdown] = self.sess.run([
                                                 self.vae_opt,
                                                 self.objective,
@@ -326,6 +305,9 @@ class Model(object):
                     Loss_hsic.append(loss_hsic)
                     Loss_dim.append(loss_dim)
                     Loss_wae.append(loss_wae)
+                elif model == 'BetaVAE':
+                    (loss_rec, loss_kl) = loss_breakdown
+                    Loss_kl.append(loss_kl)
                 else:
                     raise NotImplementedError('Model type not recognised')
 
@@ -351,12 +333,19 @@ class Model(object):
                         data_ids =  np.random.choice(test_size, batch_size_te,
                                                 replace=True)
                         batch_images = data.test_data[data_ids].astype(np.float32)
+
+                        test_feed_dict = {self.points: batch_images,
+                                          self.dropout_rate: 1.,
+                                          self.is_training: False}
+                        if model == 'WAE':
+                            test_feed_dict[self.lmbd1] = opts['lambda'][0]
+                            test_feed_dict[self.lmbd2] = opts['lambda'][1]
+                        elif model == 'BetaVAE':
+                            test_feed_dict[self.beta] = opts['beta']
+                        else:
+                            raise NotImplementedError('Model type not recognised')
                         l = self.sess.run(self.loss_reconstruct,
-                                                feed_dict={self.points:batch_images,
-                                                           self.lmbd1: opts['lambda'][0],
-                                                           self.lmbd2: opts['lambda'][1],
-                                                           self.dropout_rate: 1.,
-                                                           self.is_training:False})
+                                          feed_dict=test_feed_dict)
                         loss_rec_test += l / batches_num_te
                     Loss_rec_test.append(loss_rec_test)
 
@@ -448,6 +437,11 @@ class Model(object):
                                                     Loss_hsic[-1],
                                                     Loss_dim[-1],
                                                     Loss_wae[-1])
+                    elif model == 'BetaVAE':
+                        debug_str = 'REC=%.3f, REC TEST=%.3f, KL=%10.3e\n ' % (
+                                                    Loss_rec[-1],
+                                                    Loss_rec_test[-1],
+                                                    Loss_kl[-1])
                     else:
                         raise NotImplementedError('Model type not recognised')
                     logging.error(debug_str)
@@ -462,6 +456,8 @@ class Model(object):
                                          Loss_hsic, Loss_dim, Loss_wae,  # reg losses
                                          work_dir,  # working directory
                                          'res_e%04d_mb%05d.png' % (epoch, it))  # filename
+                    elif model == 'BetaVAE':
+                        print('Need to modify save_train function to work for BetaVAE')
                     else:
                         raise NotImplementedError('Model type not recognised')
 
@@ -512,13 +508,22 @@ class Model(object):
             name = 'res_train_final'
             if model == 'WAE':
                 np.savez(os.path.join(save_path,name),
-                            data_test=data.data[200:200+npics], data_train=data.test_data[:npics],
-                            encoded = encoded,
-                            rec_train=reconstructed_train, rec_test=reconstructed_test[:npics],
-                            samples=samples,
-                            loss=np.array(Loss),
-                            loss_rec=np.array(Loss_rec), loss_rec_test=np.array(Loss_rec_test),
-                            loss_hsci=np.array(Loss_hsic), loss_dim=np.array(Loss_dim), loss_wae=np.array(Loss_wae))
+                         data_test=data.data[200:200+npics], data_train=data.test_data[:npics],
+                         encoded = encoded,
+                         rec_train=reconstructed_train, rec_test=reconstructed_test[:npics],
+                         samples=samples,
+                         loss=np.array(Loss),
+                         loss_rec=np.array(Loss_rec), loss_rec_test=np.array(Loss_rec_test),
+                         loss_hsci=np.array(Loss_hsic), loss_dim=np.array(Loss_dim), loss_wae=np.array(Loss_wae))
+            elif model == 'BetaVAE':
+                np.savez(os.path.join(save_path, name),
+                         data_test=data.data[200:200 + npics], data_train=data.test_data[:npics],
+                         encoded=encoded,
+                         rec_train=reconstructed_train, rec_test=reconstructed_test[:npics],
+                         samples=samples,
+                         loss=np.array(Loss),
+                         loss_rec=np.array(Loss_rec), loss_rec_test=np.array(Loss_rec_test),
+                         loss_kl=np.array(Loss_kl))
             else:
                 raise NotImplementedError('Model type not recognised')
 
@@ -547,7 +552,11 @@ class WAE(Model):
         self.hsic_match_penalty = matching_penalty(opts, self.shuffled_encoded, self.samples)
         # - WAE latent reg
         self.wae_match_penalty = matching_penalty(opts, self.encoded, self.samples)
+
         # - Compute objs
+        self.lmbd1 = tf.placeholder(tf.float32, name='lambda1_ph')
+        self.lmbd2 = tf.placeholder(tf.float32, name='lambda2_ph')
+
         self.objective = self.loss_reconstruct \
                          + self.lmbd1 * self.dimension_wise_match_penalty \
                          + self.lmbd2 * self.hsic_match_penalty
@@ -559,37 +568,57 @@ class WAE(Model):
         # - Dec Sigma penalty
         if opts['pen_dec_sigma']:
             self.objective += self.pen_dec_sigma
-        # - FID score
-        if opts['fid']:
-            self.blurriness = self.compute_blurriness()
-            self.inception_graph = tf.Graph()
-            self.inception_sess = tf.Session(graph=self.inception_graph)
-            with self.inception_graph.as_default():
-                self.create_inception_graph()
-            self.inception_layer = self._get_inception_layer()
-
-        # --- Disentangle metrics
-        """
-        TODO
-        # - betaVAE
-        self.betaVAE = todo
-        # - factorVAE
-        self.factorVAE = todo
-        # - MIG
-        self.mig = todo
-        # - DCI
-        self.dci = todo
-        """
 
         # --- Optimizers, savers, etc
         self.add_optimizers()
         self.add_savers()
-        self.init = tf.global_variables_initializer()
+        self.initializer = tf.global_variables_initializer()
 
 
 class BetaVAE(Model):
     def __init__(self, opts):
 
+        super().__init__(opts)
+
+        # - Compute objs
+        self.beta = tf.placeholder(tf.float32, name='beta_ph')
+
+        self.kl = kl_penalty(self.pz_mean, self.pz_sigma, self.enc_mean, self.enc_Sigma)
+
+        self.objective = self.loss_reconstruct - self.beta * self.kl
+
+        self.loss_breakdown = (self.loss_reconstruct, self.kl)
+
+        # --- Optimizers, savers, etc
+        self.add_optimizers()
+        self.add_savers()
+        self.initializer = tf.global_variables_initializer()
+
+
+class TCBetaVAE(Model):
+    def __init__(self, opts):
+
+        super().__init__(opts)
+
+        raise NotImplementedError()
+
+
+class FactorVAE(Model):
+    def __init__(self, opts):
+        super().__init__(opts)
+
+        raise NotImplementedError()
+
+
+class DCI(Model):
+    def __init__(self, opts):
+        super().__init__(opts)
+
+        raise NotImplementedError()
+
+
+class MIG(Model):
+    def __init__(self, opts):
         super().__init__(opts)
 
         raise NotImplementedError()
