@@ -10,7 +10,7 @@ import tensorflow as tf
 
 parser = argparse.ArgumentParser()
 # Args for experiment
-parser.add_argument("--model", default='BetaVAE',
+parser.add_argument("--model", default='WAE',
                     help='model to train [WAE/BetaVAE/...]')
 parser.add_argument("--mode", default='train',
                     help='mode to run [train/vizu/fid/test]')
@@ -20,6 +20,8 @@ parser.add_argument("--exp", default='mnist',
 parser.add_argument("--data_dir", type=str, default='../data',
                     help='directory in which data is stored')
 parser.add_argument("--work_dir")
+parser.add_argument("--enum", type=int, default=100,
+                    help='epoch number')
 parser.add_argument("--enet_archi", default='mlp',
                     help='encoder networks architecture [mlp/dcgan_v2/resnet]')
 parser.add_argument("--dnet_archi", default='mlp',
@@ -52,7 +54,7 @@ def main():
     elif FLAGS.exp == 'dsprites':
         opts = configs.config_dsprites
     elif FLAGS.exp == 'smallNORB':
-        opts = configs.config_smallNORB    
+        opts = configs.config_smallNORB
     elif FLAGS.exp == 'grassli':
         opts = configs.config_grassli
     elif FLAGS.exp == 'grassli_small':
@@ -77,17 +79,14 @@ def main():
         opts['fid'] = False
 
     # Experiemnts set up
-    opts['epoch_num'] = 1001
-    opts['print_every'] = 100
-    opts['lr'] = 0.001
-    opts['dropout_rate'] = 1.
-    opts['batch_size'] = 128
-    opts['save_every_epoch'] = 10000*469
-    opts['save_final'] = True
-    opts['save_train_data'] = True
+    opts['epoch_num'] = FLAGS.enum
+    opts['print_every'] = 30000
+    opts['save_every_epoch'] = 1000000
+    opts['save_final'] = False
+    opts['save_train_data'] = False
 
     # Model set up
-    opts['zdim'] = 8
+    opts['zdim'] = 10
 
     # Objective Function Coefficients
     if opts['model'] == 'WAE':
@@ -101,12 +100,13 @@ def main():
     opts['e_arch'] = FLAGS.enet_archi # mlp, dcgan, dcgan_v2, resnet
     opts['e_nlayers'] = 2
     opts['downsample'] = [None,]*opts['e_nlayers'] #None, True
-    opts['e_nfilters'] = [512,256]
+    opts['e_nfilters'] = [1200,1200]
     opts['e_nonlinearity'] = 'relu' # soft_plus, relu, leaky_relu, tanh
     opts['d_arch'] =  FLAGS.enet_archi # mlp, dcgan, dcgan_v2, resnet
     opts['upsample'] = [None,]*opts['d_nlayers'] #None, up
-    opts['d_nlayers'] = 2
-    opts['d_nfilters'] = [512,256]
+    opts['d_nlayers'] = 3
+    opts['d_nfilters'] = [1200,1200,1200]
+    opts['d_nonlinearity'] = 'tanh' # soft_plus, relu, leaky_relu, tanh
 
     # Create directories
     if not tf.gfile.IsDirectory(opts['model']):
