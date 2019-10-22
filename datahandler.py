@@ -15,6 +15,7 @@ import numpy as np
 from six.moves import cPickle
 import urllib.request
 from scipy.io import loadmat
+import struct
 from PIL import Image
 import sys
 import tarfile
@@ -464,27 +465,76 @@ class DataHandler(object):
 
         """
 
-        def _read_binary_matrix(filename):
-            """Reads and returns binary formatted matrix stored in filename."""
-            with tf.gfile.GFile(filename, "rb") as f:
-                s = f.read()
-                magic = int(np.frombuffer(s, "int32", 1))
-                ndim = int(np.frombuffer(s, "int32", 1, 4))
-                eff_dim = max(3, ndim)
-                raw_dims = np.frombuffer(s, "int32", eff_dim, 8)
-                dims = []
-                for i in range(0, ndim):
-                    dims.append(raw_dims[i])
+        # def _read_binary_matrix(filename):
+        #     """Reads and returns binary formatted matrix stored in filename."""
+        #     with tf.gfile.GFile(filename, "rb") as f:
+        #         s = f.read()
+        #         magic = int(np.frombuffer(s, "<int32", 1))
+        #         ndim = int(np.frombuffer(s, "<int32", 1, 4))
+        #         eff_dim = max(3, ndim)
+        #         raw_dims = np.frombuffer(s, "<int32", eff_dim, 8)
+        #         dims = []
+        #         for i in range(0, ndim):
+        #             dims.append(raw_dims[i])
+        #
+        #         dtype_map = {
+        #             507333717: "int8",
+        #             507333716: "int32",
+        #             507333713: "float",
+        #             507333715: "double"
+        #         }
+        #         data = np.frombuffer(s, dtype_map[magic], offset=8 + eff_dim * 4)
+        #     data = data.reshape(tuple(dims))
+        #     return data
+        # X = _read_binary_matrix(os.path.join(data_dir, 'smallnorb-5x46789x9x18x6x2x96x96-training-dat.mat'))
 
-                dtype_map = {
-                    507333717: "int8",
-                    507333716: "int32",
-                    507333713: "float",
-                    507333715: "double"
-                }
-                data = np.frombuffer(s, dtype_map[magic], offset=8 + eff_dim * 4)
-            data = data.reshape(tuple(dims))
-            return data
+        def matrix_type_from_magic(magic_number):
+            """
+            Get matrix data type from magic number
+            See here: https://cs.nyu.edu/~ylclab/data/norb-v1.0-small/readme for details.
+            Parameters
+            ----------
+            magic_number: tuple
+                First 4 bytes read from small NORB files
+            Returns
+            -------
+            element type of the matrix
+            """
+            convention = {'1E3D4C51': 'single precision matrix',
+                          '1E3D4C52': 'packed matrix',
+                          '1E3D4C53': 'double precision matrix',
+                          '1E3D4C54': 'integer matrix',
+                          '1E3D4C55': 'byte matrix',
+                          '1E3D4C56': 'short matrix'}
+            magic_str = bytearray(reversed(magic_number)).hex().upper()
+            return convention[magic_str]
+
+        def _parse_smallNORB_header(file_pointer):
+            """
+            Parse header of small NORB binary file
+
+            Parameters
+            ----------
+            file_pointer: BufferedReader
+                File pointer just opened in a small NORB binary file
+            Returns
+            -------
+            file_header_data: dict
+                Dictionary containing header information
+            """
+            # Read magic number
+            magic = struct.unpack('<BBBB', file_pointer.read(4))  # '<' is little endian)
+
+            # Read dimensions
+            dimensions = []
+            num_dims, = struct.unpack('<i', file_pointer.read(4))  # '<' is little endian)
+            for _ in range(num_dims):
+                dimensions.extend(struct.unpack('<i', file_pointer.read(4)))
+
+            file_header_data = {'magic_number': magic,
+                                'matrix_type': matrix_type_from_magic(magic),
+                                'dimensions': dimensions}
+            return file_header_data
 
         def _resize_images(integer_images):
             resized_images = np.zeros((integer_images.shape[0], 64, 64))
@@ -495,11 +545,19 @@ class DataHandler(object):
             return resized_images / 255.
 
         logging.error('Loading smallNORB')
-        data_dir = _data_dir(opts)
+        file_path = os.path.join(_data_dir(opts), 'smallnorb-5x46789x9x18x6x2x96x96-training-dat.mat')
         # Training data
-        X = _read_binary_matrix(os.path.join(data_dir, 'smallnorb-5x46789x9x18x6x2x96x96-training-dat.mat'))
+        with open(file_path, mode='rb') as f:
+            header = _parse_smallNORB_header(f)
+            num_examples, channels, height, width = header['dimensions']
+            X = np.zeros(shape=(num_examples, 2, height, width), dtype=np.uint8)
+            for i in range(num_examples):
+                # Read raw image data and restore shape as appropriate
+                image = struct.unpack('<' + height * width * 'B', f.read(height * width))
+                image = np.uint8(np.reshape(image, newshape=(height, width)))
+                X[i] = image
         X = _resize_images(X[:, 0])
-        X = np.expand_dims(X,-1)
+        X = np.expand_dims(X,axis=-1)
         seed = 123
         np.random.seed(seed)
         np.random.shuffle(X)
@@ -508,9 +566,18 @@ class DataHandler(object):
         self.data = Data(opts, X)
         self.num_points = len(self.data)
         # Testing data
-        X = _read_binary_matrix(os.path.join(data_dir, 'smallnorb-5x01235x9x18x6x2x96x96-testing-dat.mat'))
+        file_path = os.path.join(_data_dir(opts), 'smallnorb-5x01235x9x18x6x2x96x96-testing-dat.mat')
+        with open(file_path, mode='rb') as f:
+            header = _parse_smallNORB_header(f)
+            num_examples, channels, height, width = header['dimensions']
+            X = np.zeros(shape=(num_examples, 2, height, width), dtype=np.uint8)
+            for i in range(num_examples):
+                # Read raw image data and restore shape as appropriate
+                image = struct.unpack('<' + height * width * 'B', f.read(height * width))
+                image = np.uint8(np.reshape(image, newshape=(height, width)))
+                X[i] = image
         X = _resize_images(X[:, 0])
-        X = np.expand_dims(X,-1)
+        X = np.expand_dims(X,axis=-1)
         seed = 123
         np.random.seed(seed)
         np.random.shuffle(X)
