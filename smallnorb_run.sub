@@ -1,0 +1,19 @@
+#!/bin/bash
+
+#$ -S /bin/bash
+
+#$ -wd /home/bgaujac/diswae
+
+#$ -l gpu=1
+#$ -l tmem=4G
+#$ -l h_rt=100:00:00
+
+#$ -t 1-25
+
+#$ -N smallnorb
+
+source /share/apps/examples/source_files/python/python-3.6.4.source
+source /share/apps/examples/source_files/cuda/cuda-9.0.source
+
+# python3 run.py --work_dir smallnorb  --exp smallNORB --enum 2000 --lmba0 1 --lmba1 1
+python3 run_array.py --work_dir smallnorb/ --exp smallNORB --enum 2000 --lmba $SGE_TASK_ID
