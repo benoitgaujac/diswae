@@ -41,14 +41,14 @@ def maybe_download(opts):
     """Download the data from url, unless it's already here."""
     if not tf.gfile.Exists(opts['data_dir']):
         tf.gfile.MakeDirs(opts['data_dir'])
-    data_path = os.path.join(opts['data_dir'], opts['data_set'])
+    data_path = os.path.join(opts['data_dir'], opts['dataset'])
     if not tf.gfile.Exists(data_path):
         tf.gfile.MakeDirs(data_path)
     if opts['dataset']=='dsprites':
-        maybe_download_file(data_path,'dsprites_ndarray_co1sh3sc6or40x32y32_64x64.npz',opts['DSprites_data_source_url'])
+        maybe_download_file(data_path,'dsprites_ndarray_co1sh3sc6or40x32y32_64x64.npz?raw=true',opts['DSprites_data_source_url'])
     elif opts['dataset']=='smallNORB':
-        maybe_download_file(data_path,'smallnorb-5x46789x9x18x6x2x96x96-training-dat.mat',opts['smallNORB_data_source_url'])
-        maybe_download_file(data_path,'smallnorb-5x01235x9x18x6x2x96x96-testing-dat.mat',opts['smallNORB_data_source_url'])
+        maybe_download_file(data_path,'smallnorb-5x46789x9x18x6x2x96x96-training-dat.mat.gz',opts['smallNORB_data_source_url'])
+        maybe_download_file(data_path,'smallnorb-5x01235x9x18x6x2x96x96-testing-dat.mat.gz',opts['smallNORB_data_source_url'])
     elif opts['dataset']=='mnist':
         maybe_download_file(data_path,'train-images-idx3-ubyte.gz',opts['MNIST_data_source_url'])
         maybe_download_file(data_path,'train-labels-idx1-ubyte.gz',opts['MNIST_data_source_url'])
@@ -75,10 +75,13 @@ def maybe_download(opts):
 
     return data_path
 
-def maybe_download_file(name,filename,url):
-    filepath = os.path.join(name, filename)
+def maybe_download_file(data_path,filename,url):
+    if filename[-9:]=='?raw=true':
+        filepath = os.path.join(data_path, filename[:-9])
+    else:
+        filepath = os.path.join(data_path, filename)
     if not tf.gfile.Exists(filepath):
-        filepath, _ = urllib.request.urlretrieve(url + filename + '.gz', filepath)
+        filepath, _ = urllib.request.urlretrieve(url + filename, filepath)
         with tf.gfile.GFile(filepath) as f:
             size = f.size()
         print('Successfully downloaded', filename, size, 'bytes.')
