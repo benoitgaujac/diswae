@@ -98,9 +98,11 @@ def main():
         lmba1 = [10**i for i in range(-2,3)]
         lmba = list(itertools.product(lmba0,lmba1))
         opts['lambda'] = lmba[FLAGS.idx_lmba-1]
+        opts['work_dir'] = FLAGS.work_dir + str(lmba[FLAGS.idx_lmba-1][0]) + '_' + str(lmba[FLAGS.idx_lmba-1][1])
     elif opts['model'] == 'BetaVAE':
         beta = [10**i for i in range(-2,3)]
         opts['beta'] = beta[FLAGS.idx_beta-1]
+
 
     # NN set up
     opts['filter_size'] = [4,4,4,4]
