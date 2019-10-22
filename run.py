@@ -51,6 +51,8 @@ def main():
         opts = configs.config_cifar10
     elif FLAGS.exp == 'dsprites':
         opts = configs.config_dsprites
+    elif FLAGS.exp == 'smallNORB':
+        opts = configs.config_smallNORB    
     elif FLAGS.exp == 'grassli':
         opts = configs.config_grassli
     elif FLAGS.exp == 'grassli_small':

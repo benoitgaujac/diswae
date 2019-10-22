@@ -20,7 +20,6 @@ config_mnist['plot_num_cols'] = 10
 
 # Data set up
 config_mnist['dataset'] = 'mnist'
-config_mnist['data_dir'] = 'mnist'
 config_mnist['input_normalize_sym'] = False
 config_mnist['MNIST_data_source_url'] = 'http://yann.lecun.com/exdb/mnist/'
 config_mnist['Zalando_data_source_url'] = 'http://fashionChallenging Common Assumptions in the Unsupervised Learning of Disentangled Representations-mnist.s3-website.eu-central-1.amazonaws.com/'
@@ -109,9 +108,8 @@ config_dsprites['plot_num_cols'] = 10
 
 # Data set up
 config_dsprites['dataset'] = 'dsprites'
-config_dsprites['data_dir'] = 'dsprites'
 config_dsprites['input_normalize_sym'] = False
-config_dsprites['DSprites_data_source_url'] = 'https://github.com/deepmind/dsprites-dataset/blob/master/dsprites_ndarray_co1sh3sc6or40x32y32_64x64.npz?raw=true'
+config_dsprites['DSprites_data_source_url'] = 'https://github.com/deepmind/dsprites-dataset/blob/master/'
 
 # Experiment set up
 config_dsprites['train_dataset_size'] = -1
@@ -163,7 +161,6 @@ config_dsprites['mlp_init'] = 'glorot_uniform' #normal, he, glorot, glorot_he, g
 config_dsprites['conv_init'] = 'normilized_glorot' #he, glorot, normilized_glorot, truncated_norm
 config_dsprites['filter_size'] = [4,4,4,4]
 
-
 config_dsprites['encoder'] = 'gauss' # deterministic, gaussian
 config_dsprites['e_arch'] = 'conv_locatello' # mlp, dcgan
 config_dsprites['e_nlayers'] = 4
@@ -177,6 +174,93 @@ config_dsprites['d_nlayers'] = 4
 config_dsprites['upsample'] = [None,]*config_dsprites['d_nlayers'] #None, up
 config_dsprites['d_nfilters'] = [32,32,32,64]
 config_dsprites['d_nonlinearity'] = 'relu' # soft_plus, relu, leaky_relu, tanh
+
+
+### smallNORB config
+config_smallNORB = {}
+# Outputs set up
+config_smallNORB['verbose'] = False
+config_smallNORB['save_every'] = 10000
+config_smallNORB['save_final'] = True
+config_smallNORB['save_train_data'] = True
+config_smallNORB['print_every'] = 100
+config_smallNORB['vizu_embedded'] = False
+config_smallNORB['embedding'] = 'umap' #vizualisation method of the embeddings: pca, umap
+config_smallNORB['vizu_encSigma'] = False
+config_smallNORB['vizu_interpolation'] = True
+config_smallNORB['fid'] = False
+config_smallNORB['work_dir'] = 'results_mnist'
+config_smallNORB['plot_num_pics'] = 100
+config_smallNORB['plot_num_cols'] = 10
+
+# Data set up
+config_smallNORB['dataset'] = 'smallNORB'
+config_smallNORB['input_normalize_sym'] = False
+config_smallNORB['smallNORB_data_source_url'] = 'https://cs.nyu.edu/~ylclab/data/norb-v1.0-small/'
+
+# Experiment set up
+config_smallNORB['train_dataset_size'] = -1
+config_smallNORB['batch_size'] = 128
+config_smallNORB['epoch_num'] = 101
+config_smallNORB['method'] = 'wae' #vae, wae
+config_smallNORB['use_trained'] = False #train from pre-trained model
+config_smallNORB['e_pretrain'] = False #pretrained the encoder parameters
+config_smallNORB['e_pretrain_it'] = 1000
+config_smallNORB['e_pretrain_sample_size'] = 200
+
+# Opt set up
+config_smallNORB['optimizer'] = 'adam' # adam, sgd
+config_smallNORB['adam_beta1'] = 0.9
+config_smallNORB['adam_beta2'] = 0.999
+config_smallNORB['lr'] = 0.001
+config_smallNORB['lr_adv'] = 0.0008
+config_smallNORB['e_norm'] = 'batchnorm' #batchnorm, layernorm, none
+config_smallNORB['d_norm'] = 'batchnorm' #batchnorm, layernorm, none
+config_smallNORB['batch_norm_eps'] = 1e-05
+config_smallNORB['batch_norm_momentum'] = 0.99
+
+# Objective set up
+config_smallNORB['cost'] = 'l2sq' #l2, l2sq, l2sq_norm, l1
+config_smallNORB['penalty'] = 'mmd' #sinkhorn, mmd
+config_smallNORB['pen'] = 'wae' #wae, wae_mmd
+config_smallNORB['epsilon'] = 0.1 #Sinkhorn regularization parameters
+config_smallNORB['L'] = 30 #Sinkhorn iteration
+config_smallNORB['mmd_kernel'] = 'IMQ' # RBF, IMQ
+config_smallNORB['pen'] = 'wae' # wae, wae_mmd
+config_smallNORB['pen_enc_sigma'] = False
+config_smallNORB['lambda_pen_enc_sigma'] = 0.001
+config_smallNORB['pen_dec_sigma'] = False
+config_smallNORB['lambda_pen_dec_sigma'] = 0.0005
+
+# Model set up
+config_smallNORB['zdim'] = 10
+config_smallNORB['pz_scale'] = 1.
+config_smallNORB['prior'] = 'gaussian' # dirichlet, gaussian
+
+# lambda set up
+config_smallNORB['lambda'] = [10,10]
+config_smallNORB['lambda_schedule'] = 'constant' # adaptive, constant
+
+# NN set up
+config_smallNORB['init_std'] = 0.99999
+config_smallNORB['init_bias'] = 0.0
+config_smallNORB['mlp_init'] = 'glorot_uniform' #normal, he, glorot, glorot_he, glorot_uniform, ('uniform', range)
+config_smallNORB['conv_init'] = 'normilized_glorot' #he, glorot, normilized_glorot, truncated_norm
+config_smallNORB['filter_size'] = [4,4,4,4]
+
+config_smallNORB['encoder'] = 'gauss' # deterministic, gaussian
+config_smallNORB['e_arch'] = 'conv_locatello' # mlp, dcgan
+config_smallNORB['e_nlayers'] = 4
+config_smallNORB['downsample'] = [None,]*config_smallNORB['e_nlayers'] #None, True
+config_smallNORB['e_nfilters'] = [32,32,64,64]
+config_smallNORB['e_nonlinearity'] = 'leaky_relu' # soft_plus, relu, leaky_relu, tanh
+
+config_smallNORB['decoder'] = 'det' # deterministic, gaussian
+config_smallNORB['d_arch'] = 'conv_locatello' # mlp, dcgan
+config_smallNORB['d_nlayers'] = 4
+config_smallNORB['upsample'] = [None,]*config_smallNORB['d_nlayers'] #None, up
+config_smallNORB['d_nfilters'] = [32,32,32,64]
+config_smallNORB['d_nonlinearity'] = 'relu' # soft_plus, relu, leaky_relu, tanh
 
 
 ### CIFAR 10 config
@@ -198,7 +282,6 @@ config_svhn['plot_num_cols'] = 15
 
 # Data set up
 config_svhn['dataset'] = 'svhn'
-config_svhn['data_dir'] = 'svhn'
 config_svhn['input_normalize_sym'] = False
 config_svhn['SVHN_data_source_url'] = 'http://ufldl.stanford.edu/housenumbers/'
 
@@ -287,7 +370,6 @@ config_cifar10['plot_num_cols'] = 10
 
 # Data set up
 config_cifar10['dataset'] = 'cifar10'
-config_cifar10['data_dir'] = 'cifar10'
 config_cifar10['input_normalize_sym'] = False
 config_cifar10['cifar10_data_source_url'] = 'https://www.cs.toronto.edu/~kriz/'
 
