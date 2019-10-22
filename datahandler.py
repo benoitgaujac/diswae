@@ -78,6 +78,8 @@ def maybe_download(opts):
 def maybe_download_file(data_path,filename,url):
     if filename[-9:]=='?raw=true':
         filepath = os.path.join(data_path, filename[:-9])
+    if filename[-6:]=='mat.gz':
+        filepath = os.path.join(data_path, filename[:-3])
     else:
         filepath = os.path.join(data_path, filename)
     if not tf.gfile.Exists(filepath):
