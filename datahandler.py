@@ -24,14 +24,14 @@ import utils
 import pdb
 
 datashapes = {}
+datashapes['dsprites'] = [64, 64, 1]
+datashapes['smallNORB'] = [64, 64, 1]
 datashapes['mnist'] = [28, 28, 1]
 datashapes['zalando'] = [28, 28, 1]
 datashapes['svhn'] = [32, 32, 3]
 datashapes['cifar10'] = [32, 32, 3]
 datashapes['celebA'] = [64, 64, 3]
 datashapes['grassli'] = [64, 64, 3]
-datashapes['dsprites'] = [64, 64, 1]
-DATA_DIRECTORY = '../data'
 
 def _data_dir(opts):
     data_path = maybe_download(opts)
@@ -39,12 +39,17 @@ def _data_dir(opts):
 
 def maybe_download(opts):
     """Download the data from url, unless it's already here."""
-    if not tf.gfile.Exists(DATA_DIRECTORY):
-        tf.gfile.MakeDirs(DATA_DIRECTORY)
-    data_path = os.path.join(DATA_DIRECTORY, opts['data_dir'])
+    if not tf.gfile.Exists(opts['data_dir']):
+        tf.gfile.MakeDirs(opts['data_dir'])
+    data_path = os.path.join(opts['data_dir'], opts['data_set'])
     if not tf.gfile.Exists(data_path):
         tf.gfile.MakeDirs(data_path)
-    if opts['dataset']=='mnist':
+    if opts['dataset']=='dsprites':
+        maybe_download_file(data_path,'dsprites_ndarray_co1sh3sc6or40x32y32_64x64.npz',opts['DSprites_data_source_url'])
+    elif opts['dataset']=='smallNORB':
+        maybe_download_file(data_path,'smallnorb-5x46789x9x18x6x2x96x96-training-dat.mat',opts['smallNORB_data_source_url'])
+        maybe_download_file(data_path,'smallnorb-5x01235x9x18x6x2x96x96-testing-dat.mat',opts['smallNORB_data_source_url'])
+    elif opts['dataset']=='mnist':
         maybe_download_file(data_path,'train-images-idx3-ubyte.gz',opts['MNIST_data_source_url'])
         maybe_download_file(data_path,'train-labels-idx1-ubyte.gz',opts['MNIST_data_source_url'])
         maybe_download_file(data_path,'t10k-images-idx3-ubyte.gz',opts['MNIST_data_source_url'])
@@ -59,8 +64,6 @@ def maybe_download(opts):
         maybe_download_file(data_path,'test_32x32.mat',opts['SVHN_data_source_url'])
         if opts['use_extra']:
             maybe_download_file(data_path,'extra_32x32.mat',opts['SVHN_data_source_url'])
-    elif opts['dataset']=='dsprites':
-        maybe_download_file(data_path,'dsprites_ndarray_co1sh3sc6or40x32y32_64x64.npz',opts['DSprites_data_source_url'])
     elif opts['dataset']=='cifar10':
         maybe_download_file(data_path,'cifar-10-python.tar.gz',opts['cifar10_data_source_url'])
         tar = tarfile.open(os.path.join(data_path,'cifar-10-python.tar.gz'))
@@ -75,7 +78,7 @@ def maybe_download(opts):
 def maybe_download_file(name,filename,url):
     filepath = os.path.join(name, filename)
     if not tf.gfile.Exists(filepath):
-        filepath, _ = urllib.request.urlretrieve(url + filename, filepath)
+        filepath, _ = urllib.request.urlretrieve(url + filename + '.gz', filepath)
         with tf.gfile.GFile(filepath) as f:
             size = f.size()
         print('Successfully downloaded', filename, size, 'bytes.')
@@ -279,10 +282,12 @@ class DataHandler(object):
         """Load a dataset and fill all the necessary variables.
 
         """
-        if opts['dataset'] == 'mnist':
-            self._load_mnist(opts)
-        elif opts['dataset'] == 'dsprites':
+        if opts['dataset'] == 'dsprites':
             self._load_dsprites(opts)
+        elif opts['dataset'] == 'smallNORB':
+            self._load_smallNORB(opts)
+        elif opts['dataset'] == 'mnist':
+            self._load_mnist(opts)
         elif opts['dataset'] == 'mnist_mod':
             self._load_mnist(opts, modified=True)
         elif opts['dataset'] == 'zalando':
@@ -446,6 +451,66 @@ class DataHandler(object):
         self.data = Data(opts, X[:-test_size])
         self.test_data = Data(opts, X[-test_size:])
         self.num_points = len(self.data)
+
+        logging.error('Loading Done.')
+
+    def _load_smallNORB(self, opts):
+        """Load data from smallNORB dataset
+
+        """
+
+        def _read_binary_matrix(filename):
+            """Reads and returns binary formatted matrix stored in filename."""
+            with tf.gfile.GFile(filename, "rb") as f:
+                s = f.read()
+                magic = int(np.frombuffer(s, "int32", 1))
+                ndim = int(np.frombuffer(s, "int32", 1, 4))
+                eff_dim = max(3, ndim)
+                raw_dims = np.frombuffer(s, "int32", eff_dim, 8)
+                dims = []
+                for i in range(0, ndim):
+                    dims.append(raw_dims[i])
+
+                dtype_map = {
+                    507333717: "int8",
+                    507333716: "int32",
+                    507333713: "float",
+                    507333715: "double"
+                }
+                data = np.frombuffer(s, dtype_map[magic], offset=8 + eff_dim * 4)
+            data = data.reshape(tuple(dims))
+            return data
+
+        def _resize_images(integer_images):
+            resized_images = np.zeros((integer_images.shape[0], 64, 64))
+            for i in range(integer_images.shape[0]):
+                image = Image.fromarray(integer_images[i, :, :])
+                image = image.resize((64, 64), Image.ANTIALIAS)
+                resized_images[i, :, :] = image
+            return resized_images / 255.
+
+        logging.error('Loading smallNORB')
+        data_dir = _data_dir(opts)
+        # Training data
+        X = _read_binary_matrix(os.path.join(data_dir, 'smallnorb-5x46789x9x18x6x2x96x96-training-dat.mat'))
+        X = _resize_images(X[:, 0])
+        X = np.expand_dims(X,-1)
+        seed = 123
+        np.random.seed(seed)
+        np.random.shuffle(X)
+        np.random.seed()
+        self.data_shape = (64, 64, 1)
+        self.data = Data(opts, X)
+        self.num_points = len(self.data)
+        # Testing data
+        X = _read_binary_matrix(os.path.join(data_dir, 'smallnorb-5x01235x9x18x6x2x96x96-testing-dat.mat'))
+        X = _resize_images(X[:, 0])
+        X = np.expand_dims(X,-1)
+        seed = 123
+        np.random.seed(seed)
+        np.random.shuffle(X)
+        np.random.seed()
+        self.test_data = Data(opts, X)
 
         logging.error('Loading Done.')
 
