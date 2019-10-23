@@ -114,7 +114,7 @@ def main():
     opts['e_nonlinearity'] = 'relu' # soft_plus, relu, leaky_relu, tanh
     opts['d_arch'] =  FLAGS.enet_archi # mlp, dcgan, dcgan_v2, resnet
     opts['upsample'] = [None,]*opts['d_nlayers'] #None, up
-    opts['d_nlayers'] = 3
+    opts['d_nlayers'] = 4
     opts['d_nfilters'] = [32,32,32,64]
     opts['d_nonlinearity'] = 'relu' # soft_plus, relu, leaky_relu, tanh
 
