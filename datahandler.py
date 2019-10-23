@@ -79,8 +79,6 @@ def maybe_download(opts):
 def maybe_download_file(data_path,filename,url):
     if filename[-9:]=='?raw=true':
         filepath = os.path.join(data_path, filename[:-9])
-    if filename[-6:]=='mat.gz':
-        filepath = os.path.join(data_path, filename[:-3])
     else:
         filepath = os.path.join(data_path, filename)
     if not tf.gfile.Exists(filepath):
@@ -545,9 +543,9 @@ class DataHandler(object):
             return resized_images / 255.
 
         logging.error('Loading smallNORB')
-        file_path = os.path.join(_data_dir(opts), 'smallnorb-5x46789x9x18x6x2x96x96-training-dat.mat')
+        file_path = os.path.join(_data_dir(opts), 'smallnorb-5x46789x9x18x6x2x96x96-training-dat.mat.gz')
         # Training data
-        with open(file_path, mode='rb') as f:
+        with gzip.open(file_path, mode='rb') as f:
             header = _parse_smallNORB_header(f)
             num_examples, channels, height, width = header['dimensions']
             X = np.zeros(shape=(num_examples, 2, height, width), dtype=np.uint8)
@@ -566,8 +564,8 @@ class DataHandler(object):
         self.data = Data(opts, X)
         self.num_points = len(self.data)
         # Testing data
-        file_path = os.path.join(_data_dir(opts), 'smallnorb-5x01235x9x18x6x2x96x96-testing-dat.mat')
-        with open(file_path, mode='rb') as f:
+        file_path = os.path.join(_data_dir(opts), 'smallnorb-5x01235x9x18x6x2x96x96-testing-dat.mat.gz')
+        with gzip.open(file_path, mode='rb') as f:
             header = _parse_smallNORB_header(f)
             num_examples, channels, height, width = header['dimensions']
             X = np.zeros(shape=(num_examples, 2, height, width), dtype=np.uint8)
