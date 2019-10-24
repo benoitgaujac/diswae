@@ -103,8 +103,8 @@ def download_file_from_google_drive(file_path, filename, url):
             if key.startswith('download_warning'):
                 return value
         return None
-
-    session = urllib.requests.Session()
+    pdb.set_trace()
+    session = urllib.request.Session()
     id = '0B7EVK8r0v71pZjFTYXZWM3FlRnM'
     response = session.get(url + filename, params={ 'id': id}, stream=True)
     token = get_confirm_token(response)
@@ -474,7 +474,7 @@ class DataHandler(object):
         filename = os.path.join(_data_dir(opts), 'rendered_chairs.npz')
         # Extracting data and saving as npz if necessary
         if not tf.gfile.Exists(filename):
-            tar = tarfile.open(file_path +'.tar')
+            tar = tarfile.open(filename +'.tar')
             tar.extractall(path=_data_dir(opts))
             tar.close()
             X = []
@@ -516,7 +516,7 @@ class DataHandler(object):
 
         num_samples = 202599
 
-        datapoint_ids = range(1, num_samples + 1)
+        datapoint_ids = list(range(1, num_samples + 1))
         paths = ['%.6d.jpg' % i for i in range(1, num_samples + 1)]
         seed = 123
         random.seed(seed)
