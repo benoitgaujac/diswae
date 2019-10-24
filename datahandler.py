@@ -474,7 +474,7 @@ class DataHandler(object):
         filename = os.path.join(_data_dir(opts), 'rendered_chairs.npz')
         # Extracting data and saving as npz if necessary
         if not tf.gfile.Exists(filename):
-            tar = tarfile.open(filename +'.tar')
+            tar = tarfile.open(filename[:-4] +'.tar')
             tar.extractall(path=_data_dir(opts))
             tar.close()
             X = []
