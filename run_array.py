@@ -44,24 +44,16 @@ FLAGS = parser.parse_args()
 def main():
 
     # Select dataset to use
-    if FLAGS.exp == 'celebA':
-        opts = configs.config_celebA
-    elif FLAGS.exp == 'celebA_small':
-        opts = configs.config_celebA_small
-    elif FLAGS.exp == 'mnist':
-        opts = configs.config_mnist
-    elif FLAGS.exp == 'mnist_small':
-        opts = configs.config_mnist_small
-    elif FLAGS.exp == 'cifar10':
-        opts = configs.config_cifar10
-    elif FLAGS.exp == 'dsprites':
+    if FLAGS.exp == 'dsprites':
         opts = configs.config_dsprites
     elif FLAGS.exp == 'smallNORB':
         opts = configs.config_smallNORB
-    elif FLAGS.exp == 'grassli':
-        opts = configs.config_grassli
-    elif FLAGS.exp == 'grassli_small':
-        opts = configs.config_grassli_small
+    elif FLAGS.exp == '3Dchairs':
+        opts = configs.config_3Dchairs
+    elif FLAGS.exp == 'celebA':
+        opts = configs.config_celebA
+    elif FLAGS.exp == 'mnist':
+        opts = configs.config_mnist
     else:
         assert False, 'Unknown experiment dataset'
 
@@ -83,7 +75,7 @@ def main():
 
     # Experiemnts set up
     opts['epoch_num'] = FLAGS.enum
-    opts['print_every'] = 30000
+    opts['print_every'] = 60000
     opts['save_every_epoch'] = 1000000
     opts['save_final'] = False
     opts['save_train_data'] = False
