@@ -116,7 +116,7 @@ def download_file_from_google_drive(file_path, filename, url):
     total_size = int(response.headers.get('content-length', 0))
     with open(file_path, "wb") as f:
         for chunk in tqdm(response.iter_content(32*1024), total=total_size,
-            unit='B', unit_scale=True, desc=destination):
+            unit='B', unit_scale=True, desc=file_path):
             if chunk: # filter out keep-alive new chunks
                 f.write(chunk)
 
