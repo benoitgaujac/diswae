@@ -11,12 +11,15 @@ import shutil
 import random
 import logging
 import gzip
+import zipfile
 import tensorflow as tf
 import numpy as np
 from six.moves import cPickle
 import urllib.request
+import requests
 from scipy.io import loadmat
 import struct
+import tqdm
 from PIL import Image
 import sys
 import tarfile
@@ -103,17 +106,16 @@ def download_file_from_google_drive(file_path, filename, url):
             if key.startswith('download_warning'):
                 return value
         return None
-    pdb.set_trace()
-    session = urllib.request.Session()
+    session = requests.Session()
     id = '0B7EVK8r0v71pZjFTYXZWM3FlRnM'
-    response = session.get(url + filename, params={ 'id': id}, stream=True)
+    response = session.get(url, params={ 'id': id}, stream=True)
     token = get_confirm_token(response)
     if token:
         params = { 'id': id, 'confirm': token }
-        response = session.get(url + filename, params=params, stream=True)
+        response = session.get(url, params=params, stream=True)
     total_size = int(response.headers.get('content-length', 0))
     with open(file_path, "wb") as f:
-        for chunk in tqdm(response.iter_content(chunk_size), total=total_size,
+        for chunk in tqdm(response.iter_content(32*1024), total=total_size,
             unit='B', unit_scale=True, desc=destination):
             if chunk: # filter out keep-alive new chunks
                 f.write(chunk)
