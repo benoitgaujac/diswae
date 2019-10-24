@@ -1,0 +1,19 @@
+#!/bin/bash
+
+#$ -S /bin/bash
+
+#$ -wd /home/bgaujac/diswae
+
+#$ -l gpu=1
+#$ -l tmem=4G
+#$ -l h_rt=1:00:00
+
+#$ -t 1-1
+
+#$ -N chairs3d
+
+source /share/apps/examples/source_files/python/python-3.6.4.source
+source /share/apps/examples/source_files/cuda/cuda-9.0.source
+
+python3 run.py --work_dir celeba_test  --exp celebA --enum 1000 --lmba0 50 --lmba1 10
+# python3 run_array.py --work_dir dsprites/ --exp dsprites --enum 100 --idx_lmba $SGE_TASK_ID
