@@ -41,24 +41,16 @@ FLAGS = parser.parse_args()
 def main():
 
     # Select dataset to use
-    if FLAGS.exp == 'celebA':
-        opts = configs.config_celebA
-    elif FLAGS.exp == 'celebA_small':
-        opts = configs.config_celebA_small
-    elif FLAGS.exp == 'mnist':
-        opts = configs.config_mnist
-    elif FLAGS.exp == 'mnist_small':
-        opts = configs.config_mnist_small
-    elif FLAGS.exp == 'cifar10':
-        opts = configs.config_cifar10
-    elif FLAGS.exp == 'dsprites':
+    if FLAGS.exp == 'dsprites':
         opts = configs.config_dsprites
     elif FLAGS.exp == 'smallNORB':
         opts = configs.config_smallNORB
-    elif FLAGS.exp == 'grassli':
-        opts = configs.config_grassli
-    elif FLAGS.exp == 'grassli_small':
-        opts = configs.config_grassli_small
+    elif FLAGS.exp == '3Dchairs':
+        opts = configs.config_3Dchairs
+    elif FLAGS.exp == 'celebA':
+        opts = configs.config_celebA
+    elif FLAGS.exp == 'mnist':
+        opts = configs.config_mnist
     else:
         assert False, 'Unknown experiment dataset'
 
@@ -73,7 +65,7 @@ def main():
         opts['work_dir'] = FLAGS.work_dir
 
     # Mode
-    if FLAGS.mode=='fid':
+    if FLAGS.mode == 'fid':
         opts['fid'] = True
     else:
         opts['fid'] = False
@@ -129,9 +121,9 @@ def main():
     tf.reset_default_graph()
 
     # build WAE/VAE
-    if opts['model']=='WAE':
+    if opts['model'] == 'WAE':
         model = WAE(opts)
-    elif opts['model']=='BetaVAE':
+    elif opts['model'] == 'BetaVAE':
         model = BetaVAE(opts)
     else:
         assert False, 'Unknown methdo %s' % opts['model']

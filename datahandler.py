@@ -7,6 +7,7 @@
 """
 
 import os
+import shutil
 import random
 import logging
 import gzip
@@ -27,12 +28,10 @@ import pdb
 datashapes = {}
 datashapes['dsprites'] = [64, 64, 1]
 datashapes['smallNORB'] = [64, 64, 1]
-datashapes['mnist'] = [28, 28, 1]
-datashapes['zalando'] = [28, 28, 1]
-datashapes['svhn'] = [32, 32, 3]
-datashapes['cifar10'] = [32, 32, 3]
+datashapes['3Dchairs'] = [64, 64, 3]
 datashapes['celebA'] = [64, 64, 3]
-datashapes['grassli'] = [64, 64, 3]
+datashapes['mnist'] = [28, 28, 1]
+datashapes['svhn'] = [32, 32, 3]
 
 def _data_dir(opts):
     data_path = maybe_download(opts)
@@ -46,46 +45,78 @@ def maybe_download(opts):
     if not tf.gfile.Exists(data_path):
         tf.gfile.MakeDirs(data_path)
     if opts['dataset']=='dsprites':
-        maybe_download_file(data_path,'dsprites_ndarray_co1sh3sc6or40x32y32_64x64.npz?raw=true',opts['DSprites_data_source_url'])
+        filename = 'dsprites_ndarray_co1sh3sc6or40x32y32_64x64.npz?raw=true'
+        file_path = os.path.join(data_path, filename[:-9])
+        if not tf.gfile.Exists(file_path):
+            download_file(file_path,filename,opts['DSprites_data_source_url'])
     elif opts['dataset']=='smallNORB':
-        maybe_download_file(data_path,'smallnorb-5x46789x9x18x6x2x96x96-training-dat.mat.gz',opts['smallNORB_data_source_url'])
-        maybe_download_file(data_path,'smallnorb-5x01235x9x18x6x2x96x96-testing-dat.mat.gz',opts['smallNORB_data_source_url'])
+        filename = 'smallnorb-5x46789x9x18x6x2x96x96-training-dat.mat.gz'
+        file_path = os.path.join(data_path, filename)
+        if not tf.gfile.Exists(file_path):
+            download_file(file_path,filename,opts['smallNORB_data_source_url'])
+        filename = 'smallnorb-5x01235x9x18x6x2x96x96-testing-dat.mat.gz'
+        file_path = os.path.join(data_path, filename)
+        if not tf.gfile.Exists(file_path):
+            download_file(file_path,filename,opts['smallNORB_data_source_url'])
+    elif opts['dataset']=='3Dchairs':
+        filename = 'rendered_chairs.tar'
+        file_path = os.path.join(data_path, filename)
+        if not tf.gfile.Exists(file_path):
+            download_file(file_path,filename,opts['3Dchairs_data_source_url'])
+    elif opts['dataset']=='celebA':
+        filename = 'img_align_celeba.zip'
+        file_path = os.path.join(data_path, filename)
+        if not tf.gfile.Exists(file_path):
+            download_file_from_google_drive(file_path,filename,opts['celebA_data_source_url'])
+        # Unzipping
+        zip_dir = ''
+        with zipfile.ZipFile(file_path) as zf:
+            zip_dir = zf.namelist()[0]
+            zf.extractall()
+        os.remove(file_path)
+        os.rename(os.path.join(data_path, zip_dir), os.path.join(data_path, 'img_align_celeba'))
     elif opts['dataset']=='mnist':
         maybe_download_file(data_path,'train-images-idx3-ubyte.gz',opts['MNIST_data_source_url'])
         maybe_download_file(data_path,'train-labels-idx1-ubyte.gz',opts['MNIST_data_source_url'])
         maybe_download_file(data_path,'t10k-images-idx3-ubyte.gz',opts['MNIST_data_source_url'])
         maybe_download_file(data_path,'t10k-labels-idx1-ubyte.gz',opts['MNIST_data_source_url'])
-    elif opts['dataset']=='zalando':
-        maybe_download_file(data_path,'train-images-idx3-ubyte.gz',opts['Zalando_data_source_url'])
-        maybe_download_file(data_path,'train-labels-idx1-ubyte.gz',opts['Zalando_data_source_url'])
-        maybe_download_file(data_path,'t10k-images-idx3-ubyte.gz',opts['Zalando_data_source_url'])
-        maybe_download_file(data_path,'t10k-labels-idx1-ubyte.gz',opts['Zalando_data_source_url'])
     elif opts['dataset']=='svhn':
         maybe_download_file(data_path,'train_32x32.mat',opts['SVHN_data_source_url'])
         maybe_download_file(data_path,'test_32x32.mat',opts['SVHN_data_source_url'])
         if opts['use_extra']:
             maybe_download_file(data_path,'extra_32x32.mat',opts['SVHN_data_source_url'])
-    elif opts['dataset']=='cifar10':
-        maybe_download_file(data_path,'cifar-10-python.tar.gz',opts['cifar10_data_source_url'])
-        tar = tarfile.open(os.path.join(data_path,'cifar-10-python.tar.gz'))
-        tar.extractall(path=data_path)
-        tar.close()
-        data_path = os.path.join(data_path,'cifar-10-batches-py')
     else:
         assert False, 'Unknow dataset'
 
     return data_path
 
-def maybe_download_file(data_path,filename,url):
-    if filename[-9:]=='?raw=true':
-        filepath = os.path.join(data_path, filename[:-9])
-    else:
-        filepath = os.path.join(data_path, filename)
-    if not tf.gfile.Exists(filepath):
-        filepath, _ = urllib.request.urlretrieve(url + filename, filepath)
-        with tf.gfile.GFile(filepath) as f:
-            size = f.size()
-        print('Successfully downloaded', filename, size, 'bytes.')
+def download_file(file_path,filename,url):
+    file_path, _ = urllib.request.urlretrieve(url + filename, file_path)
+    with tf.gfile.GFile(file_path) as f:
+        size = f.size()
+    print('Successfully downloaded', filename, size, 'bytes.')
+
+def download_file_from_google_drive(file_path, filename, url):
+
+    def get_confirm_token(response):
+        for key, value in response.cookies.items():
+            if key.startswith('download_warning'):
+                return value
+        return None
+
+    session = urllib.requests.Session()
+    id = '0B7EVK8r0v71pZjFTYXZWM3FlRnM'
+    response = session.get(url + filename, params={ 'id': id}, stream=True)
+    token = get_confirm_token(response)
+    if token:
+        params = { 'id': id, 'confirm': token }
+        response = session.get(url + filename, params=params, stream=True)
+    total_size = int(response.headers.get('content-length', 0))
+    with open(file_path, "wb") as f:
+        for chunk in tqdm(response.iter_content(chunk_size), total=total_size,
+            unit='B', unit_scale=True, desc=destination):
+            if chunk: # filter out keep-alive new chunks
+                f.write(chunk)
 
 def load_cifar_batch(fpath, label_key='labels'):
     """Internal utility for parsing CIFAR data.
@@ -290,149 +321,23 @@ class DataHandler(object):
             self._load_dsprites(opts)
         elif opts['dataset'] == 'smallNORB':
             self._load_smallNORB(opts)
-        elif opts['dataset'] == 'mnist':
-            self._load_mnist(opts)
-        elif opts['dataset'] == 'mnist_mod':
-            self._load_mnist(opts, modified=True)
-        elif opts['dataset'] == 'zalando':
-            self._load_mnist(opts, zalando=True)
-        elif opts['dataset'] == 'mnist3':
-            self._load_mnist3(opts)
-        elif opts['dataset'] == 'svhn':
-            self._load_svhn(opts)
-        elif opts['dataset'] == 'gmm':
-            self._load_gmm(opts)
-        elif opts['dataset'] == 'circle_gmm':
-            self._load_mog(opts)
-        elif opts['dataset'] == 'guitars':
-            self._load_guitars(opts)
-        elif opts['dataset'] == 'cifar10':
-            self._load_cifar(opts)
+        elif opts['dataset'] == '3Dchairs':
+            self._load_3Dchairs(opts)
         elif opts['dataset'] == 'celebA':
             self._load_celebA(opts)
-        elif opts['dataset'] == 'grassli':
-            self._load_grassli(opts)
+        elif opts['dataset'] == 'mnist':
+            self._load_mnist(opts)
+        elif opts['dataset'] == 'svhn':
+            self._load_svhn(opts)
         else:
             raise ValueError('Unknown %s' % opts['dataset'])
 
-        sym_applicable = ['mnist',
-                          'dsprites',
-                          'mnist3',
-                          'guitars',
-                          'svhn',
-                          'cifar10',
-                          'celebA',
-                          'grassli']
-
-        if opts['input_normalize_sym'] and opts['dataset'] not in sym_applicable:
-            raise Exception('Can not normalyze this dataset')
-
-        if opts['input_normalize_sym'] and opts['dataset'] in sym_applicable:
+        if opts['input_normalize_sym']:
             # Normalize data to [-1, 1]
             if isinstance(self.data.X, np.ndarray):
                 self.data.X = (self.data.X - 0.5) * 2.
                 self.test_data.X = (self.test_data.X - 0.5) * 2.
             # Else we will normalyze while reading from disk
-
-
-    def _load_mog(self, opts):
-        """Sample data from the mixture of Gaussians on circle.
-
-        """
-
-        # Only use this setting in dimension 2
-        assert opts['toy_dataset_dim'] == 2
-
-        # First we choose parameters of gmm and thus seed
-        radius = opts['gmm_max_val']
-        modes_num = opts["gmm_modes_num"]
-        np.random.seed(opts["random_seed"])
-
-        thetas = np.linspace(0, 2 * np.pi, modes_num)
-        mixture_means = np.stack((radius * np.sin(thetas), radius * np.cos(thetas)), axis=1)
-        mixture_variance = 0.01
-
-        # Now we sample points, for that we unseed
-        np.random.seed()
-        num = opts['toy_dataset_size']
-        X = np.zeros((num, opts['toy_dataset_dim'], 1, 1))
-        for idx in range(num):
-            comp_id = np.random.randint(modes_num)
-            mean = mixture_means[comp_id]
-            cov = mixture_variance * np.identity(opts["toy_dataset_dim"])
-            X[idx, :, 0, 0] = np.random.multivariate_normal(mean, cov, 1)
-
-        self.data_shape = (opts['toy_dataset_dim'], 1, 1)
-        self.data = Data(opts, X)
-        self.num_points = len(X)
-
-    def _load_gmm(self, opts):
-        """Sample data from the mixture of Gaussians.
-
-        """
-
-        logging.error('Loading GMM dataset...')
-        # First we choose parameters of gmm and thus seed
-        modes_num = opts["gmm_modes_num"]
-        np.random.seed(opts["random_seed"])
-        max_val = opts['gmm_max_val']
-        mixture_means = np.random.uniform(
-            low=-max_val, high=max_val,
-            size=(modes_num, opts['toy_dataset_dim']))
-
-        def variance_factor(num, dim):
-            if num == 1: return 3 ** (2. / dim)
-            if num == 2: return 3 ** (2. / dim)
-            if num == 3: return 8 ** (2. / dim)
-            if num == 4: return 20 ** (2. / dim)
-            if num == 5: return 10 ** (2. / dim)
-            return num ** 2.0 * 3
-
-        mixture_variance = \
-                max_val / variance_factor(modes_num, opts['toy_dataset_dim'])
-
-        # Now we sample points, for that we unseed
-        np.random.seed()
-        num = opts['toy_dataset_size']
-        X = np.zeros((num, opts['toy_dataset_dim'], 1, 1))
-        for idx in range(num):
-            comp_id = np.random.randint(modes_num)
-            mean = mixture_means[comp_id]
-            cov = mixture_variance * np.identity(opts["toy_dataset_dim"])
-            X[idx, :, 0, 0] = np.random.multivariate_normal(mean, cov, 1)
-
-        self.data_shape = (opts['toy_dataset_dim'], 1, 1)
-        self.data = Data(opts, X)
-        self.num_points = len(X)
-
-        logging.error('Loading GMM dataset done!')
-
-    def _load_guitars(self, opts):
-        """Load data from Thomann files.
-
-        """
-        logging.error('Loading Guitars dataset')
-        data_dir = os.path.join('./', 'thomann')
-        X = None
-        files = utils.listdir(data_dir)
-        pics = []
-        for f in sorted(files):
-            if '.jpg' in f and f[0] != '.':
-                im = Image.open(utils.o_gfile((data_dir, f), 'rb'))
-                res = np.array(im.getdata()).reshape(128, 128, 3)
-                pics.append(res)
-        X = np.array(pics)
-
-        seed = 123
-        np.random.seed(seed)
-        np.random.shuffle(X)
-        np.random.seed()
-
-        self.data_shape = (128, 128, 3)
-        self.data = Data(opts, X/255.)
-        self.num_points = len(X)
-
-        logging.error('Loading Done.')
 
     def _load_dsprites(self, opts):
         """Load data from dsprites dataset
@@ -462,29 +367,6 @@ class DataHandler(object):
         """Load data from smallNORB dataset
 
         """
-
-        # def _read_binary_matrix(filename):
-        #     """Reads and returns binary formatted matrix stored in filename."""
-        #     with tf.gfile.GFile(filename, "rb") as f:
-        #         s = f.read()
-        #         magic = int(np.frombuffer(s, "<int32", 1))
-        #         ndim = int(np.frombuffer(s, "<int32", 1, 4))
-        #         eff_dim = max(3, ndim)
-        #         raw_dims = np.frombuffer(s, "<int32", eff_dim, 8)
-        #         dims = []
-        #         for i in range(0, ndim):
-        #             dims.append(raw_dims[i])
-        #
-        #         dtype_map = {
-        #             507333717: "int8",
-        #             507333716: "int32",
-        #             507333713: "float",
-        #             507333715: "double"
-        #         }
-        #         data = np.frombuffer(s, dtype_map[magic], offset=8 + eff_dim * 4)
-        #     data = data.reshape(tuple(dims))
-        #     return data
-        # X = _read_binary_matrix(os.path.join(data_dir, 'smallnorb-5x46789x9x18x6x2x96x96-training-dat.mat'))
 
         def matrix_type_from_magic(magic_number):
             """
@@ -581,6 +463,77 @@ class DataHandler(object):
         np.random.shuffle(X)
         np.random.seed()
         self.test_data = Data(opts, X)
+
+        logging.error('Loading Done.')
+
+    def _load_3Dchairs(self, opts):
+        """Load data from 3Dchairs dataset
+
+        """
+        logging.error('Loading 3Dchairs')
+        filename = os.path.join(_data_dir(opts), 'rendered_chairs.npz')
+        # Extracting data and saving as npz if necessary
+        if not tf.gfile.Exists(filename):
+            tar = tarfile.open(file_path +'.tar')
+            tar.extractall(path=_data_dir(opts))
+            tar.close()
+            X = []
+            n = 0
+            root_dir = os.path.join(_data_dir(opts), 'rendered_chairs')
+            # Iterate over all the dir
+            for dir in os.listdir(root_dir):
+                # Create full path
+                if dir!='all_chair_names.mat':
+                    subdir = os.path.join(root_dir, dir, 'renders')
+                    for file in os.listdir(subdir):
+                        path_to_file = os.path.join(subdir,file)
+                        im = Image.open(path_to_file)
+                        im = im.resize((64, 64), Image.ANTIALIAS)
+                        X.append(np.array(im.getdata()))
+                        n += 1
+                        if n%10000==0:
+                            print('{} images unizped'.format(n))
+            np.savez_compressed(filename,data=np.array(X).reshape([-1,]+datashapes['3Dchairs']) / 255.)
+            shutil.rmtree(root_dir)
+        # loading data
+        X = np.load(filename,allow_pickle=True)['data']
+        seed = 123
+        np.random.seed(seed)
+        np.random.shuffle(X)
+        np.random.seed()
+        self.data_shape = datashapes['3Dchairs']
+        test_size = 10000
+        self.data = Data(opts, X[:-test_size])
+        self.num_points = len(self.data)
+        self.test_data = Data(opts, X[-test_size:])
+
+        logging.error('Loading Done.')
+
+    def _load_celebA(self, opts):
+        """Load CelebA
+        """
+        logging.error('Loading CelebA dataset')
+
+        num_samples = 202599
+
+        datapoint_ids = range(1, num_samples + 1)
+        paths = ['%.6d.jpg' % i for i in range(1, num_samples + 1)]
+        seed = 123
+        random.seed(seed)
+        random.shuffle(paths)
+        random.shuffle(datapoint_ids)
+        random.seed()
+
+        saver = utils.ArraySaver('disk', workdir=opts['work_dir'])
+        saver.save('shuffled_training_ids', datapoint_ids)
+
+        self.data_shape = (64, 64, 3)
+        test_size = 512
+        self.data = Data(opts, None, paths[:-test_size])
+        self.test_data = Data(opts, None, paths[-test_size:])
+        self.num_points = num_samples - test_size
+        self.labels = np.array(self.num_points * [0])
+        self.test_labels = np.array(test_size * [0])
 
         logging.error('Loading Done.')
 
@@ -744,171 +697,3 @@ class DataHandler(object):
         self.num_points = len(self.data)
 
         logging.error('Loading Done: Train size: %d, Test size: %d' % (self.num_points,len(self.test_data)))
-
-    def _load_mnist3(self, opts):
-        """Load data from MNIST files.
-
-        """
-        logging.error('Loading 3-digit MNIST')
-        data_dir = _data_dir(opts)
-        # pylint: disable=invalid-name
-        # Let us use all the bad variable names!
-        tr_X = None
-        tr_Y = None
-        te_X = None
-        te_Y = None
-
-        with utils.o_gfile((data_dir, 'train-images-idx3-ubyte'), 'rb') as fd:
-            loaded = np.frombuffer(fd.read(), dtype=np.uint8)
-            tr_X = loaded[16:].reshape((60000, 28, 28, 1)).astype(np.float)
-
-        with utils.o_gfile((data_dir, 'train-labels-idx1-ubyte'), 'rb') as fd:
-            loaded = np.frombuffer(fd.read(), dtype=np.uint8)
-            tr_Y = loaded[8:].reshape((60000)).astype(np.int)
-
-        with utils.o_gfile((data_dir, 't10k-images-idx3-ubyte'), 'rb') as fd:
-            loaded = np.frombuffer(fd.read(), dtype=np.uint8)
-            te_X = loaded[16:].reshape((10000, 28, 28, 1)).astype(np.float)
-
-        with utils.o_gfile((data_dir, 't10k-labels-idx1-ubyte'), 'rb') as fd:
-            loaded = np.frombuffer(fd.read(), dtype=np.uint8)
-            te_Y = loaded[8:].reshape((10000)).astype(np.int)
-
-        tr_Y = np.asarray(tr_Y)
-        te_Y = np.asarray(te_Y)
-
-        X = np.concatenate((tr_X, te_X), axis=0)
-        y = np.concatenate((tr_Y, te_Y), axis=0)
-
-        num = opts['mnist3_dataset_size']
-        ids = np.random.choice(len(X), (num, 3), replace=True)
-        if opts['mnist3_to_channels']:
-            # Concatenate 3 digits ito 3 channels
-            X3 = np.zeros((num, 28, 28, 3))
-            y3 = np.zeros(num)
-            for idx, _id in enumerate(ids):
-                X3[idx, :, :, 0] = np.squeeze(X[_id[0]], axis=2)
-                X3[idx, :, :, 1] = np.squeeze(X[_id[1]], axis=2)
-                X3[idx, :, :, 2] = np.squeeze(X[_id[2]], axis=2)
-                y3[idx] = y[_id[0]] * 100 + y[_id[1]] * 10 + y[_id[2]]
-            self.data_shape = (28, 28, 3)
-        else:
-            # Concatenate 3 digits in width
-            X3 = np.zeros((num, 28, 3 * 28, 1))
-            y3 = np.zeros(num)
-            for idx, _id in enumerate(ids):
-                X3[idx, :, 0:28, 0] = np.squeeze(X[_id[0]], axis=2)
-                X3[idx, :, 28:56, 0] = np.squeeze(X[_id[1]], axis=2)
-                X3[idx, :, 56:84, 0] = np.squeeze(X[_id[2]], axis=2)
-                y3[idx] = y[_id[0]] * 100 + y[_id[1]] * 10 + y[_id[2]]
-            self.data_shape = (28, 28 * 3, 1)
-
-        self.data = Data(opts, X3/255.)
-        y3 = y3.astype(int)
-        self.labels = y3
-        self.num_points = num
-
-        logging.error('Training set JS=%.4f' % utils.js_div_uniform(y3))
-        logging.error('Loading Done.')
-
-    def _load_cifar(self, opts):
-        """Load CIFAR10
-
-        """
-        logging.error('Loading CIFAR10 dataset')
-
-        num_train_samples = 50000
-        data_dir = _data_dir(opts)
-        x_train = np.zeros((num_train_samples, 3, 32, 32), dtype='uint8')
-        y_train = np.zeros((num_train_samples,), dtype='uint8')
-
-        for i in range(1, 6):
-            fpath = os.path.join(data_dir, 'data_batch_' + str(i))
-            data, labels = load_cifar_batch(fpath)
-            x_train[(i - 1) * 10000: i * 10000, :, :, :] = data
-            y_train[(i - 1) * 10000: i * 10000] = labels
-
-        fpath = os.path.join(data_dir, 'test_batch')
-        x_test, y_test = load_cifar_batch(fpath)
-
-        y_train = np.reshape(y_train, (len(y_train), 1))
-        y_test = np.reshape(y_test, (len(y_test), 1))
-        x_train = x_train.transpose(0, 2, 3, 1)
-        x_test = x_test.transpose(0, 2, 3, 1)
-
-        X = np.vstack([x_train, x_test])
-        X = X/255.
-        y = np.vstack([y_train, y_test])
-
-        seed = 123
-        np.random.seed(seed)
-        np.random.shuffle(X)
-        np.random.seed(seed)
-        np.random.shuffle(y)
-        np.random.seed()
-
-        self.data_shape = (32, 32, 3)
-
-        test_size = 10000
-        if opts['train_dataset_size']==-1:
-            self.data = Data(opts, X[:-test_size])
-        else:
-            self.data = Data(opts, X[:opts['train_dataset_size']])
-        self.test_data = Data(opts, X[-test_size:])
-        self.labels = y[:-test_size].flatten()
-        self.test_labels = y[-test_size:].flatten()
-        self.num_points = len(self.data)
-
-        logging.error('Loading Done.')
-
-    def _load_celebA(self, opts):
-        """Load CelebA
-        """
-        logging.error('Loading CelebA dataset')
-
-        num_samples = 202599
-
-        datapoint_ids = range(1, num_samples + 1)
-        paths = ['%.6d.jpg' % i for i in range(1, num_samples + 1)]
-        seed = 123
-        random.seed(seed)
-        random.shuffle(paths)
-        random.shuffle(datapoint_ids)
-        random.seed()
-
-        saver = utils.ArraySaver('disk', workdir=opts['work_dir'])
-        saver.save('shuffled_training_ids', datapoint_ids)
-
-        self.data_shape = (64, 64, 3)
-        test_size = 512
-        self.data = Data(opts, None, paths[:-test_size])
-        self.test_data = Data(opts, None, paths[-test_size:])
-        self.num_points = num_samples - test_size
-        self.labels = np.array(self.num_points * [0])
-        self.test_labels = np.array(test_size * [0])
-
-        logging.error('Loading Done.')
-
-    def _load_grassli(self, opts):
-        """Load grassli
-
-        """
-        logging.error('Loading grassli dataset')
-
-        data_dir = _data_dir(opts)
-        X = np.load(utils.o_gfile((data_dir, 'grassli.npy'), 'rb')) / 255.
-
-        seed = 123
-        np.random.seed(seed)
-        np.random.shuffle(X)
-        np.random.seed(seed)
-        np.random.seed()
-
-        self.data_shape = (64, 64, 3)
-        test_size = 5000
-
-        self.data = Data(opts, X[:-test_size])
-        self.test_data = Data(opts, X[-test_size:])
-        self.num_points = len(self.data)
-
-        logging.error('Loading Done.')
