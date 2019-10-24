@@ -546,7 +546,7 @@ def  locatello_decoder(opts, input, output_dim, reuse,
                    opts['filter_size'][opts['d_nlayers']-1-i], stride=2, scope='hid%d/deconv' % i, init= opts['conv_init'])
         layer_x = ops._ops.non_linear(layer_x,'relu')
         layer_x = tf.nn.dropout(layer_x, keep_prob=dropout_rate)
-    outputs = ops.deconv2d.Deconv2D(opts, layer_x, layer_x.get_shape().as_list()[-1], [batch_size]+output_dim,
+    outputs = ops.deconv2d.Deconv2D(opts, layer_x, layer_x.get_shape().as_list()[-1], [batch_size,]+output_dim,
                 opts['filter_size'][0], stride=2, scope='hid_final/deconv', init= opts['conv_init'])
 
     return outputs

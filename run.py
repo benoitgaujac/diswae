@@ -72,7 +72,7 @@ def main():
 
     # Experiemnts set up
     opts['epoch_num'] = FLAGS.enum
-    opts['print_every'] = 10*596
+    opts['print_every'] = 10*189
     opts['save_every_epoch'] = 1000000
     opts['save_final'] = False
     opts['save_train_data'] = False
@@ -87,17 +87,17 @@ def main():
         opts['beta'] = FLAGS.beta
 
     # NN set up
-    opts['filter_size'] = [5,3]
+    opts['filter_size'] = [4,4,4,4]
     opts['mlp_init'] = 'glorot_uniform' #normal, he, glorot, glorot_he, glorot_uniform, ('uniform', range)
     opts['e_arch'] = FLAGS.enet_archi # mlp, dcgan, dcgan_v2, resnet
-    opts['e_nlayers'] = 2
+    opts['e_nlayers'] = 4
     opts['downsample'] = [None,]*opts['e_nlayers'] #None, True
-    opts['e_nfilters'] = [1200,1200]
+    opts['e_nfilters'] = [32,32,64,64]
     opts['e_nonlinearity'] = 'relu' # soft_plus, relu, leaky_relu, tanh
     opts['d_arch'] =  FLAGS.enet_archi # mlp, dcgan, dcgan_v2, resnet
     opts['upsample'] = [None,]*opts['d_nlayers'] #None, up
-    opts['d_nlayers'] = 3
-    opts['d_nfilters'] = [1200,1200,1200]
+    opts['d_nlayers'] = 4
+    opts['d_nfilters'] = [32,32,32,64]
     opts['d_nonlinearity'] = 'tanh' # soft_plus, relu, leaky_relu, tanh
 
     # Create directories
