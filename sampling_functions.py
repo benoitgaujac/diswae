@@ -1,34 +1,27 @@
-import sys
-import time
-import os
-from math import sqrt, cos, sin, pi, ceil
 import numpy as np
 import tensorflow as tf
-#import tensorflow_probability as tfp
 
 import pdb
 
-def sample_pz(opts,pz_params,batch_size=100):
-    if opts['prior']=='gaussian' or opts['prior']=='implicit':
-        noise = sample_gaussian(opts, pz_params, 'numpy', batch_size)
-    elif opts['prior']=='dirichlet':
-        noise = sample_dirichlet(opts, pz_params, batch_size)
+def sample_pz(opts, pz_params, batch_size=100):
+    if opts['prior'] == 'gaussian' or opts['prior'] == 'implicit':
+        noise = sample_gaussian(pz_params, 'numpy', batch_size)
     else:
         assert False, 'Unknown prior %s' % opts['prior']
     return noise
 
 
-def sample_gaussian(opts, params, typ='numpy', batch_size=100):
+def sample_gaussian(params, typ='numpy', batch_size=100):
     """
     Sample noise from gaussian distribution with parameters
     means and covs
     """
-    if typ =='tensorflow':
+    if typ == 'tensorflow':
         means, covs = tf.split(params,2,axis=-1)
         shape = tf.shape(means)
         eps = tf.random_normal(shape, dtype=tf.float32)
         noise = means + tf.multiply(eps,tf.sqrt(1e-10+covs))
-    elif typ =='numpy':
+    elif typ == 'numpy':
         means, covs = np.split(params,2,axis=-1)
         shape = (batch_size,)+np.shape(means)
         eps = np.random.normal(0.,1.,shape).astype(np.float32)

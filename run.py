@@ -2,7 +2,7 @@ import os
 import logging
 import argparse
 import configs
-from train import WAE, BetaVAE
+from train import Run
 from datahandler import DataHandler
 import utils
 
@@ -14,7 +14,7 @@ parser.add_argument("--model", default='WAE',
                     help='model to train [WAE/BetaVAE/...]')
 parser.add_argument("--mode", default='train',
                     help='mode to run [train/vizu/fid/test]')
-parser.add_argument("--exp", default='mnist',
+parser.add_argument("--exp", default='dsprites',
                     help='dataset [mnist/cifar10/].'\
                     ' celebA/dsprites Not implemented yet')
 parser.add_argument("--data_dir", type=str, default='../data',
@@ -41,16 +41,24 @@ FLAGS = parser.parse_args()
 def main():
 
     # Select dataset to use
-    if FLAGS.exp == 'dsprites':
+    if FLAGS.exp == 'celebA':
+        opts = configs.config_celebA
+    elif FLAGS.exp == 'celebA_small':
+        opts = configs.config_celebA_small
+    elif FLAGS.exp == 'mnist':
+        opts = configs.config_mnist
+    elif FLAGS.exp == 'mnist_small':
+        opts = configs.config_mnist_small
+    elif FLAGS.exp == 'cifar10':
+        opts = configs.config_cifar10
+    elif FLAGS.exp == 'dsprites':
         opts = configs.config_dsprites
     elif FLAGS.exp == 'smallNORB':
         opts = configs.config_smallNORB
-    elif FLAGS.exp == '3Dchairs':
-        opts = configs.config_3Dchairs
-    elif FLAGS.exp == 'celebA':
-        opts = configs.config_celebA
-    elif FLAGS.exp == 'mnist':
-        opts = configs.config_mnist
+    elif FLAGS.exp == 'grassli':
+        opts = configs.config_grassli
+    elif FLAGS.exp == 'grassli_small':
+        opts = configs.config_grassli_small
     else:
         assert False, 'Unknown experiment dataset'
 
@@ -65,14 +73,14 @@ def main():
         opts['work_dir'] = FLAGS.work_dir
 
     # Mode
-    if FLAGS.mode == 'fid':
+    if FLAGS.mode=='fid':
         opts['fid'] = True
     else:
         opts['fid'] = False
 
     # Experiemnts set up
     opts['epoch_num'] = FLAGS.enum
-    opts['print_every'] = 10*189
+    opts['print_every'] = 30000
     opts['save_every_epoch'] = 1000000
     opts['save_final'] = False
     opts['save_train_data'] = False
@@ -82,22 +90,22 @@ def main():
 
     # Objective Function Coefficients
     if opts['model'] == 'WAE':
-        opts['lambda'] = [FLAGS.lmba0, FLAGS.lmba1]
+        opts['obj_fn_coeffs'] = [FLAGS.lmba0, FLAGS.lmba1]
     elif opts['model'] == 'BetaVAE':
-        opts['beta'] = FLAGS.beta
+        opts['obj_fn_coeffs'] = FLAGS.beta
 
     # NN set up
-    opts['filter_size'] = [4,4,4,4]
+    opts['filter_size'] = [5,3]
     opts['mlp_init'] = 'glorot_uniform' #normal, he, glorot, glorot_he, glorot_uniform, ('uniform', range)
     opts['e_arch'] = FLAGS.enet_archi # mlp, dcgan, dcgan_v2, resnet
-    opts['e_nlayers'] = 4
+    opts['e_nlayers'] = 2
     opts['downsample'] = [None,]*opts['e_nlayers'] #None, True
-    opts['e_nfilters'] = [32,32,64,64]
+    opts['e_nfilters'] = [1200,1200]
     opts['e_nonlinearity'] = 'relu' # soft_plus, relu, leaky_relu, tanh
     opts['d_arch'] =  FLAGS.enet_archi # mlp, dcgan, dcgan_v2, resnet
     opts['upsample'] = [None,]*opts['d_nlayers'] #None, up
-    opts['d_nlayers'] = 4
-    opts['d_nfilters'] = [32,32,32,64]
+    opts['d_nlayers'] = 3
+    opts['d_nfilters'] = [1200,1200,1200]
     opts['d_nonlinearity'] = 'tanh' # soft_plus, relu, leaky_relu, tanh
 
     # Create directories
@@ -120,13 +128,7 @@ def main():
     #Reset tf graph
     tf.reset_default_graph()
 
-    # build WAE/VAE
-    if opts['model'] == 'WAE':
-        model = WAE(opts)
-    elif opts['model'] == 'BetaVAE':
-        model = BetaVAE(opts)
-    else:
-        assert False, 'Unknown methdo %s' % opts['model']
+    run = Run(opts)
 
     # Training/testing/vizu
     if FLAGS.mode=="train":
@@ -135,18 +137,9 @@ def main():
             text.write('Parameters:\n')
             for key in opts:
                 text.write('%s : %s\n' % (key, opts[key]))
-        model.train(data, FLAGS.weights_file, model=FLAGS.model)
-    # elif FLAGS.mode=="vizu":
-    #     opts['rec_loss_nsamples'] = 1
-    #     opts['sample_recons'] = False
-    #     wae.latent_interpolation(data, opts['work_dir'], FLAGS.weights_file)
-    # elif FLAGS.mode=="fid":
-    #     wae.fid_score(data, opts['work_dir'], FLAGS.weights_file)
-    # elif FLAGS.mode=="test":
-    #     wae.test_losses(data, opts['work_dir'], FLAGS.weights_file)
-    # elif FLAGS.mode=="vlae_exp":
-    #     wae.vlae_experiment(data, opts['work_dir'], FLAGS.weights_file)
+        run.train(data, FLAGS.weights_file)
     else:
         assert False, 'Unknown mode %s' % FLAGS.mode
+
 
 main()
