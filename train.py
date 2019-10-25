@@ -1,8 +1,6 @@
 """
 Auto-Encoder models
 """
-
-import time
 import os
 import logging
 
@@ -10,16 +8,14 @@ import numpy as np
 import tensorflow as tf
 
 import utils
-from sampling_functions import sample_pz, sample_gaussian, linespace
-from loss_functions import matching_penalty, reconstruction_loss, kl_penalty
+from sampling_functions import sample_pz, linespace
 from plot_functions import save_train
 from plot_functions import plot_embedded, plot_encSigma, plot_interpolation
-from networks import encoder, decoder
+import models
 from datahandler import datashapes
 
 
-
-class Model(object):
+class Run(object):
 
     def __init__(self, opts):
 
@@ -38,106 +34,60 @@ class Model(object):
         self.add_training_placeholders()
 
         # --- Initialize prior parameters
-        self.pz_mean = np.zeros(opts['zdim'], dtype='float32')
-        self.pz_sigma = np.ones(opts['zdim'], dtype='float32')
-        self.pz_params = np.concatenate([self.pz_mean, self.pz_sigma], axis=0)
+        mean = np.zeros(opts['zdim'], dtype='float32')
+        Sigma = np.ones(opts['zdim'], dtype='float32')
+        self.pz_params = np.concatenate([mean, Sigma], axis=0)
 
-        # --- Initialize list container
-        encSigmas_stats = []
-        self.pen_enc_sigma, self.pen_dec_sigma = 0., 0.
+        # --- Instantiate Model
+        self.model_str = self.opts['model']
+        if self.model_str == 'BetaVAE':
+            self.model = models.BetaVAE(opts)
+            self.obj_fn_coeffs = self.beta
+        elif self.model_str == 'WAE':
+            self.model = models.WAE(opts)
+            self.obj_fn_coeffs = (self.lmbd1, self.lmbd2)
+        else:
+            raise NotImplementedError()
 
-        # --- Encoding & decoding
-        # - Encoding data points
-        self.enc_mean, self.enc_Sigma = encoder(self.opts, input=self.points,
-                                        output_dim=2*opts['zdim'],
-                                        scope='encoder',
-                                        reuse=False,
-                                        is_training=self.is_training,
-                                        dropout_rate=self.dropout_rate)
-        if opts['encoder'] == 'det':
-            # - deterministic encoder
-            self.encoded = self.enc_mean
-        elif opts['encoder'] == 'gauss':
-            # - gaussian encoder
-            qz_params = tf.concat((self.enc_mean, self.enc_Sigma), axis=-1)
-            self.encoded = sample_gaussian(opts, qz_params, 'tensorflow')
-            # Enc Sigma penalty
-            if opts['pen_enc_sigma']:
-                self.pen_enc_sigma += opts['lambda_pen_enc_sigma']*tf.reduce_mean(tf.reduce_sum(tf.abs(tf.log(self.enc_Sigma)), axis=-1))
-            # - Enc Sigma stats
-            Sigma_tr = tf.reduce_mean(self.enc_Sigma, axis=-1)
-            Smean, Svar = tf.nn.moments(Sigma_tr, axes=[0])
-            self.encSigmas_stats = tf.stack([Smean, Svar], axis=-1)
-        else:
-            assert False, 'Unknown encoder %s' % opts['encoder']
-        # - Decoding encoded points (i.e. reconstruct)
-        output_dim = datashapes[opts['dataset']][:-1]+[2*datashapes[opts['dataset']][-1],]
-        recon_mean, recon_Sigma = decoder(self.opts, input=self.encoded,
-                                        output_dim=output_dim,
-                                        scope='decoder',
-                                        reuse=False,
-                                        is_training=self.is_training,
-                                        dropout_rate=self.dropout_rate)
-        # - reshaping or resampling reconstructed
-        if opts['decoder'] == 'det':
-            # - deterministic decoder
-            reconstructed = recon_mean
-        elif opts['decoder'] == 'gauss':
-            # - gaussian decoder
-            p_params = tf.concat((recon_mean,recon_Sigma),axis=-1)
-            reconstructed = sample_gaussian(opts, p_params, 'tensorflow')
-            # - Dec Sigma penalty
-            if opts['pen_dec_sigma']:
-                self.pen_dec_sigma += opts['lambda_pen_dec_sigma'] * tf.reduce_mean(tf.reduce_sum(tf.abs(tf.log(recon_Sigma)),axis=-1))
-        else:
-            assert False, 'Unknown encoder %s' % opts['decoder']
-        if opts['input_normalize_sym']:
-            reconstructed = tf.nn.tanh(recon_mean)
-        else:
-            reconstructed = tf.nn.sigmoid(recon_mean)
-        self.reconstructed = tf.reshape(reconstructed, [-1]+datashapes[opts['dataset']])
+        # --- Define Objective
+        self.objective, self.loss_reconstruct, self.divergences, self.recon_x, self.enc_z \
+            = self.model.loss(inputs=self.batch,
+                              samples=self.samples_pz,
+                              loss_coeffs=self.obj_fn_coeffs,
+                              is_training=self.is_training,
+                              dropout_rate=self.dropout_rate)
 
-        # --- reconstruction loss
-        self.loss_reconstruct = reconstruction_loss(opts, self.points, reconstructed)
+        self.generated_x = self.model.sample_x_from_prior(noise=self.samples_pz)
 
-        # --- Sampling from model (only for generation)
-        output_dim = datashapes[opts['dataset']][:-1]+[2*datashapes[opts['dataset']][-1],]
-        decoded_mean, decoded_Sigma = decoder(self.opts, input=self.samples,
-                                output_dim=output_dim,
-                                scope='decoder',
-                                reuse=True,
-                                is_training=self.is_training)
-        if opts['decoder'] == 'det':
-            decoded = decoded_mean
-        elif opts['decoder'] == 'gauss':
-            p_params = tf.concat((decoded_mean,decoded_Sigma),axis=-1)
-            decoded = sample_gaussian(opts, p_params, 'tensorflow')
-        else:
-            assert False, 'Unknown decoder %s' % opts['decoder']
-        if opts['input_normalize_sym']:
-            decoded=tf.nn.tanh(decoded)
-        else:
-            decoded=tf.nn.sigmoid(decoded)
-        self.decoded = tf.reshape(decoded,[-1]+datashapes[opts['dataset']])
+        # --- Optimizers, savers, etc
+        self.add_optimizers()
+        self.add_savers()
+        self.initializer = tf.global_variables_initializer()
 
     def add_model_placeholders(self):
         opts = self.opts
         shape = self.data_shape
-        self.points = tf.placeholder(tf.float32,
+        self.batch = tf.placeholder(tf.float32,
                                         [None] + shape,
                                         name='points_ph')
-        self.samples = tf.placeholder(tf.float32,
-                                        [None] + [opts['zdim'],],
-                                        name='noise_ph')
+        self.samples_pz = tf.placeholder(tf.float32,
+                                         [None] + [opts['zdim'],],
+                                         name='noise_ph')
 
     def add_training_placeholders(self):
         self.lr_decay = tf.placeholder(tf.float32, name='rate_decay_ph')
         self.is_training = tf.placeholder(tf.bool, name='is_training_ph')
         self.dropout_rate = tf.placeholder(tf.float32, name='dropout_rate_ph')
         self.batch_size = tf.placeholder(tf.int32, name='batch_size_ph')
+        if self.opts['model']=='BetaVAE':
+            self.beta = tf.placeholder(tf.float32, name='beta_ph')
+        elif self.opts['model']=='WAE':
+            self.lmbd1 = tf.placeholder(tf.float32, name='lambda1_ph')
+            self.lmbd2 = tf.placeholder(tf.float32, name='lambda2_ph')
+        else:
+            raise NotImplementedError()
 
     def add_savers(self):
-        opts = self.opts
         saver = tf.train.Saver(max_to_keep=10)
         self.saver = saver
 
@@ -153,7 +103,6 @@ class Model(object):
 
     def add_optimizers(self):
         opts = self.opts
-        # WAE optimizer
         lr = opts['lr']
         opt = self.optimizer(lr, self.lr_decay)
         encoder_vars = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES,
@@ -167,52 +116,12 @@ class Model(object):
             pre_opt = self.optimizer(0.001)
             self.pre_opt = pre_opt.minimize(loss=self.pre_loss, var_list=encoder_vars)
 
-    def compute_blurriness(self):
-        images = self.points
-        # First convert to greyscale
-        if self.data_shape[-1] > 1:
-            # We have RGB
-            images = tf.image.rgb_to_grayscale(images)
-        # Next convolve with the Laplace filter
-        lap_filter = np.array([[0, 1, 0], [1, -4, 1], [0, 1, 0]])
-        lap_filter = lap_filter.reshape([3, 3, 1, 1])
-        conv = tf.nn.conv2d(images, lap_filter, strides=[1, 1, 1, 1],
-                                                padding='VALID')
-        _, lapvar = tf.nn.moments(conv, axes=[1, 2, 3])
-        return lapvar
-
-    def create_inception_graph(self):
-        # Create inception graph
-        with tf.gfile.FastGFile( inception_model, 'rb') as f:
-            graph_def = tf.GraphDef()
-            graph_def.ParseFromString( f.read())
-            _ = tf.import_graph_def( graph_def, name='FID_Inception_Net')
-
-    def _get_inception_layer(self):
-        # Get inception activation layer (and reshape for batching)
-        pool3 = self.inception_sess.graph.get_tensor_by_name(layername)
-        ops_pool3 = pool3.graph.get_operations()
-        for op_idx, op in enumerate(ops_pool3):
-            for o in op.outputs:
-                shape = o.get_shape()
-                if shape._dims != []:
-                  shape = [s.value for s in shape]
-                  new_shape = []
-                  for j, s in enumerate(shape):
-                    if s == 1 and j == 0:
-                      new_shape.append(None)
-                    else:
-                      new_shape.append(s)
-                  o.__dict__['_shape_val'] = tf.TensorShape(new_shape)
-        return pool3
-
-    def train(self, data, WEIGHTS_FILE, model):
+    def train(self, data, WEIGHTS_FILE):
         """
         Train top-down model with chosen method
         """
-
         opts = self.opts
-        logging.error('Training WAE')
+        logging.error('Training {}'.format(self.opts['model']))
         work_dir = opts['work_dir']
 
         # - Init sess and load trained weights if needed
@@ -222,10 +131,6 @@ class Model(object):
             self.saver.restore(self.sess, WEIGHTS_FILE)
         else:
             self.sess.run(self.initializer)
-            if opts['e_pretrain']:
-                logging.error('Pretraining the encoder\n')
-                self.pretrain_encoder(data)
-                print('')
 
         # - Set up for training
         train_size = data.num_points
@@ -235,94 +140,68 @@ class Model(object):
         fixed_noise = sample_pz(opts, self.pz_params, npics)
         anchors_ids = np.random.choice(npics, 5, replace=True)
 
-
-        if opts['fid']:
-            # Load inception mean samples for train set
-            trained_stats = os.path.join(inception_path, 'fid_stats.npz')
-            # Load trained stats
-            f = np.load(trained_stats)
-            self.mu_train, self.sigma_train = f['mu'][:], f['sigma'][:]
-            f.close()
-            # Compute bluriness of real data
-            real_blurr = self.sess.run(self.blurriness, feed_dict={
-                                                self.points: data.data[:npics]})
-            logging.error('Real pictures sharpness = %10.4e' % np.min(real_blurr))
-            print('')
-
         # - Init all monitoring variables
-        if model == 'WAE':
-            Loss_hsic, Loss_dim, Loss_wae = [], [], []
-        elif model == 'BetaVAE':
+        Loss, Loss_rec, Loss_rec_test = [], [], []
+        enc_Sigmas = []
+        if self.model_str == 'BetaVAE':
             Loss_kl = []
+        elif self.model_str == 'WAE':
+            Loss_hsic, Loss_dim, Loss_wae = [], [], []
+            if opts['vizu_encSigma']:
+                enc_Sigmas = []
         else:
             raise NotImplementedError('Model type not recognised')
 
-        Loss, Loss_rec, Loss_rec_test = [], [], []
-        enc_Sigmas = []
-        mean_blurr, fid_scores = [], []
         decay, counter = 1., 0
         decay_steps, decay_rate = int(batches_num * opts['epoch_num'] / 5), 0.98
         wait, wait_lambda = 0, 0
-        self.start_time = time.time()
         for epoch in range(opts['epoch_num']):
             # Saver
             if counter > 0 and counter % opts['save_every'] == 0:
-                self.saver.save(self.sess, os.path.join(
-                                                work_dir,'checkpoints',
-                                                'trained-wae'),
-                                                global_step=counter)
-            ##### TRAINING LOOP #####
+                self.saver.save(self.sess,
+                                os.path.join(work_dir, 'checkpoints', 'trained-wae'),
+                                global_step=counter)
+
+            # Training Loop
             for it in range(batches_num):
 
                 # Sample batches of data points and Pz noise
                 data_ids = np.random.choice(train_size, opts['batch_size'], replace=True)
                 batch_images = data.data[data_ids].astype(np.float32)
-                batch_samples = sample_pz(opts, self.pz_params,
-                                                opts['batch_size'])
+                batch_pz_samples = sample_pz(opts, self.pz_params, opts['batch_size'])
                 # Feeding dictionary
-                feed_dict = {self.points: batch_images,
-                             self.samples: batch_samples,
+                feed_dict = {self.batch: batch_images,
+                             self.samples_pz: batch_pz_samples,
                              self.lr_decay: decay,
-                             # self.lmbd1: opts['lambda'][0],
-                             # self.lmbd2: opts['lambda'][1],
+                             self.obj_fn_coeffs: opts['obj_fn_coeffs'],
                              self.dropout_rate: opts['dropout_rate'],
                              self.is_training: True}
-                if model == 'WAE':
-                    feed_dict[self.lmbd1] = opts['lambda'][0]
-                    feed_dict[self.lmbd2] = opts['lambda'][1]
-                elif model == 'BetaVAE':
-                    feed_dict[self.beta] = opts['beta']
-                else:
-                    raise NotImplementedError('Model type not recognised')
 
-                [_, loss, loss_breakdown] = self.sess.run([
+                [_, loss, loss_rec, divergences] = self.sess.run([
                                                 self.vae_opt,
                                                 self.objective,
-                                                self.loss_breakdown],
+                                                self.loss_reconstruct,
+                                                self.divergences],
                                                 feed_dict=feed_dict)
-                if model == 'WAE':
-                    (loss_rec, loss_hsic, loss_dim, loss_wae) = loss_breakdown
+                if self.model_str == 'BetaVAE':
+                    loss_kl = divergences
+                    Loss_kl.append(loss_kl)
+                elif self.model_str == 'WAE':
+                    (loss_hsic, loss_dim, loss_wae, enc_sigmastats) = divergences
                     Loss_hsic.append(loss_hsic)
                     Loss_dim.append(loss_dim)
                     Loss_wae.append(loss_wae)
-                elif model == 'BetaVAE':
-                    (loss_rec, loss_kl) = loss_breakdown
-                    Loss_kl.append(loss_kl)
+                    if opts['vizu_encSigma']:
+                        enc_Sigmas.append(enc_sigmastats)
                 else:
                     raise NotImplementedError('Model type not recognised')
 
                 Loss.append(loss)
                 Loss_rec.append(loss_rec)
 
-                if opts['vizu_encSigma']:
-                    enc_sigmastats = self.sess.run(self.encSigmas_stats,
-                                                feed_dict=feed_dict)
-                    enc_Sigmas.append(enc_sigmastats)
-
                 ##### TESTING LOOP #####
                 if counter % opts['print_every'] == 0 or counter == 100:
                     print("Epoch {}, iteration {}".format(epoch, it))
-                    now = time.time()
                     batch_size_te = 200
                     test_size = np.shape(data.test_data)[0]
                     batches_num_te = int(test_size/batch_size_te)
@@ -330,53 +209,47 @@ class Model(object):
                     loss_rec_test = 0.
                     for it_ in range(batches_num_te):
                         # Sample batches of data points
-                        data_ids =  np.random.choice(test_size, batch_size_te,
-                                                replace=True)
-                        batch_images = data.test_data[data_ids].astype(np.float32)
+                        data_ids = np.random.choice(test_size, batch_size_te, replace=True)
+                        batch_images_test = data.test_data[data_ids].astype(np.float32)
+                        batch_pz_samples_test = sample_pz(opts, self.pz_params, batch_size_te)
 
-                        test_feed_dict = {self.points: batch_images,
+                        test_feed_dict = {self.batch: batch_images_test,
+                                          self.samples_pz: batch_pz_samples_test,
+                                          self.obj_fn_coeffs: opts['obj_fn_coeffs'],
                                           self.dropout_rate: 1.,
                                           self.is_training: False}
-                        if model == 'WAE':
-                            test_feed_dict[self.lmbd1] = opts['lambda'][0]
-                            test_feed_dict[self.lmbd2] = opts['lambda'][1]
-                        elif model == 'BetaVAE':
-                            test_feed_dict[self.beta] = opts['beta']
-                        else:
-                            raise NotImplementedError('Model type not recognised')
-                        l = self.sess.run(self.loss_reconstruct,
-                                          feed_dict=test_feed_dict)
-                        loss_rec_test += l / batches_num_te
+                        l_rec = self.sess.run(self.loss_reconstruct,
+                                              feed_dict=test_feed_dict)
+                        loss_rec_test += l_rec / batches_num_te
                     Loss_rec_test.append(loss_rec_test)
 
                     # Auto-encoding test images & samples generated by the model
-                    [reconstructed_test, encoded, samples] = self.sess.run(
-                                                [self.reconstructed,
-                                                 self.encoded,
-                                                 self.decoded],
-                                                feed_dict={self.points:data.test_data[:10*npics],
-                                                           self.samples: fixed_noise,
+                    [reconstructions_test, latents_test, generations_test] = self.sess.run(
+                                                [self.recon_x,
+                                                 self.enc_z,
+                                                 self.generated_x],
+                                                feed_dict={self.batch: data.test_data[:10*npics],       # TODO what is this?
+                                                           self.samples_pz: fixed_noise,
                                                            self.dropout_rate: 1.,
-                                                           self.is_training:False})
+                                                           self.is_training: False})
                     # Auto-encoding training images
-                    reconstructed_train = self.sess.run(self.reconstructed,
-                                                feed_dict={self.points:data.data[200:200+npics],
-                                                           self.dropout_rate: 1.,
-                                                           self.is_training:False})
+                    reconstructions_train = self.sess.run(self.recon_x,
+                                                          feed_dict={self.batch: data.data[200:200+npics],  # TODO what is this?
+                                                                     self.dropout_rate: 1.,
+                                                                     self.is_training: False})
 
-                    # - Plotting embeddings, Sigma, latent interpolation, FID score and saving
+                    # - Plotting embeddings, Sigma, latent interpolation, and saving
                     # Embeddings
                     if opts['vizu_embedded'] and counter > 1:
-                        decoded = samples[:-1]
-                        decoded = decoded[::-1]
-                        decoded.append(fixed_noise)
-                        plot_embedded(opts,encoded,decoded, #[fixed_noise,].append(samples)
-                                                data.test_labels[:10*npics],
-                                                work_dir,'embedded_e%04d_mb%05d.png' % (epoch, it))
+                        plot_embedded(opts, [latents_test[:npics]], [fixed_noise],
+                                      data.test_labels[:npics],
+                                      work_dir, 'embedded_e%04d_mb%05d.png' % (epoch, it))
                     # Encoded sigma
                     if opts['vizu_encSigma'] and counter > 1:
-                        plot_encSigma(opts, enc_Sigmas, work_dir,
-                                                'encSigma_e%04d_mb%05d.png' % (epoch, it))
+                        plot_encSigma(opts,
+                                      enc_Sigmas,
+                                      work_dir,
+                                      'encSigma_e%04d_mb%05d.png' % (epoch, it))
                     # Encode anchors points and interpolate
                     if opts['vizu_interpolation']:
                         logging.error('Latent interpolation..')
@@ -385,78 +258,55 @@ class Model(object):
                         enc_var = np.ones(opts['zdim'])
                         # crate linespace
                         enc_interpolation = linespace(opts, num_steps,  # shape: [nanchors, zdim, nsteps, zdim]
-                                                      anchors=encoded[anchors_ids],
+                                                      anchors=latents_test[anchors_ids],
                                                       std=enc_var)
                         # reconstructing
-                        dec_interpolation = self.sess.run(self.decoded,
-                                                feed_dict={self.samples: np.reshape(enc_interpolation, [-1, opts['zdim']]),
-                                                           self.dropout_rate: 1.,
-                                                           self.is_training: False})
-                        inter_anchors = np.reshape(dec_interpolation,[-1,opts['zdim'],num_steps]+im_shape)
-                        inter_anchors = np.transpose(inter_anchors,(1,0,2,3,4,5))
+                        dec_interpolation = self.sess.run(self.generated_x,
+                                                          feed_dict={self.samples_pz: np.reshape(enc_interpolation,
+                                                                                                 [-1, opts['zdim']]),
+                                                                     self.dropout_rate: 1.,
+                                                                     self.is_training: False})
+                        inter_anchors = np.reshape(dec_interpolation, [-1, opts['zdim'], num_steps]+im_shape)
+                        inter_anchors = np.transpose(inter_anchors, (1, 0, 2, 3, 4, 5))
                         plot_interpolation(opts, inter_anchors, work_dir,
-                                                'inter_e%04d_mb%05d.png' % (epoch, it))
-
-                    # FID score
-                    if opts['fid']:
-                        # Compute FID score
-                        gen_blurr = self.sess.run(self.blurriness,
-                                                feed_dict={self.points: samples})
-                        mean_blurr.append(np.min(gen_blurr))
-                        # First convert to RGB
-                        if np.shape(flat_samples)[-1] == 1:
-                            # We have greyscale
-                            flat_samples = self.sess.run(tf.image.grayscale_to_rgb(flat_samples))
-                        preds_incep = self.inception_sess.run(self.inception_layer,
-                                      feed_dict={'FID_Inception_Net/ExpandDims:0': flat_samples})
-                        preds_incep = preds_incep.reshape((npics,-1))
-                        mu_gen = np.mean(preds_incep, axis=0)
-                        sigma_gen = np.cov(preds_incep, rowvar=False)
-                        fid_score = fid.calculate_frechet_distance(mu_gen,
-                                                sigma_gen,
-                                                self.mu_train,
-                                                self.sigma_train,
-                                                eps=1e-6)
-                        fid_scores.append(fid_score)
-                        debug_str = 'FID=%.3f, BLUR=%10.4e' % (
-                                                fid_scores[-1],
-                                                mean_blurr[-1])
-                        logging.error(debug_str)
+                                           'inter_e%04d_mb%05d.png' % (epoch, it))
 
                     # Printing various loss values
-                    debug_str = 'EPOCH: %d/%d, BATCH:%d/%d' % (
-                                                epoch + 1, opts['epoch_num'],
-                                                it + 1, batches_num)
+                    debug_str = 'EPOCH: %d/%d, BATCH:%d/%d' % (epoch + 1,
+                                                               opts['epoch_num'],
+                                                               it + 1,
+                                                               batches_num)
                     logging.error(debug_str)
                     debug_str = 'TRAIN LOSS=%.3f' % (Loss[-1])
                     logging.error(debug_str)
-                    if model == 'WAE':
+                    if self.model_str == 'BetaVAE':
+                        debug_str = 'REC=%.3f, REC TEST=%.3f, KL=%10.3e\n ' % (
+                            Loss_rec[-1],
+                            Loss_rec_test[-1],
+                            Loss_kl[-1])
+                    elif self.model_str == 'WAE':
                         debug_str = 'REC=%.3f, REC TEST=%.3f, HSIC=%10.3e, DIMWISE=%10.3e, WAE=%10.3e\n ' % (
                                                     Loss_rec[-1],
                                                     Loss_rec_test[-1],
                                                     Loss_hsic[-1],
                                                     Loss_dim[-1],
                                                     Loss_wae[-1])
-                    elif model == 'BetaVAE':
-                        debug_str = 'REC=%.3f, REC TEST=%.3f, KL=%10.3e\n ' % (
-                                                    Loss_rec[-1],
-                                                    Loss_rec_test[-1],
-                                                    Loss_kl[-1])
                     else:
                         raise NotImplementedError('Model type not recognised')
                     logging.error(debug_str)
 
                     # Saving plots
-                    if model == 'WAE':
-                        save_train(opts, data.data[200:200+npics], data.test_data[:npics],  # images
-                                         reconstructed_train, reconstructed_test[:npics], # reconstructions
-                                         samples,  # model samples
-                                         Loss,  # loss
-                                         Loss_rec, Loss_rec_test,   # rec losses
-                                         Loss_hsic, Loss_dim, Loss_wae,  # reg losses
-                                         work_dir,  # working directory
-                                         'res_e%04d_mb%05d.png' % (epoch, it))  # filename
-                    elif model == 'BetaVAE':
+                    if self.model_str == 'WAE':
+                        save_train(opts,
+                                   data.data[200:200+npics], data.test_data[:npics],        # images
+                                   reconstructions_train, reconstructions_test[:npics],     # reconstructions
+                                   generations_test,                                        # model samples
+                                   Loss,                                                    # loss
+                                   Loss_rec, Loss_rec_test,                                 # rec losses
+                                   Loss_hsic, Loss_dim, Loss_wae,                           # reg losses
+                                   work_dir,                                                # working directory
+                                   'res_e%04d_mb%05d.png' % (epoch, it))                    # filename
+                    elif self.model_str == 'BetaVAE':
                         print('Need to modify save_train function to work for BetaVAE')
                     else:
                         raise NotImplementedError('Model type not recognised')
@@ -498,7 +348,7 @@ class Model(object):
         if opts['save_final'] and epoch > 0:
             self.saver.save(self.sess, os.path.join(work_dir,
                                                 'checkpoints',
-                                                'trained-{}-final'.format(model)),
+                                                'trained-{}-final'.format(self.model_str)),
                                                 global_step=counter)
         # - save training data
         if opts['save_train_data']:
@@ -506,119 +356,21 @@ class Model(object):
             save_path = os.path.join(work_dir, data_dir)
             utils.create_dir(save_path)
             name = 'res_train_final'
-            if model == 'WAE':
-                np.savez(os.path.join(save_path,name),
-                         data_test=data.data[200:200+npics], data_train=data.test_data[:npics],
-                         encoded = encoded,
-                         rec_train=reconstructed_train, rec_test=reconstructed_test[:npics],
-                         samples=samples,
-                         loss=np.array(Loss),
-                         loss_rec=np.array(Loss_rec), loss_rec_test=np.array(Loss_rec_test),
-                         loss_hsci=np.array(Loss_hsic), loss_dim=np.array(Loss_dim), loss_wae=np.array(Loss_wae))
-            elif model == 'BetaVAE':
+            if self.model_str == 'BetaVAE':
                 np.savez(os.path.join(save_path, name),
-                         data_test=data.data[200:200 + npics], data_train=data.test_data[:npics],
-                         encoded=encoded,
-                         rec_train=reconstructed_train, rec_test=reconstructed_test[:npics],
-                         samples=samples,
-                         loss=np.array(Loss),
-                         loss_rec=np.array(Loss_rec), loss_rec_test=np.array(Loss_rec_test),
-                         loss_kl=np.array(Loss_kl))
+                         data_test=data.data[200:200 + npics], data_train=data.test_data[:npics], encoded=latents_test,
+                         rec_train=reconstructions_train, rec_test=reconstructions_test[:npics],
+                         samples=generations_test, loss=np.array(Loss), loss_rec=np.array(Loss_rec),
+                         loss_rec_test=np.array(Loss_rec_test), loss_kl=np.array(Loss_kl))
+            elif self.model_str == 'WAE':
+                np.savez(os.path.join(save_path,name),
+                         data_test=data.data[200:200+npics], data_train=data.test_data[:npics], encoded=latents_test,
+                         rec_train=reconstructions_train, rec_test=reconstructions_test[:npics],
+                         samples=generations_test, loss=np.array(Loss), loss_rec=np.array(Loss_rec),
+                         loss_rec_test=np.array(Loss_rec_test), loss_hsci=np.array(Loss_hsic),
+                         loss_dim=np.array(Loss_dim), loss_wae=np.array(Loss_wae))
             else:
                 raise NotImplementedError('Model type not recognised')
 
 
 
-class WAE(Model):
-
-    def __init__(self, opts):
-
-        super().__init__(opts)
-
-        # --- Objectives, penalties, sigma pen, FID
-        shuffle_mask = [tf.constant(np.random.choice(np.arange(opts['batch_size']),opts['batch_size'],False)) for i in range(opts['zdim'])]
-        shuffled_mean = []
-        shuffled_Sigma = []
-        for z in range(opts['zdim']):
-            shuffled_mean.append(tf.gather(self.enc_mean[:, z], shuffle_mask[z]))
-            shuffled_Sigma.append(tf.gather(self.enc_Sigma[:, z], shuffle_mask[z]))
-        shuffled_mean = tf.stack(shuffled_mean,axis=-1)
-        shuffled_Sigma = tf.stack(shuffled_Sigma,axis=-1)
-        p_params = tf.concat((shuffled_mean,shuffled_Sigma),axis=-1)
-        self.shuffled_encoded = sample_gaussian(opts, p_params, 'tensorflow')
-        # - Dimension-wise latent reg
-        self.dimension_wise_match_penalty = matching_penalty(opts, self.encoded, self.shuffled_encoded)
-        # - Multidim. HSIC
-        self.hsic_match_penalty = matching_penalty(opts, self.shuffled_encoded, self.samples)
-        # - WAE latent reg
-        self.wae_match_penalty = matching_penalty(opts, self.encoded, self.samples)
-
-        # - Compute objs
-        self.lmbd1 = tf.placeholder(tf.float32, name='lambda1_ph')
-        self.lmbd2 = tf.placeholder(tf.float32, name='lambda2_ph')
-
-        self.objective = self.loss_reconstruct \
-                         + self.lmbd1 * self.dimension_wise_match_penalty \
-                         + self.lmbd2 * self.hsic_match_penalty
-
-        self.loss_breakdown = (self.loss_reconstruct, self.dimension_wise_match_penalty, self.hsic_match_penalty, self.wae_match_penalty)
-        # - Enc Sigma penalty
-        if opts['pen_enc_sigma']:
-            self.objective += self.pen_enc_sigma
-        # - Dec Sigma penalty
-        if opts['pen_dec_sigma']:
-            self.objective += self.pen_dec_sigma
-
-        # --- Optimizers, savers, etc
-        self.add_optimizers()
-        self.add_savers()
-        self.initializer = tf.global_variables_initializer()
-
-
-class BetaVAE(Model):
-    def __init__(self, opts):
-
-        super().__init__(opts)
-
-        # - Compute objs
-        self.beta = tf.placeholder(tf.float32, name='beta_ph')
-
-        self.kl = kl_penalty(self.pz_mean, self.pz_sigma, self.enc_mean, self.enc_Sigma)
-
-        self.objective = self.loss_reconstruct - self.beta * self.kl
-
-        self.loss_breakdown = (self.loss_reconstruct, self.kl)
-
-        # --- Optimizers, savers, etc
-        self.add_optimizers()
-        self.add_savers()
-        self.initializer = tf.global_variables_initializer()
-
-
-class TCBetaVAE(Model):
-    def __init__(self, opts):
-
-        super().__init__(opts)
-
-        raise NotImplementedError()
-
-
-class FactorVAE(Model):
-    def __init__(self, opts):
-        super().__init__(opts)
-
-        raise NotImplementedError()
-
-
-class DCI(Model):
-    def __init__(self, opts):
-        super().__init__(opts)
-
-        raise NotImplementedError()
-
-
-class MIG(Model):
-    def __init__(self, opts):
-        super().__init__(opts)
-
-        raise NotImplementedError()

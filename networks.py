@@ -10,6 +10,7 @@ import ops.layernorm
 import ops._ops
 import ops.resnet
 from datahandler import datashapes
+from sampling_functions import sample_gaussian
 
 import logging
 import pdb
@@ -62,7 +63,88 @@ def encoder(opts, input, output_dim, scope=None, reuse=False,
     mean, logSigma = tf.split(outputs,2,axis=-1)
     logSigma = tf.clip_by_value(logSigma, -20, 500)
     Sigma = tf.nn.softplus(logSigma)
-    return tf.layers.flatten(mean), tf.layers.flatten(Sigma)
+    mean = tf.layers.flatten(mean)
+    Sigma = tf.layers.flatten(Sigma)
+
+    if opts['encoder'] == 'det':
+        z = mean
+    elif opts['encoder'] == 'gauss':
+        qz_params = tf.concat((mean, Sigma), axis=-1)
+        z = sample_gaussian(qz_params, 'tensorflow')
+    else:
+        assert False, 'Unknown encoder %s' % opts['encoder']
+
+    return z, mean, Sigma
+
+
+def decoder(opts, input, output_dim, scope=None, reuse=False,
+                                            is_training=False,
+                                            dropout_rate=1.):
+    with tf.variable_scope(scope, reuse=reuse):
+        if opts['d_arch'] == 'mlp':
+            # Encoder uses only fully connected layers with ReLus
+            outputs = mlp_decoder(opts, input, output_dim,
+                                            reuse,
+                                            is_training,
+                                            dropout_rate)
+        elif opts['d_arch'] == 'dcgan':
+            # Fully convolutional architecture similar to DCGAN
+            outputs = dcgan_decoder(opts, input, output_dim,
+                                            reuse,
+                                            is_training,
+                                            dropout_rate)
+        elif opts['d_arch'] == 'dcgan_v2':
+            # Fully convolutional architecture similar to improve Wasserstein nGAN
+            outputs = dcgan_v2_decoder(opts, input, output_dim,
+                                            reuse,
+                                            is_training,
+                                            dropout_rate)
+        elif opts['d_arch'] == 'conv_locatello':
+            # Fully convolutional architecture similar to Locatello & al.
+            outputs = locatello_decoder(opts, input, output_dim,
+                                            reuse,
+                                            is_training,
+                                            dropout_rate)
+        elif opts['d_arch'] == 'resnet':
+            assert False, 'To Do'
+            # Fully convolutional architecture similar to improve Wasserstein nGAN
+            outputs = resnet_decoder(opts, input, output_dim,
+                                            reuse,
+                                            is_training,
+                                            dropout_rate)
+        elif opts['d_arch'] == 'resnet_v2':
+            assert False, 'To Do'
+            # Fully convolutional architecture similar to improve Wasserstein nGAN
+            outputs = resnet_v2_decoder(opts, input, output_dim,
+                                            reuse,
+                                            is_training,
+                                            dropout_rate)
+        else:
+            raise ValueError('%s Unknown encoder architecture for mixtures' % opts['d_arch'])
+
+    mean, logSigma = tf.split(outputs,2,axis=-1)
+    logSigma = tf.clip_by_value(logSigma, -20, 500)
+    Sigma = tf.nn.softplus(logSigma)
+
+    mean = tf.layers.flatten(mean)
+    Sigma = tf.layers.flatten(Sigma)
+
+    if opts['decoder'] == 'det':
+        x = mean
+    elif opts['decoder'] == 'gauss':
+        px_params = tf.concat((mean, Sigma), axis=-1)
+        x = sample_gaussian(px_params, 'tensorflow')
+    else:
+        assert False, 'Unknown decoder %s' % opts['decoder']
+
+    if opts['input_normalize_sym']:
+        x = tf.nn.tanh(x)
+    else:
+        x = tf.nn.sigmoid(x)
+    x = tf.reshape(x, [-1] + datashapes[opts['dataset']])
+
+    return x, mean, Sigma
+
 
 def mlp_encoder(opts, input, output_dim, reuse=False,
                                             is_training=False,
@@ -323,59 +405,8 @@ def resnet_v2_encoder(opts, input, output_dim, reuse=False,
     else:
         assert False, 'Unknown last_archi %s ' % last_archi
 
-    return outputs, out_shape
+    return outputs, out_shap
 
-
-def decoder(opts, input, output_dim, scope=None, reuse=False,
-                                            is_training=False,
-                                            dropout_rate=1.):
-    with tf.variable_scope(scope, reuse=reuse):
-        if opts['d_arch'] == 'mlp':
-            # Encoder uses only fully connected layers with ReLus
-            outputs = mlp_decoder(opts, input, output_dim,
-                                            reuse,
-                                            is_training,
-                                            dropout_rate)
-        elif opts['d_arch'] == 'dcgan':
-            # Fully convolutional architecture similar to DCGAN
-            outputs = dcgan_decoder(opts, input, output_dim,
-                                            reuse,
-                                            is_training,
-                                            dropout_rate)
-        elif opts['d_arch'] == 'dcgan_v2':
-            # Fully convolutional architecture similar to improve Wasserstein nGAN
-            outputs = dcgan_v2_decoder(opts, input, output_dim,
-                                            reuse,
-                                            is_training,
-                                            dropout_rate)
-        elif opts['d_arch'] == 'conv_locatello':
-            # Fully convolutional architecture similar to Locatello & al.
-            outputs = locatello_decoder(opts, input, output_dim,
-                                            reuse,
-                                            is_training,
-                                            dropout_rate)
-        elif opts['d_arch'] == 'resnet':
-            assert False, 'To Do'
-            # Fully convolutional architecture similar to improve Wasserstein nGAN
-            outputs = resnet_decoder(opts, input, output_dim,
-                                            reuse,
-                                            is_training,
-                                            dropout_rate)
-        elif opts['d_arch'] == 'resnet_v2':
-            assert False, 'To Do'
-            # Fully convolutional architecture similar to improve Wasserstein nGAN
-            outputs = resnet_v2_decoder(opts, input, output_dim,
-                                            reuse,
-                                            is_training,
-                                            dropout_rate)
-        else:
-            raise ValueError('%s Unknown encoder architecture for mixtures' % opts['d_arch'])
-
-    mean, logSigma = tf.split(outputs,2,axis=-1)
-    logSigma = tf.clip_by_value(logSigma, -20, 500)
-    Sigma = tf.nn.softplus(logSigma)
-
-    return tf.layers.flatten(mean), tf.layers.flatten(Sigma)
 
 def mlp_decoder(opts, input, output_dim, reuse, is_training,
                                             dropout_rate=1.):

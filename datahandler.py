@@ -79,15 +79,15 @@ def maybe_download(opts):
         os.remove(file_path)
         os.rename(os.path.join(data_path, zip_dir), os.path.join(data_path, 'img_align_celeba'))
     elif opts['dataset']=='mnist':
-        maybe_download_file(data_path,'train-images-idx3-ubyte.gz',opts['MNIST_data_source_url'])
-        maybe_download_file(data_path,'train-labels-idx1-ubyte.gz',opts['MNIST_data_source_url'])
-        maybe_download_file(data_path,'t10k-images-idx3-ubyte.gz',opts['MNIST_data_source_url'])
-        maybe_download_file(data_path,'t10k-labels-idx1-ubyte.gz',opts['MNIST_data_source_url'])
+        download_file(data_path,'train-images-idx3-ubyte.gz',opts['MNIST_data_source_url'])
+        download_file(data_path,'train-labels-idx1-ubyte.gz',opts['MNIST_data_source_url'])
+        download_file(data_path,'t10k-images-idx3-ubyte.gz',opts['MNIST_data_source_url'])
+        download_file(data_path,'t10k-labels-idx1-ubyte.gz',opts['MNIST_data_source_url'])
     elif opts['dataset']=='svhn':
-        maybe_download_file(data_path,'train_32x32.mat',opts['SVHN_data_source_url'])
-        maybe_download_file(data_path,'test_32x32.mat',opts['SVHN_data_source_url'])
+        download_file(data_path,'train_32x32.mat',opts['SVHN_data_source_url'])
+        download_file(data_path,'test_32x32.mat',opts['SVHN_data_source_url'])
         if opts['use_extra']:
-            maybe_download_file(data_path,'extra_32x32.mat',opts['SVHN_data_source_url'])
+            download_file(data_path,'extra_32x32.mat',opts['SVHN_data_source_url'])
     else:
         assert False, 'Unknow dataset'
 
