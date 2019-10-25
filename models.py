@@ -97,9 +97,6 @@ class Model(object):
 
 class BetaVAE(Model):
 
-    def __init__(self, opts):
-        super().__init__(opts)
-
     def kl_penalty(self, pz_mean, pz_sigma, encoded_mean, encoded_sigma):
         """
         Compute KL divergence between prior and variational distribution
@@ -107,7 +104,7 @@ class BetaVAE(Model):
         kl = encoded_sigma / pz_sigma \
             + tf.square(pz_mean - encoded_mean) / pz_sigma - 1. \
             + tf.log(pz_sigma) - tf.log(encoded_sigma)
-        kl = 0.5 * tf.reduce_sum(kl,axis=-1)
+        kl = 0.5 * tf.reduce_sum(kl, axis=-1)
         return tf.reduce_mean(kl)
 
     def loss(self, inputs, samples, loss_coeffs, is_training, dropout_rate):
@@ -122,17 +119,48 @@ class BetaVAE(Model):
 
         kl = self.kl_penalty(self.pz_mean, self.pz_sigma, enc_mean, enc_Sigma)
 
+        divergences = kl
+
         objective = loss_reconstruct - beta * kl
 
-        return objective, loss_reconstruct, kl, recon_x, enc_z
+        # - Enc Sigma stats
+        Sigma_tr = tf.reduce_mean(enc_Sigma, axis=-1)
+        Smean, Svar = tf.nn.moments(Sigma_tr, axes=[0])
+        encSigmas_stats = tf.stack([Smean, Svar], axis=-1)
+
+        return objective, loss_reconstruct, divergences, recon_x, enc_z, encSigmas_stats
 
 
-class TCBetaVAE(Model):
-    def __init__(self, opts):
+class TCBetaVAE(BetaVAE):
 
-        super().__init__(opts)
+    def loss(self, inputs, samples, loss_coeffs, is_training, dropout_rate):
+
+        beta = loss_coeffs
+
+        enc_z, enc_mean, enc_Sigma, recon_x, _, _ = self.forward_pass(inputs=inputs,
+                                                                      is_training=is_training,
+                                                                      dropout_rate=dropout_rate)
+
+        loss_reconstruct = self.reconstruction_loss(inputs, recon_x)
 
         raise NotImplementedError()
+
+        kl_mi = self.kl_penalty()
+
+        kl_tc = self.kl_penalty()
+
+        kl_dimwise = self.kl_penalty()
+
+        divergences = (kl_mi, kl_tc, kl_dimwise)
+
+        objective = loss_reconstruct - (kl_mi + beta * kl_tc + kl_dimwise)
+
+        # - Enc Sigma stats
+        Sigma_tr = tf.reduce_mean(enc_Sigma, axis=-1)
+        Smean, Svar = tf.nn.moments(Sigma_tr, axes=[0])
+        encSigmas_stats = tf.stack([Smean, Svar], axis=-1)
+
+        return objective, loss_reconstruct, divergences, recon_x, enc_z, encSigmas_stats
 
 
 class FactorVAE(Model):
@@ -253,6 +281,8 @@ class WAE(Model):
         # - WAE latent reg
         wae_match_penalty = self.matching_penalty(enc_z, samples)
 
+        divergences = (dimension_wise_match_penalty, hsic_match_penalty, wae_match_penalty)
+
         objective = loss_reconstruct \
                          + lmbd1 * dimension_wise_match_penalty \
                          + lmbd2 * hsic_match_penalty
@@ -272,10 +302,7 @@ class WAE(Model):
         Smean, Svar = tf.nn.moments(Sigma_tr, axes=[0])
         encSigmas_stats = tf.stack([Smean, Svar], axis=-1)
 
-        divergences = (dimension_wise_match_penalty,
-                       hsic_match_penalty, wae_match_penalty, encSigmas_stats)
-
-        return objective, loss_reconstruct, divergences, recon_x, enc_z
+        return objective, loss_reconstruct, divergences, recon_x, enc_z, encSigmas_stats
 
 
 # def mc_kl_penalty(samples, q_mean, q_Sigma, p_mean, p_Sigma):

@@ -1,4 +1,5 @@
 import os
+from datetime import datetime
 import logging
 import argparse
 import configs
@@ -19,7 +20,8 @@ parser.add_argument("--exp", default='dsprites',
                     ' celebA/dsprites Not implemented yet')
 parser.add_argument("--data_dir", type=str, default='../data',
                     help='directory in which data is stored')
-parser.add_argument("--work_dir")
+parser.add_argument("--out_dir", type=str, default='code_outputs',
+                    help='directory in which outputs are saved')
 parser.add_argument("--enum", type=int, default=100,
                     help='epoch number')
 parser.add_argument("--enet_archi", default='mlp',
@@ -69,8 +71,8 @@ def main():
     # Data directory
     opts['data_dir'] = FLAGS.data_dir
     # Working directory
-    if FLAGS.work_dir:
-        opts['work_dir'] = FLAGS.work_dir
+    if FLAGS.out_dir:
+        opts['out_dir'] = FLAGS.out_dir
 
     # Mode
     if FLAGS.mode=='fid':
@@ -109,16 +111,18 @@ def main():
     opts['d_nonlinearity'] = 'tanh' # soft_plus, relu, leaky_relu, tanh
 
     # Create directories
-    if not tf.gfile.IsDirectory(opts['model']):
-        utils.create_dir(opts['model'])
-    work_dir = os.path.join(opts['model'],opts['work_dir'])
-    opts['work_dir'] = work_dir
-    if not tf.gfile.IsDirectory(work_dir):
-        utils.create_dir(work_dir)
-        utils.create_dir(os.path.join(work_dir, 'checkpoints'))
+    # if not tf.gfile.IsDirectory(opts['model']):
+    #     utils.create_dir(opts['model'])
+    out_dir = os.path.join(opts['out_dir'],
+                           opts['model'],
+                           '{:%Y_%m_%d_%H_%M}'.format(datetime.now()), )
+    opts['out_dir'] = out_dir
+    if not tf.gfile.IsDirectory(out_dir):
+        utils.create_dir(out_dir)
+        utils.create_dir(os.path.join(out_dir, 'checkpoints'))
 
     # Verbose
-    logging.basicConfig(filename=os.path.join(work_dir,'outputs.log'),
+    logging.basicConfig(filename=os.path.join(out_dir,'outputs.log'),
         level=logging.INFO, format='%(asctime)s - %(message)s')
 
     # Loading the dataset
@@ -133,7 +137,7 @@ def main():
     # Training/testing/vizu
     if FLAGS.mode=="train":
         # Dumping all the configs to the text file
-        with utils.o_gfile((work_dir, 'params.txt'), 'w') as text:
+        with utils.o_gfile((out_dir, 'params.txt'), 'w') as text:
             text.write('Parameters:\n')
             for key in opts:
                 text.write('%s : %s\n' % (key, opts[key]))

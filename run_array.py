@@ -23,7 +23,7 @@ parser.add_argument("--exp", default='mnist',
                     ' celebA/dsprites Not implemented yet')
 parser.add_argument("--data_dir", type=str, default='../data',
                     help='directory in which data is stored')
-parser.add_argument("--work_dir")
+parser.add_argument("--out_dir")
 parser.add_argument("--enum", type=int, default=100,
                     help='epoch number')
 parser.add_argument("--enet_archi", default='mlp',
@@ -64,8 +64,8 @@ def main():
     # Data directory
     opts['data_dir'] = FLAGS.data_dir
     # Working directory
-    if FLAGS.work_dir:
-        opts['work_dir'] = FLAGS.work_dir
+    if FLAGS.out_dir:
+        opts['out_dir'] = FLAGS.out_dir
 
     # Mode
     if FLAGS.mode=='fid':
@@ -90,7 +90,7 @@ def main():
         lmba1 = [10**i for i in range(-2,3)]
         lmba = list(itertools.product(lmba0,lmba1))
         opts['lambda'] = lmba[FLAGS.idx_lmba-1]
-        opts['work_dir'] = FLAGS.work_dir + str(lmba[FLAGS.idx_lmba-1][0]) + '_' + str(lmba[FLAGS.idx_lmba-1][1])
+        opts['out_dir'] = FLAGS.out_dir + str(lmba[FLAGS.idx_lmba-1][0]) + '_' + str(lmba[FLAGS.idx_lmba-1][1])
     elif opts['model'] == 'BetaVAE':
         beta = [10**i for i in range(-2,3)]
         opts['beta'] = beta[FLAGS.idx_beta-1]
@@ -113,14 +113,14 @@ def main():
     # Create directories
     if not tf.gfile.IsDirectory(opts['model']):
         utils.create_dir(opts['model'])
-    work_dir = os.path.join(opts['model'],opts['work_dir'])
-    opts['work_dir'] = work_dir
-    if not tf.gfile.IsDirectory(work_dir):
-        utils.create_dir(work_dir)
-        utils.create_dir(os.path.join(work_dir, 'checkpoints'))
+    out_dir = os.path.join(opts['model'],opts['out_dir'])
+    opts['out_dir'] = out_dir
+    if not tf.gfile.IsDirectory(out_dir):
+        utils.create_dir(out_dir)
+        utils.create_dir(os.path.join(out_dir, 'checkpoints'))
 
     # Verbose
-    logging.basicConfig(filename=os.path.join(work_dir,'outputs.log'),
+    logging.basicConfig(filename=os.path.join(out_dir,'outputs.log'),
         level=logging.INFO, format='%(asctime)s - %(message)s')
 
     # Loading the dataset
@@ -141,7 +141,7 @@ def main():
     # Training/testing/vizu
     if FLAGS.mode=="train":
         # Dumping all the configs to the text file
-        with utils.o_gfile((work_dir, 'params.txt'), 'w') as text:
+        with utils.o_gfile((out_dir, 'params.txt'), 'w') as text:
             text.write('Parameters:\n')
             for key in opts:
                 text.write('%s : %s\n' % (key, opts[key]))
@@ -149,13 +149,13 @@ def main():
     # elif FLAGS.mode=="vizu":
     #     opts['rec_loss_nsamples'] = 1
     #     opts['sample_recons'] = False
-    #     wae.latent_interpolation(data, opts['work_dir'], FLAGS.weights_file)
+    #     wae.latent_interpolation(data, opts['out_dir'], FLAGS.weights_file)
     # elif FLAGS.mode=="fid":
-    #     wae.fid_score(data, opts['work_dir'], FLAGS.weights_file)
+    #     wae.fid_score(data, opts['out_dir'], FLAGS.weights_file)
     # elif FLAGS.mode=="test":
-    #     wae.test_losses(data, opts['work_dir'], FLAGS.weights_file)
+    #     wae.test_losses(data, opts['out_dir'], FLAGS.weights_file)
     # elif FLAGS.mode=="vlae_exp":
-    #     wae.vlae_experiment(data, opts['work_dir'], FLAGS.weights_file)
+    #     wae.vlae_experiment(data, opts['out_dir'], FLAGS.weights_file)
     else:
         assert False, 'Unknown mode %s' % FLAGS.mode
 

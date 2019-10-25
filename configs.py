@@ -15,7 +15,7 @@ config_dsprites['embedding'] = 'umap' #vizualisation method of the embeddings: p
 config_dsprites['vizu_encSigma'] = False
 config_dsprites['vizu_interpolation'] = True
 config_dsprites['fid'] = False
-config_dsprites['work_dir'] = 'results_mnist'
+config_dsprites['out_dir'] = 'results_mnist'
 config_dsprites['plot_num_pics'] = 100
 config_dsprites['plot_num_cols'] = 10
 # Data set up
@@ -96,7 +96,7 @@ config_smallNORB['embedding'] = 'umap' #vizualisation method of the embeddings: 
 config_smallNORB['vizu_encSigma'] = False
 config_smallNORB['vizu_interpolation'] = True
 config_smallNORB['fid'] = False
-config_smallNORB['work_dir'] = 'results_mnist'
+config_smallNORB['out_dir'] = 'results_mnist'
 config_smallNORB['plot_num_pics'] = 100
 config_smallNORB['plot_num_cols'] = 10
 # Data set up
@@ -177,7 +177,7 @@ config_3Dchairs['embedding'] = 'umap' #vizualisation method of the embeddings: p
 config_3Dchairs['vizu_encSigma'] = False
 config_3Dchairs['vizu_interpolation'] = True
 config_3Dchairs['fid'] = False
-config_3Dchairs['work_dir'] = 'results_mnist'
+config_3Dchairs['out_dir'] = 'results_mnist'
 config_3Dchairs['plot_num_pics'] = 100
 config_3Dchairs['plot_num_cols'] = 10
 # Data set up
@@ -258,7 +258,7 @@ config_celebA['embedding'] = 'umap' #vizualisation method of the embeddings: pca
 config_celebA['vizu_encSigma'] = False
 config_celebA['vizu_interpolation'] = True
 config_celebA['fid'] = False
-config_celebA['work_dir'] = 'results_mnist'
+config_celebA['out_dir'] = 'results_mnist'
 config_celebA['plot_num_pics'] = 100
 config_celebA['plot_num_cols'] = 10
 # Data set up
@@ -340,7 +340,7 @@ config_mnist['embedding'] = 'umap' #vizualisation method of the embeddings: pca,
 config_mnist['vizu_encSigma'] = False
 config_mnist['vizu_interpolation'] = True
 config_mnist['fid'] = False
-config_mnist['work_dir'] = 'results_mnist'
+config_mnist['out_dir'] = 'results_mnist'
 config_mnist['plot_num_pics'] = 100
 config_mnist['plot_num_cols'] = 10
 # Data set up
@@ -419,7 +419,7 @@ config_svhn['vizu_embedded'] = True
 config_svhn['embedding'] = 'umap' #vizualisation method of the embeddings: pca, umap
 config_svhn['vizu_encSigma'] = False
 config_svhn['fid'] = False
-config_svhn['work_dir'] = 'results_svhn'
+config_svhn['out_dir'] = 'results_svhn'
 config_svhn['plot_num_pics'] = 100
 config_svhn['plot_num_cols'] = 15
 # Data set up

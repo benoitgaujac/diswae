@@ -526,7 +526,7 @@ class DataHandler(object):
         random.shuffle(datapoint_ids)
         random.seed()
 
-        saver = utils.ArraySaver('disk', workdir=opts['work_dir'])
+        saver = utils.ArraySaver('disk', workdir=opts['out_dir'])
         saver.save('shuffled_training_ids', datapoint_ids)
 
         self.data_shape = (64, 64, 3)

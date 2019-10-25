@@ -19,7 +19,7 @@ def save_train(opts, data_train, data_test,
                      loss,
                      loss_rec, loss_rec_test,
                      loss_hsic, loss_dim, loss_wae,
-                     work_dir,
+                     out_dir,
                      filename):
 
     """ Generates and saves the plot of the following layout:
@@ -157,14 +157,14 @@ def save_train(opts, data_train, data_test,
     ### Saving plots and data
     # Plot
     plots_dir = 'train_plots'
-    save_path = os.path.join(work_dir,plots_dir)
+    save_path = os.path.join(out_dir,plots_dir)
     utils.create_dir(save_path)
     fig.savefig(utils.o_gfile((save_path, filename), 'wb'),
                 dpi=dpi, format='png')
     plt.close()
 
 
-def plot_encSigma(opts, enc_Sigmas, work_dir, filename):
+def plot_encSigma(opts, enc_Sigmas, out_dir, filename):
     fig = plt.figure()
     enc_Sigmas = np.array(enc_Sigmas)
     shape = np.shape(enc_Sigmas)
@@ -179,13 +179,13 @@ def plot_encSigma(opts, enc_Sigmas, work_dir, filename):
     plt.title(r'log norm_Tr$(\Sigma)$ curves')
     ### Saving plot
     plots_dir = 'train_plots'
-    save_path = os.path.join(work_dir,plots_dir)
+    save_path = os.path.join(out_dir,plots_dir)
     utils.create_dir(save_path)
     fig.savefig(utils.o_gfile((save_path, filename), 'wb'),cformat='png')
     plt.close()
 
 
-def plot_embedded(opts, encoded, decoded, labels, work_dir, filename):
+def plot_embedded(opts, encoded, decoded, labels, out_dir, filename):
     num_pics = np.shape(encoded[0])[0]
     embeds = []
     for i in range(len(encoded)):
@@ -245,13 +245,13 @@ def plot_embedded(opts, encoded, decoded, labels, work_dir, filename):
         ax.axes.set_aspect(1)
     ### Saving plot
     plots_dir = 'train_plots'
-    save_path = os.path.join(work_dir,plots_dir)
+    save_path = os.path.join(out_dir,plots_dir)
     utils.create_dir(save_path)
     fig.savefig(utils.o_gfile((save_path, filename), 'wb'),dpi=dpi,cformat='png')
     plt.close()
 
 
-def plot_interpolation(opts, interpolations, work_dir, filename):
+def plot_interpolation(opts, interpolations, out_dir, filename):
     ### Reshaping images
     greyscale = interpolations.shape[-1] == 1
     white_pix = 4
@@ -293,7 +293,7 @@ def plot_interpolation(opts, interpolations, work_dir, filename):
         ax.axes.set_aspect(1)
     ### Saving plot
     plots_dir = 'train_plots'
-    save_path = os.path.join(work_dir,plots_dir)
+    save_path = os.path.join(out_dir,plots_dir)
     utils.create_dir(save_path)
     fig.savefig(utils.o_gfile((save_path, filename), 'wb'),dpi=dpi,cformat='png')
     plt.close()
@@ -308,7 +308,7 @@ def save_latent_interpolation(opts, data_test, label_test, # data, labels
 
     # --- Create saving directory and preprocess
     plots_dir = 'test_plots'
-    save_path = os.path.join(opts['work_dir'],plots_dir)
+    save_path = os.path.join(opts['out_dir'],plots_dir)
     utils.create_dir(save_path)
 
     dpi = 100
@@ -607,7 +607,7 @@ def save_latent_interpolation(opts, data_test, label_test, # data, labels
                 dpi=dpi, format='png', bbox_inches='tight', pad_inches=0.01)
     plt.close()
 
-def save_vlae_experiment(opts, decoded, work_dir):
+def save_vlae_experiment(opts, decoded, out_dir):
     # num_pics = opts['plot_num_pics']
     num_cols = 10
     greyscale = decoded[0].shape[-1] == 1
@@ -674,7 +674,7 @@ def save_vlae_experiment(opts, decoded, work_dir):
     ### Saving plots and data
     # Plot
     plots_dir = 'test_plots'
-    save_path = os.path.join(work_dir,plots_dir)
+    save_path = os.path.join(out_dir,plots_dir)
     utils.create_dir(save_path)
     filename = 'vlae_exp.png'
     fig.savefig(utils.o_gfile((save_path, filename), 'wb'),

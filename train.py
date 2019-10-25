@@ -50,7 +50,7 @@ class Run(object):
             raise NotImplementedError()
 
         # --- Define Objective
-        self.objective, self.loss_reconstruct, self.divergences, self.recon_x, self.enc_z \
+        self.objective, self.loss_reconstruct, self.divergences, self.recon_x, self.enc_z, self.enc_sigmastats \
             = self.model.loss(inputs=self.batch,
                               samples=self.samples_pz,
                               loss_coeffs=self.obj_fn_coeffs,
@@ -122,7 +122,9 @@ class Run(object):
         """
         opts = self.opts
         logging.error('Training {}'.format(self.opts['model']))
-        work_dir = opts['work_dir']
+        out_dir = opts['out_dir']
+
+        writer = tf.summary.FileWriter(out_dir)
 
         # - Init sess and load trained weights if needed
         if opts['use_trained']:
@@ -142,15 +144,9 @@ class Run(object):
 
         # - Init all monitoring variables
         Loss, Loss_rec, Loss_rec_test = [], [], []
-        enc_Sigmas = []
-        if self.model_str == 'BetaVAE':
-            Loss_kl = []
-        elif self.model_str == 'WAE':
-            Loss_hsic, Loss_dim, Loss_wae = [], [], []
-            if opts['vizu_encSigma']:
-                enc_Sigmas = []
-        else:
-            raise NotImplementedError('Model type not recognised')
+        Divergences = []
+        if opts['vizu_encSigma']:
+            enc_Sigmas = []
 
         decay, counter = 1., 0
         decay_steps, decay_rate = int(batches_num * opts['epoch_num'] / 5), 0.98
@@ -159,7 +155,7 @@ class Run(object):
             # Saver
             if counter > 0 and counter % opts['save_every'] == 0:
                 self.saver.save(self.sess,
-                                os.path.join(work_dir, 'checkpoints', 'trained-wae'),
+                                os.path.join(out_dir, 'checkpoints', 'trained-wae'),
                                 global_step=counter)
 
             # Training Loop
@@ -177,31 +173,47 @@ class Run(object):
                              self.dropout_rate: opts['dropout_rate'],
                              self.is_training: True}
 
-                [_, loss, loss_rec, divergences] = self.sess.run([
+                [_, loss, loss_rec, divergences, enc_sigmastats] = self.sess.run([
                                                 self.vae_opt,
                                                 self.objective,
                                                 self.loss_reconstruct,
-                                                self.divergences],
+                                                self.divergences,
+                                                self.enc_sigmastats],
                                                 feed_dict=feed_dict)
-                if self.model_str == 'BetaVAE':
-                    loss_kl = divergences
-                    Loss_kl.append(loss_kl)
-                elif self.model_str == 'WAE':
-                    (loss_hsic, loss_dim, loss_wae, enc_sigmastats) = divergences
-                    Loss_hsic.append(loss_hsic)
-                    Loss_dim.append(loss_dim)
-                    Loss_wae.append(loss_wae)
-                    if opts['vizu_encSigma']:
-                        enc_Sigmas.append(enc_sigmastats)
-                else:
-                    raise NotImplementedError('Model type not recognised')
 
                 Loss.append(loss)
                 Loss_rec.append(loss_rec)
+                Divergences.append(divergences)
+
+                # loss_train_summary = tf.Summary(value=[tf.Summary.Value(tag="loss_train", simple_value=loss)])
+                # loss_rec_train_summary = tf.Summary(value=[tf.Summary.Value(tag="loss_rec_train", simple_value=loss_rec)])
+                # writer.add_summary(loss_train_summary, it)
+                # writer.add_summary(loss_rec_train_summary, it)
+
+                summary_vals_train = [tf.Summary.Value(tag="loss_train", simple_value=loss),
+                                      tf.Summary.Value(tag="loss_rec_train", simple_value=loss_rec)]
+
+                if opts['model'] == 'BetaVAE':
+                    summary_vals_train.append(tf.Summary.Value(tag="kl_train", simple_value=divergences))
+                elif opts['model'] == 'WAE':
+                    summary_vals_train.append(tf.Summary.Value(tag="dim_wise_match_train", simple_value=divergences[0]))
+                    summary_vals_train.append(tf.Summary.Value(tag="hsic_match_train", simple_value=divergences[1]))
+                    summary_vals_train.append(tf.Summary.Value(tag="wae_match_train", simple_value=divergences[2]))
+                else:
+                    raise NotImplementedError()
+
+                if opts['vizu_encSigma']:
+                    enc_Sigmas.append(enc_sigmastats)
+                    summary_vals_train.append(tf.Summary.Value(tag="enc_sigma_mean_train",
+                                                               simple_value=enc_sigmastats[0]))
+                    summary_vals_train.append(tf.Summary.Value(tag="enc_sigma_var_train",
+                                                               simple_value=enc_sigmastats[1]))
+
+                writer.add_summary(tf.Summary(value=summary_vals_train), it + (epoch * batches_num))
 
                 ##### TESTING LOOP #####
                 if counter % opts['print_every'] == 0 or counter == 100:
-                    print("Epoch {}, iteration {}".format(epoch, it))
+                    print("Epoch {}, Iteration {}".format(epoch, it))
                     batch_size_te = 200
                     test_size = np.shape(data.test_data)[0]
                     batches_num_te = int(test_size/batch_size_te)
@@ -243,12 +255,12 @@ class Run(object):
                     if opts['vizu_embedded'] and counter > 1:
                         plot_embedded(opts, [latents_test[:npics]], [fixed_noise],
                                       data.test_labels[:npics],
-                                      work_dir, 'embedded_e%04d_mb%05d.png' % (epoch, it))
+                                      out_dir, 'embedded_e%04d_mb%05d.png' % (epoch, it))
                     # Encoded sigma
                     if opts['vizu_encSigma'] and counter > 1:
                         plot_encSigma(opts,
                                       enc_Sigmas,
-                                      work_dir,
+                                      out_dir,
                                       'encSigma_e%04d_mb%05d.png' % (epoch, it))
                     # Encode anchors points and interpolate
                     if opts['vizu_interpolation']:
@@ -268,7 +280,7 @@ class Run(object):
                                                                      self.is_training: False})
                         inter_anchors = np.reshape(dec_interpolation, [-1, opts['zdim'], num_steps]+im_shape)
                         inter_anchors = np.transpose(inter_anchors, (1, 0, 2, 3, 4, 5))
-                        plot_interpolation(opts, inter_anchors, work_dir,
+                        plot_interpolation(opts, inter_anchors, out_dir,
                                            'inter_e%04d_mb%05d.png' % (epoch, it))
 
                     # Printing various loss values
@@ -283,33 +295,29 @@ class Run(object):
                         debug_str = 'REC=%.3f, REC TEST=%.3f, KL=%10.3e\n ' % (
                             Loss_rec[-1],
                             Loss_rec_test[-1],
-                            Loss_kl[-1])
+                            Divergences[-1])
                     elif self.model_str == 'WAE':
                         debug_str = 'REC=%.3f, REC TEST=%.3f, HSIC=%10.3e, DIMWISE=%10.3e, WAE=%10.3e\n ' % (
                                                     Loss_rec[-1],
                                                     Loss_rec_test[-1],
-                                                    Loss_hsic[-1],
-                                                    Loss_dim[-1],
-                                                    Loss_wae[-1])
+                                                    Divergences[-1][0],
+                                                    Divergences[-1][0],
+                                                    Divergences[-1][0])
                     else:
                         raise NotImplementedError('Model type not recognised')
                     logging.error(debug_str)
 
                     # Saving plots
-                    if self.model_str == 'WAE':
-                        save_train(opts,
-                                   data.data[200:200+npics], data.test_data[:npics],        # images
-                                   reconstructions_train, reconstructions_test[:npics],     # reconstructions
-                                   generations_test,                                        # model samples
-                                   Loss,                                                    # loss
-                                   Loss_rec, Loss_rec_test,                                 # rec losses
-                                   Loss_hsic, Loss_dim, Loss_wae,                           # reg losses
-                                   work_dir,                                                # working directory
-                                   'res_e%04d_mb%05d.png' % (epoch, it))                    # filename
-                    elif self.model_str == 'BetaVAE':
-                        print('Need to modify save_train function to work for BetaVAE')
-                    else:
-                        raise NotImplementedError('Model type not recognised')
+                    print('FIX save_train FUNCTION!')        # TODO
+                    # save_train(opts,
+                    #            data.data[200:200+npics], data.test_data[:npics],        # images
+                    #            reconstructions_train, reconstructions_test[:npics],     # reconstructions
+                    #            generations_test,                                        # model samples
+                    #            Loss,                                                    # loss
+                    #            Loss_rec, Loss_rec_test,                                 # rec losses
+                    #            Divergences,                                             # divergence terms
+                    #            out_dir,                                                 # working directory
+                    #            'res_e%04d_mb%05d.png' % (epoch, it))                    # filename
 
                 # - Update learning rate if necessary and counter
                 if counter >= batches_num * opts['epoch_num'] / 5 and counter % decay_steps == 0:
@@ -340,37 +348,27 @@ class Run(object):
                             print('')
                             wait_lambda = 0
                         else:
-                            wait_lambda+=1
+                            wait_lambda += 1
 
                 counter += 1
 
         # - Save the final model
         if opts['save_final'] and epoch > 0:
-            self.saver.save(self.sess, os.path.join(work_dir,
+            self.saver.save(self.sess, os.path.join(out_dir,
                                                 'checkpoints',
                                                 'trained-{}-final'.format(self.model_str)),
                                                 global_step=counter)
         # - save training data
         if opts['save_train_data']:
             data_dir = 'train_data'
-            save_path = os.path.join(work_dir, data_dir)
+            save_path = os.path.join(out_dir, data_dir)
             utils.create_dir(save_path)
             name = 'res_train_final'
-            if self.model_str == 'BetaVAE':
-                np.savez(os.path.join(save_path, name),
-                         data_test=data.data[200:200 + npics], data_train=data.test_data[:npics], encoded=latents_test,
-                         rec_train=reconstructions_train, rec_test=reconstructions_test[:npics],
-                         samples=generations_test, loss=np.array(Loss), loss_rec=np.array(Loss_rec),
-                         loss_rec_test=np.array(Loss_rec_test), loss_kl=np.array(Loss_kl))
-            elif self.model_str == 'WAE':
-                np.savez(os.path.join(save_path,name),
-                         data_test=data.data[200:200+npics], data_train=data.test_data[:npics], encoded=latents_test,
-                         rec_train=reconstructions_train, rec_test=reconstructions_test[:npics],
-                         samples=generations_test, loss=np.array(Loss), loss_rec=np.array(Loss_rec),
-                         loss_rec_test=np.array(Loss_rec_test), loss_hsci=np.array(Loss_hsic),
-                         loss_dim=np.array(Loss_dim), loss_wae=np.array(Loss_wae))
-            else:
-                raise NotImplementedError('Model type not recognised')
+            np.savez(os.path.join(save_path, name),
+                     data_test=data.data[200:200 + npics], data_train=data.test_data[:npics], encoded=latents_test,
+                     rec_train=reconstructions_train, rec_test=reconstructions_test[:npics],
+                     samples=generations_test, loss=np.array(Loss), loss_rec=np.array(Loss_rec),
+                     loss_rec_test=np.array(Loss_rec_test), divergences=np.array(Divergences))
 
 
 
