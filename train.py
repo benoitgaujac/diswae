@@ -39,11 +39,10 @@ class Run(object):
         self.pz_params = np.concatenate([mean, Sigma], axis=0)
 
         # --- Instantiate Model
-        self.model_str = self.opts['model']
-        if self.model_str == 'BetaVAE':
+        if opts['model'] == 'BetaVAE':
             self.model = models.BetaVAE(opts)
             self.obj_fn_coeffs = self.beta
-        elif self.model_str == 'WAE':
+        elif opts['model'] == 'WAE':
             self.model = models.WAE(opts)
             self.obj_fn_coeffs = (self.lmbd1, self.lmbd2)
         else:
@@ -105,16 +104,10 @@ class Run(object):
         opts = self.opts
         lr = opts['lr']
         opt = self.optimizer(lr, self.lr_decay)
-        encoder_vars = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES,
-                                                scope='encoder')
-        vae_vars = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES)
+        vars = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES)
         update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
         with tf.control_dependencies(update_ops):
-            self.vae_opt = opt.minimize(loss=self.objective, var_list=vae_vars)
-        # Pretraining optimizer
-        if opts['e_pretrain']:
-            pre_opt = self.optimizer(0.001)
-            self.pre_opt = pre_opt.minimize(loss=self.pre_loss, var_list=encoder_vars)
+            self.opt = opt.minimize(loss=self.objective, var_list=vars)
 
     def train(self, data, WEIGHTS_FILE):
         """
@@ -174,7 +167,7 @@ class Run(object):
                              self.is_training: True}
 
                 [_, loss, loss_rec, divergences, enc_sigmastats] = self.sess.run([
-                                                self.vae_opt,
+                                                self.opt,
                                                 self.objective,
                                                 self.loss_reconstruct,
                                                 self.divergences,
@@ -291,12 +284,12 @@ class Run(object):
                     logging.error(debug_str)
                     debug_str = 'TRAIN LOSS=%.3f' % (Loss[-1])
                     logging.error(debug_str)
-                    if self.model_str == 'BetaVAE':
+                    if opts['model'] == 'BetaVAE':
                         debug_str = 'REC=%.3f, REC TEST=%.3f, KL=%10.3e\n ' % (
                             Loss_rec[-1],
                             Loss_rec_test[-1],
                             Divergences[-1])
-                    elif self.model_str == 'WAE':
+                    elif opts['model'] == 'WAE':
                         debug_str = 'REC=%.3f, REC TEST=%.3f, HSIC=%10.3e, DIMWISE=%10.3e, WAE=%10.3e\n ' % (
                                                     Loss_rec[-1],
                                                     Loss_rec_test[-1],
@@ -356,7 +349,7 @@ class Run(object):
         if opts['save_final'] and epoch > 0:
             self.saver.save(self.sess, os.path.join(out_dir,
                                                 'checkpoints',
-                                                'trained-{}-final'.format(self.model_str)),
+                                                'trained-{}-final'.format(opts['model'])),
                                                 global_step=counter)
         # - save training data
         if opts['save_train_data']:
@@ -369,6 +362,3 @@ class Run(object):
                      rec_train=reconstructions_train, rec_test=reconstructions_test[:npics],
                      samples=generations_test, loss=np.array(Loss), loss_rec=np.array(Loss_rec),
                      loss_rec_test=np.array(Loss_rec_test), divergences=np.array(Divergences))
-
-
-

@@ -43,24 +43,17 @@ FLAGS = parser.parse_args()
 def main():
 
     # Select dataset to use
-    if FLAGS.exp == 'celebA':
-        opts = configs.config_celebA
-    elif FLAGS.exp == 'celebA_small':
-        opts = configs.config_celebA_small
-    elif FLAGS.exp == 'mnist':
-        opts = configs.config_mnist
-    elif FLAGS.exp == 'mnist_small':
-        opts = configs.config_mnist_small
-    elif FLAGS.exp == 'cifar10':
-        opts = configs.config_cifar10
-    elif FLAGS.exp == 'dsprites':
+    if FLAGS.exp == 'dsprites':
         opts = configs.config_dsprites
     elif FLAGS.exp == 'smallNORB':
         opts = configs.config_smallNORB
-    elif FLAGS.exp == 'grassli':
-        opts = configs.config_grassli
-    elif FLAGS.exp == 'grassli_small':
-        opts = configs.config_grassli_small
+    elif FLAGS.exp == '3Dchairs':
+        opts = configs.config_3Dchairs
+    elif FLAGS.exp == 'celebA':
+        assert False, 'CelebA dataset not implemented yet.'
+        opts = configs.config_celebA
+    elif FLAGS.exp == 'mnist':
+        opts = configs.config_mnist
     else:
         assert False, 'Unknown experiment dataset'
 
@@ -98,21 +91,16 @@ def main():
 
     # NN set up
     opts['filter_size'] = [5,3]
-    opts['mlp_init'] = 'glorot_uniform' #normal, he, glorot, glorot_he, glorot_uniform, ('uniform', range)
     opts['e_arch'] = FLAGS.enet_archi # mlp, dcgan, dcgan_v2, resnet
     opts['e_nlayers'] = 2
-    opts['downsample'] = [None,]*opts['e_nlayers'] #None, True
     opts['e_nfilters'] = [1200,1200]
     opts['e_nonlinearity'] = 'relu' # soft_plus, relu, leaky_relu, tanh
     opts['d_arch'] =  FLAGS.enet_archi # mlp, dcgan, dcgan_v2, resnet
-    opts['upsample'] = [None,]*opts['d_nlayers'] #None, up
     opts['d_nlayers'] = 3
     opts['d_nfilters'] = [1200,1200,1200]
-    opts['d_nonlinearity'] = 'tanh' # soft_plus, relu, leaky_relu, tanh
+    opts['d_nonlinearity'] = 'relu' # soft_plus, relu, leaky_relu, tanh
 
     # Create directories
-    # if not tf.gfile.IsDirectory(opts['model']):
-    #     utils.create_dir(opts['model'])
     out_dir = os.path.join(opts['out_dir'],
                            opts['model'],
                            '{:%Y_%m_%d_%H_%M}'.format(datetime.now()), )
