@@ -150,7 +150,7 @@ def main():
         utils.create_dir(os.path.join(exp_dir, 'checkpoints'))
 
     # Verbose
-    logging.basicConfig(filename=os.path.join(out_dir,'outputs.log'),
+    logging.basicConfig(filename=os.path.join(exp_dir,'outputs.log'),
         level=logging.INFO, format='%(asctime)s - %(message)s')
 
     # Loading the dataset
