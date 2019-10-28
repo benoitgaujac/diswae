@@ -134,6 +134,8 @@ def decoder(opts, input, output_dim, scope=None, reuse=False,
     elif opts['decoder'] == 'gauss':
         px_params = tf.concat((mean, Sigma), axis=-1)
         x = sample_gaussian(px_params, 'tensorflow')
+    elif opts['decoder'] == 'bernoulli':
+        assert False, 'Bernoulli decoder not implemented yet.'
     else:
         assert False, 'Unknown decoder %s' % opts['decoder']
 

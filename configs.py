@@ -12,10 +12,10 @@ config_dsprites['save_train_data'] = True
 config_dsprites['print_every'] = 100
 config_dsprites['vizu_embedded'] = False
 config_dsprites['embedding'] = 'umap' #vizualisation method of the embeddings: pca, umap
-config_dsprites['vizu_encSigma'] = False
+config_dsprites['vizu_encSigma'] = True
 config_dsprites['vizu_interpolation'] = True
 config_dsprites['fid'] = False
-config_dsprites['out_dir'] = 'results_mnist'
+config_dsprites['out_dir'] = 'results_dsprites'
 config_dsprites['plot_num_pics'] = 100
 config_dsprites['plot_num_cols'] = 10
 # Data set up
@@ -28,9 +28,6 @@ config_dsprites['batch_size'] = 128
 config_dsprites['epoch_num'] = 101
 config_dsprites['model'] = 'WAE' #WAE, BetaVAE
 config_dsprites['use_trained'] = False #train from pre-trained model
-config_dsprites['e_pretrain'] = False #pretrained the encoder parameters
-config_dsprites['e_pretrain_it'] = 1000
-config_dsprites['e_pretrain_sample_size'] = 200
 # Opt set up
 config_dsprites['optimizer'] = 'adam' # adam, sgd
 config_dsprites['adam_beta1'] = 0.9
@@ -44,16 +41,9 @@ config_dsprites['batch_norm_momentum'] = 0.99
 config_dsprites['dropout_rate'] = 1.
 # Objective set up
 config_dsprites['cost'] = 'l2sq' #l2, l2sq, l2sq_norm, l1
-config_dsprites['penalty'] = 'mmd' #sinkhorn, mmd
-config_dsprites['pen'] = 'wae' #wae, wae_mmd
-config_dsprites['epsilon'] = 0.1 #Sinkhorn regularization parameters
-config_dsprites['L'] = 30 #Sinkhorn iteration
 config_dsprites['mmd_kernel'] = 'IMQ' # RBF, IMQ
-config_dsprites['pen'] = 'wae' # wae, wae_mmd
 config_dsprites['pen_enc_sigma'] = False
 config_dsprites['lambda_pen_enc_sigma'] = 0.001
-config_dsprites['pen_dec_sigma'] = False
-config_dsprites['lambda_pen_dec_sigma'] = 0.0005
 # Model set up
 config_dsprites['zdim'] = 10
 config_dsprites['pz_scale'] = 1.
@@ -109,9 +99,6 @@ config_smallNORB['batch_size'] = 128
 config_smallNORB['epoch_num'] = 101
 config_smallNORB['method'] = 'wae' #vae, wae
 config_smallNORB['use_trained'] = False #train from pre-trained model
-config_smallNORB['e_pretrain'] = False #pretrained the encoder parameters
-config_smallNORB['e_pretrain_it'] = 1000
-config_smallNORB['e_pretrain_sample_size'] = 200
 # Opt set up
 config_smallNORB['optimizer'] = 'adam' # adam, sgd
 config_smallNORB['adam_beta1'] = 0.9
@@ -125,16 +112,9 @@ config_smallNORB['batch_norm_momentum'] = 0.99
 config_smallNORB['dropout_rate'] = 1.
 # Objective set up
 config_smallNORB['cost'] = 'l2sq' #l2, l2sq, l2sq_norm, l1
-config_smallNORB['penalty'] = 'mmd' #sinkhorn, mmd
-config_smallNORB['pen'] = 'wae' #wae, wae_mmd
-config_smallNORB['epsilon'] = 0.1 #Sinkhorn regularization parameters
-config_smallNORB['L'] = 30 #Sinkhorn iteration
 config_smallNORB['mmd_kernel'] = 'IMQ' # RBF, IMQ
-config_smallNORB['pen'] = 'wae' # wae, wae_mmd
 config_smallNORB['pen_enc_sigma'] = False
 config_smallNORB['lambda_pen_enc_sigma'] = 0.001
-config_smallNORB['pen_dec_sigma'] = False
-config_smallNORB['lambda_pen_dec_sigma'] = 0.0005
 # Model set up
 config_smallNORB['zdim'] = 10
 config_smallNORB['pz_scale'] = 1.
@@ -190,9 +170,6 @@ config_3Dchairs['batch_size'] = 128
 config_3Dchairs['epoch_num'] = 101
 config_3Dchairs['method'] = 'wae' #vae, wae
 config_3Dchairs['use_trained'] = False #train from pre-trained model
-config_3Dchairs['e_pretrain'] = False #pretrained the encoder parameters
-config_3Dchairs['e_pretrain_it'] = 1000
-config_3Dchairs['e_pretrain_sample_size'] = 200
 # Opt set up
 config_3Dchairs['optimizer'] = 'adam' # adam, sgd
 config_3Dchairs['adam_beta1'] = 0.9
@@ -206,16 +183,9 @@ config_3Dchairs['batch_norm_momentum'] = 0.99
 config_3Dchairs['dropout_rate'] = 1.
 # Objective set up
 config_3Dchairs['cost'] = 'l2sq' #l2, l2sq, l2sq_norm, l1
-config_3Dchairs['penalty'] = 'mmd' #sinkhorn, mmd
-config_3Dchairs['pen'] = 'wae' #wae, wae_mmd
-config_3Dchairs['epsilon'] = 0.1 #Sinkhorn regularization parameters
-config_3Dchairs['L'] = 30 #Sinkhorn iteration
 config_3Dchairs['mmd_kernel'] = 'IMQ' # RBF, IMQ
-config_3Dchairs['pen'] = 'wae' # wae, wae_mmd
 config_3Dchairs['pen_enc_sigma'] = False
 config_3Dchairs['lambda_pen_enc_sigma'] = 0.001
-config_3Dchairs['pen_dec_sigma'] = False
-config_3Dchairs['lambda_pen_dec_sigma'] = 0.0005
 # Model set up
 config_3Dchairs['zdim'] = 10
 config_3Dchairs['pz_scale'] = 1.
@@ -272,9 +242,6 @@ config_celebA['batch_size'] = 128
 config_celebA['epoch_num'] = 101
 config_celebA['method'] = 'wae' #vae, wae
 config_celebA['use_trained'] = False #train from pre-trained model
-config_celebA['e_pretrain'] = False #pretrained the encoder parameters
-config_celebA['e_pretrain_it'] = 1000
-config_celebA['e_pretrain_sample_size'] = 200
 # Opt set up
 config_celebA['optimizer'] = 'adam' # adam, sgd
 config_celebA['adam_beta1'] = 0.9
@@ -288,16 +255,9 @@ config_celebA['batch_norm_momentum'] = 0.99
 config_celebA['dropout_rate'] = 1.
 # Objective set up
 config_celebA['cost'] = 'l2sq' #l2, l2sq, l2sq_norm, l1
-config_celebA['penalty'] = 'mmd' #sinkhorn, mmd
-config_celebA['pen'] = 'wae' #wae, wae_mmd
-config_celebA['epsilon'] = 0.1 #Sinkhorn regularization parameters
-config_celebA['L'] = 30 #Sinkhorn iteration
 config_celebA['mmd_kernel'] = 'IMQ' # RBF, IMQ
-config_celebA['pen'] = 'wae' # wae, wae_mmd
 config_celebA['pen_enc_sigma'] = False
 config_celebA['lambda_pen_enc_sigma'] = 0.001
-config_celebA['pen_dec_sigma'] = False
-config_celebA['lambda_pen_dec_sigma'] = 0.0005
 # Model set up
 config_celebA['zdim'] = 10
 config_celebA['pz_scale'] = 1.
@@ -352,9 +312,6 @@ config_mnist['batch_size'] = 128
 config_mnist['epoch_num'] = 101
 config_mnist['method'] = 'wae' #vae, wae
 config_mnist['use_trained'] = False #train from pre-trained model
-config_mnist['e_pretrain'] = False #pretrained the encoder parameters
-config_mnist['e_pretrain_it'] = 1000
-config_mnist['e_pretrain_sample_size'] = 200
 # Opt set up
 config_mnist['optimizer'] = 'adam' # adam, sgd
 config_mnist['adam_beta1'] = 0.5
@@ -367,16 +324,9 @@ config_mnist['batch_norm_momentum'] = 0.99
 config_mnist['dropout_rate'] = 1.
 # Objective set up
 config_mnist['cost'] = 'l2sq' #l2, l2sq, l2sq_norm, l1
-config_mnist['penalty'] = 'mmd' #sinkhorn, mmd
-config_mnist['pen'] = 'wae' #wae, wae_mmd
-config_mnist['epsilon'] = 0.1 #Sinkhorn regularization parameters
-config_mnist['L'] = 30 #Sinkhorn iteration
 config_mnist['mmd_kernel'] = 'IMQ' # RBF, IMQ
-config_mnist['pen'] = 'wae' # wae, wae_mmd
 config_mnist['pen_enc_sigma'] = False
 config_mnist['lambda_pen_enc_sigma'] = 0.001
-config_mnist['pen_dec_sigma'] = False
-config_mnist['lambda_pen_dec_sigma'] = 0.0005
 # Model set up
 config_mnist['zdim'] = 8
 config_mnist['pz_scale'] = 1.
@@ -432,9 +382,6 @@ config_svhn['batch_size'] = 128
 config_svhn['epoch_num'] = 4120
 config_svhn['method'] = 'wae' #vae, wae
 config_svhn['use_trained'] = False #train from pre-trained model
-config_svhn['e_pretrain'] = False #pretrained the encoder parameters
-config_svhn['e_pretrain_sample_size'] = 200
-config_svhn['e_pretrain_it'] = 1000
 # Opt set up
 config_svhn['optimizer'] = 'adam' # adam, sgd
 config_svhn['adam_beta1'] = 0.5
@@ -448,10 +395,6 @@ config_svhn['dropout_rate'] = 1.
 # Objective set up
 config_svhn['coef_rec'] = 1. # coef recon loss
 config_svhn['cost'] = 'l2sq' #l2, l2sq, l2sq_norm, l1
-config_svhn['penalty'] = 'mmd' #sinkhorn, mmd
-config_svhn['pen'] = 'wae' #wae, wae_mmd
-config_svhn['epsilon'] = 0.1 #Sinkhorn regularization parameters
-config_svhn['L'] = 30 #Sinkhorn iteration
 config_svhn['mmd_kernel'] = 'IMQ' # RBF, IMQ
 # Model set up
 config_svhn['nlatents'] = 8

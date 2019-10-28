@@ -12,7 +12,7 @@ import tensorflow as tf
 parser = argparse.ArgumentParser()
 # Args for experiment
 parser.add_argument("--model", default='WAE',
-                    help='model to train [WAE/BetaVAE/...]')
+                    help='model to train [WAE/disWAE/BetaVAE/...]')
 parser.add_argument("--mode", default='train',
                     help='mode to run [train/vizu/fid/test]')
 parser.add_argument("--exp", default='dsprites',
@@ -21,7 +21,9 @@ parser.add_argument("--exp", default='dsprites',
 parser.add_argument("--data_dir", type=str, default='../data',
                     help='directory in which data is stored')
 parser.add_argument("--out_dir", type=str, default='code_outputs',
-                    help='directory in which outputs are saved')
+                    help='root_directory in which outputs are saved')
+parser.add_argument("--exp_dir", type=str, default='results',
+                    help='directory in which exp. outputs are saved')
 parser.add_argument("--enum", type=int, default=100,
                     help='epoch number')
 parser.add_argument("--enet_archi", default='mlp',
@@ -63,9 +65,6 @@ def main():
 
     # Data directory
     opts['data_dir'] = FLAGS.data_dir
-    # Working directory
-    if FLAGS.out_dir:
-        opts['out_dir'] = FLAGS.out_dir
 
     # Mode
     if FLAGS.mode=='fid':
@@ -75,7 +74,7 @@ def main():
 
     # Experiemnts set up
     opts['epoch_num'] = FLAGS.enum
-    opts['print_every'] = 30000
+    opts['print_every'] = 500 #30000
     opts['save_every_epoch'] = 1000000
     opts['save_final'] = False
     opts['save_train_data'] = False
@@ -85,9 +84,13 @@ def main():
 
     # Objective Function Coefficients
     if opts['model'] == 'WAE':
+        opts['obj_fn_coeffs'] = FLAGS.lmba0
+    if opts['model'] == 'disWAE':
         opts['obj_fn_coeffs'] = [FLAGS.lmba0, FLAGS.lmba1]
     elif opts['model'] == 'BetaVAE':
         opts['obj_fn_coeffs'] = FLAGS.beta
+    opts['pen_enc_sigma'] = True
+    opts['lambda_pen_enc_sigma'] = 0.1
 
     # NN set up
     opts['filter_size'] = [5,3]
@@ -98,19 +101,23 @@ def main():
     opts['d_arch'] =  FLAGS.enet_archi # mlp, dcgan, dcgan_v2, resnet
     opts['d_nlayers'] = 3
     opts['d_nfilters'] = [1200,1200,1200]
-    opts['d_nonlinearity'] = 'relu' # soft_plus, relu, leaky_relu, tanh
+    opts['d_nonlinearity'] = 'tanh' # soft_plus, relu, leaky_relu, tanh
 
     # Create directories
-    out_dir = os.path.join(opts['out_dir'],
+    if FLAGS.out_dir:
+        opts['out_dir'] = FLAGS.out_dir
+    if FLAGS.exp_dir:
+        opts['exp_dir'] = FLAGS.exp_dir
+    exp_dir = os.path.join(opts['out_dir'],
                            opts['model'],
-                           '{:%Y_%m_%d_%H_%M}'.format(datetime.now()), )
-    opts['out_dir'] = out_dir
-    if not tf.gfile.IsDirectory(out_dir):
-        utils.create_dir(out_dir)
-        utils.create_dir(os.path.join(out_dir, 'checkpoints'))
+                           '{}_{:%Y_%m_%d_%H_%M}'.format(opts['exp_dir'],datetime.now()), )
+    opts['exp_dir'] = exp_dir
+    if not tf.gfile.IsDirectory(exp_dir):
+        utils.create_dir(exp_dir)
+        utils.create_dir(os.path.join(exp_dir, 'checkpoints'))
 
     # Verbose
-    logging.basicConfig(filename=os.path.join(out_dir,'outputs.log'),
+    logging.basicConfig(filename=os.path.join(exp_dir,'outputs.log'),
         level=logging.INFO, format='%(asctime)s - %(message)s')
 
     # Loading the dataset
@@ -125,7 +132,7 @@ def main():
     # Training/testing/vizu
     if FLAGS.mode=="train":
         # Dumping all the configs to the text file
-        with utils.o_gfile((out_dir, 'params.txt'), 'w') as text:
+        with utils.o_gfile((exp_dir, 'params.txt'), 'w') as text:
             text.write('Parameters:\n')
             for key in opts:
                 text.write('%s : %s\n' % (key, opts[key]))

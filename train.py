@@ -44,6 +44,9 @@ class Run(object):
             self.obj_fn_coeffs = self.beta
         elif opts['model'] == 'WAE':
             self.model = models.WAE(opts)
+            self.obj_fn_coeffs = self.lmbd
+        elif opts['model'] == 'disWAE':
+            self.model = models.disWAE(opts)
             self.obj_fn_coeffs = (self.lmbd1, self.lmbd2)
         else:
             raise NotImplementedError()
@@ -81,6 +84,8 @@ class Run(object):
         if self.opts['model']=='BetaVAE':
             self.beta = tf.placeholder(tf.float32, name='beta_ph')
         elif self.opts['model']=='WAE':
+            self.lmbd = tf.placeholder(tf.float32, name='lambda_ph')
+        elif self.opts['model']=='disWAE':
             self.lmbd1 = tf.placeholder(tf.float32, name='lambda1_ph')
             self.lmbd2 = tf.placeholder(tf.float32, name='lambda2_ph')
         else:
@@ -115,9 +120,9 @@ class Run(object):
         """
         opts = self.opts
         logging.error('Training {}'.format(self.opts['model']))
-        out_dir = opts['out_dir']
+        exp_dir = opts['exp_dir']
 
-        writer = tf.summary.FileWriter(out_dir)
+        writer = tf.summary.FileWriter(exp_dir)
 
         # - Init sess and load trained weights if needed
         if opts['use_trained']:
@@ -148,7 +153,7 @@ class Run(object):
             # Saver
             if counter > 0 and counter % opts['save_every'] == 0:
                 self.saver.save(self.sess,
-                                os.path.join(out_dir, 'checkpoints', 'trained-wae'),
+                                os.path.join(exp_dir, 'checkpoints', 'trained-wae'),
                                 global_step=counter)
 
             # Training Loop
@@ -189,6 +194,8 @@ class Run(object):
                 if opts['model'] == 'BetaVAE':
                     summary_vals_train.append(tf.Summary.Value(tag="kl_train", simple_value=divergences))
                 elif opts['model'] == 'WAE':
+                    summary_vals_train.append(tf.Summary.Value(tag="dim_wise_match_train", simple_value=divergences))
+                elif opts['model'] == 'disWAE':
                     summary_vals_train.append(tf.Summary.Value(tag="dim_wise_match_train", simple_value=divergences[0]))
                     summary_vals_train.append(tf.Summary.Value(tag="hsic_match_train", simple_value=divergences[1]))
                     summary_vals_train.append(tf.Summary.Value(tag="wae_match_train", simple_value=divergences[2]))
@@ -205,8 +212,8 @@ class Run(object):
                 writer.add_summary(tf.Summary(value=summary_vals_train), it + (epoch * batches_num))
 
                 ##### TESTING LOOP #####
-                if counter % opts['print_every'] == 0 or counter == 100:
-                    print("Epoch {}, Iteration {}".format(epoch, it))
+                if (counter+1) % opts['print_every'] == 0 or (counter+1) == 100:
+                    print("Epoch {}, Iteration {}".format(epoch, it+1))
                     batch_size_te = 200
                     test_size = np.shape(data.test_data)[0]
                     batches_num_te = int(test_size/batch_size_te)
@@ -233,7 +240,7 @@ class Run(object):
                                                 [self.recon_x,
                                                  self.enc_z,
                                                  self.generated_x],
-                                                feed_dict={self.batch: data.test_data[:10*npics],       # TODO what is this?
+                                                feed_dict={self.batch: data.test_data[:npics],       # TODO what is this?
                                                            self.samples_pz: fixed_noise,
                                                            self.dropout_rate: 1.,
                                                            self.is_training: False})
@@ -248,12 +255,12 @@ class Run(object):
                     if opts['vizu_embedded'] and counter > 1:
                         plot_embedded(opts, [latents_test[:npics]], [fixed_noise],
                                       data.test_labels[:npics],
-                                      out_dir, 'embedded_e%04d_mb%05d.png' % (epoch, it))
+                                      exp_dir, 'embedded_e%04d_mb%05d.png' % (epoch, it))
                     # Encoded sigma
                     if opts['vizu_encSigma'] and counter > 1:
                         plot_encSigma(opts,
                                       enc_Sigmas,
-                                      out_dir,
+                                      exp_dir,
                                       'encSigma_e%04d_mb%05d.png' % (epoch, it))
                     # Encode anchors points and interpolate
                     if opts['vizu_interpolation']:
@@ -273,11 +280,11 @@ class Run(object):
                                                                      self.is_training: False})
                         inter_anchors = np.reshape(dec_interpolation, [-1, opts['zdim'], num_steps]+im_shape)
                         inter_anchors = np.transpose(inter_anchors, (1, 0, 2, 3, 4, 5))
-                        plot_interpolation(opts, inter_anchors, out_dir,
+                        plot_interpolation(opts, inter_anchors, exp_dir,
                                            'inter_e%04d_mb%05d.png' % (epoch, it))
 
                     # Printing various loss values
-                    debug_str = 'EPOCH: %d/%d, BATCH:%d/%d' % (epoch + 1,
+                    debug_str = 'EPOCH: %d/%d, BATCH:%d/%d' % (epoch,
                                                                opts['epoch_num'],
                                                                it + 1,
                                                                batches_num)
@@ -285,12 +292,17 @@ class Run(object):
                     debug_str = 'TRAIN LOSS=%.3f' % (Loss[-1])
                     logging.error(debug_str)
                     if opts['model'] == 'BetaVAE':
-                        debug_str = 'REC=%.3f, REC TEST=%.3f, KL=%10.3e\n ' % (
+                        debug_str = 'REC=%.3f, REC TEST=%.3f, beta KL=%10.3e\n '  % (
                             Loss_rec[-1],
                             Loss_rec_test[-1],
                             Divergences[-1])
                     elif opts['model'] == 'WAE':
-                        debug_str = 'REC=%.3f, REC TEST=%.3f, HSIC=%10.3e, DIMWISE=%10.3e, WAE=%10.3e\n ' % (
+                        debug_str = 'REC=%.3f, REC TEST=%.3f, lambda MMD=%10.3e\n ' % (
+                                                    Loss_rec[-1],
+                                                    Loss_rec_test[-1],
+                                                    Divergences[-1])
+                    elif opts['model'] == 'disWAE':
+                        debug_str = 'REC=%.3f, REC TEST=%.3f, lambda1 HSIC=%10.3e, lambda2DIMWISE=%10.3e, WAE=%10.3e\n ' % (
                                                     Loss_rec[-1],
                                                     Loss_rec_test[-1],
                                                     Divergences[-1][0],
@@ -301,16 +313,15 @@ class Run(object):
                     logging.error(debug_str)
 
                     # Saving plots
-                    print('FIX save_train FUNCTION!')        # TODO
-                    # save_train(opts,
-                    #            data.data[200:200+npics], data.test_data[:npics],        # images
-                    #            reconstructions_train, reconstructions_test[:npics],     # reconstructions
-                    #            generations_test,                                        # model samples
-                    #            Loss,                                                    # loss
-                    #            Loss_rec, Loss_rec_test,                                 # rec losses
-                    #            Divergences,                                             # divergence terms
-                    #            out_dir,                                                 # working directory
-                    #            'res_e%04d_mb%05d.png' % (epoch, it))                    # filename
+                    save_train(opts,
+                               data.data[200:200+npics], data.test_data[:npics],        # images
+                               reconstructions_train, reconstructions_test,             # reconstructions
+                               generations_test,                                        # model samples
+                               Loss,                                                    # loss
+                               Loss_rec, Loss_rec_test,                                 # rec losses
+                               Divergences,                                             # divergence terms
+                               exp_dir,                                                 # working directory
+                               'res_e%04d_mb%05d.png' % (epoch, it))                    # filename
 
                 # - Update learning rate if necessary and counter
                 if counter >= batches_num * opts['epoch_num'] / 5 and counter % decay_steps == 0:
@@ -347,14 +358,14 @@ class Run(object):
 
         # - Save the final model
         if opts['save_final'] and epoch > 0:
-            self.saver.save(self.sess, os.path.join(out_dir,
+            self.saver.save(self.sess, os.path.join(exp_dir,
                                                 'checkpoints',
                                                 'trained-{}-final'.format(opts['model'])),
                                                 global_step=counter)
         # - save training data
         if opts['save_train_data']:
             data_dir = 'train_data'
-            save_path = os.path.join(out_dir, data_dir)
+            save_path = os.path.join(exp_dir, data_dir)
             utils.create_dir(save_path)
             name = 'res_train_final'
             np.savez(os.path.join(save_path, name),

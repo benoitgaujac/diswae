@@ -1,4 +1,5 @@
 import os
+import pdb
 
 from math import sqrt
 import numpy as np
@@ -18,8 +19,8 @@ def save_train(opts, data_train, data_test,
                      samples,
                      loss,
                      loss_rec, loss_rec_test,
-                     loss_hsic, loss_dim, loss_wae,
-                     out_dir,
+                     loss_match,
+                     exp_dir,
                      filename):
 
     """ Generates and saves the plot of the following layout:
@@ -138,16 +139,26 @@ def save_train(opts, data_train, data_test,
                                 size=20, transform=ax.transAxes)
 
     ### The reconstruction loss curves
-    # base = plt.cm.get_cmap('Vega10')
-    base = plt.cm.get_cmap('tab10')
+    base = plt.cm.get_cmap('Vega10')
+    # base = plt.cm.get_cmap('tab10')
     color_list = base(np.linspace(0, 1, 5))
     ax = plt.subplot(gs[1, 1])
-    for i, los, lmba, lab in zip([j for j in range(4)],
-                            [loss_rec, loss_hsic, loss_dim, loss_wae],
-                            [1., opts['lambda'][1],opts['lambda'][0],min(opts['lambda'])],
-                            ['rec','|hsci|]','|dimwise|','|wae|']):
+    if opts['model'] == 'BetaVAE':
+        losses = [loss_rec,loss_match]
+        labels = ['rec',r'$\beta$KL']
+    elif opts['model'] == 'WAE':
+        losses = [loss_rec,loss_match]
+        labels = ['rec',r'$\lambda$|mmd|']
+    elif opts['model'] == 'disWAE':
+        losses = [loss_rec,] + list(zip(*loss_match))
+        labels = ['rec',r'$\lambda_1$|hsci|]','$\lambda_2$|dimwise|','|wae|']
+    else:
+        raise NotImplementedError('Model type not recognised')
+    for i, los, lab in zip([j for j in range(4)],
+                            losses,
+                            labels):
         l = np.array(los)
-        y = np.log(lmba*np.abs(l[::x_step]))
+        y = np.log(np.abs(l[::x_step]))
         plt.plot(x, y, linewidth=2, color=color_list[i], label=lab)
     plt.grid(axis='y')
     plt.legend(loc='upper right')
@@ -157,14 +168,14 @@ def save_train(opts, data_train, data_test,
     ### Saving plots and data
     # Plot
     plots_dir = 'train_plots'
-    save_path = os.path.join(out_dir,plots_dir)
+    save_path = os.path.join(exp_dir,plots_dir)
     utils.create_dir(save_path)
     fig.savefig(utils.o_gfile((save_path, filename), 'wb'),
                 dpi=dpi, format='png')
     plt.close()
 
 
-def plot_encSigma(opts, enc_Sigmas, out_dir, filename):
+def plot_encSigma(opts, enc_Sigmas, exp_dir, filename):
     fig = plt.figure()
     enc_Sigmas = np.array(enc_Sigmas)
     shape = np.shape(enc_Sigmas)
@@ -179,13 +190,13 @@ def plot_encSigma(opts, enc_Sigmas, out_dir, filename):
     plt.title(r'log norm_Tr$(\Sigma)$ curves')
     ### Saving plot
     plots_dir = 'train_plots'
-    save_path = os.path.join(out_dir,plots_dir)
+    save_path = os.path.join(exp_dir,plots_dir)
     utils.create_dir(save_path)
     fig.savefig(utils.o_gfile((save_path, filename), 'wb'),cformat='png')
     plt.close()
 
 
-def plot_embedded(opts, encoded, decoded, labels, out_dir, filename):
+def plot_embedded(opts, encoded, decoded, labels, exp_dir, filename):
     num_pics = np.shape(encoded[0])[0]
     embeds = []
     for i in range(len(encoded)):
@@ -215,8 +226,8 @@ def plot_embedded(opts, encoded, decoded, labels, out_dir, filename):
     for i in range(len(embeds)):
         ax = plt.subplot(gs[0, i])
         plt.scatter(embeds[i][:num_pics, 0], embeds[i][:num_pics, 1], alpha=0.7,
-                    c=labels, s=40, label='Qz test',cmap=discrete_cmap(10, base_cmap='tab10'))
-                    # c=labels, s=40, label='Qz test',edgecolors='none',cmap=discrete_cmap(10, base_cmap='Vega10'))
+                    # c=labels, s=40, label='Qz test',cmap=discrete_cmap(10, base_cmap='tab10'))
+                    c=labels, s=40, label='Qz test',edgecolors='none',cmap=discrete_cmap(10, base_cmap='Vega10'))
         if i==len(embeds)-1:
             plt.colorbar()
         plt.scatter(embeds[i][num_pics:, 0], embeds[i][num_pics:, 1],
@@ -245,13 +256,13 @@ def plot_embedded(opts, encoded, decoded, labels, out_dir, filename):
         ax.axes.set_aspect(1)
     ### Saving plot
     plots_dir = 'train_plots'
-    save_path = os.path.join(out_dir,plots_dir)
+    save_path = os.path.join(exp_dir,plots_dir)
     utils.create_dir(save_path)
     fig.savefig(utils.o_gfile((save_path, filename), 'wb'),dpi=dpi,cformat='png')
     plt.close()
 
 
-def plot_interpolation(opts, interpolations, out_dir, filename):
+def plot_interpolation(opts, interpolations, exp_dir, filename):
     ### Reshaping images
     greyscale = interpolations.shape[-1] == 1
     white_pix = 4
@@ -293,7 +304,7 @@ def plot_interpolation(opts, interpolations, out_dir, filename):
         ax.axes.set_aspect(1)
     ### Saving plot
     plots_dir = 'train_plots'
-    save_path = os.path.join(out_dir,plots_dir)
+    save_path = os.path.join(exp_dir,plots_dir)
     utils.create_dir(save_path)
     fig.savefig(utils.o_gfile((save_path, filename), 'wb'),dpi=dpi,cformat='png')
     plt.close()
@@ -308,7 +319,7 @@ def save_latent_interpolation(opts, data_test, label_test, # data, labels
 
     # --- Create saving directory and preprocess
     plots_dir = 'test_plots'
-    save_path = os.path.join(opts['out_dir'],plots_dir)
+    save_path = os.path.join(opts['exp_dir'],plots_dir)
     utils.create_dir(save_path)
 
     dpi = 100
@@ -567,8 +578,8 @@ def save_latent_interpolation(opts, data_test, label_test, # data, labels
         # ax = plt.subplot(gs[0, i])
         ax = fig.add_subplot(1, len(embeds), i+1)
         plt.scatter(embeds[i][:, 0], embeds[i][:, 1], alpha=0.6,
-                    c=label_test, s=40, label='Qz test',cmap=discrete_cmap(10, base_cmap='tab10'))
-                    # c=label_test, s=40, edgecolors='none',cmap=discrete_cmap(10, base_cmap='Vega10'))
+                    # c=label_test, s=40, label='Qz test',cmap=discrete_cmap(10, base_cmap='tab10'))
+                    c=label_test, s=40, edgecolors='none',cmap=discrete_cmap(10, base_cmap='Vega10'))
         xmin = np.amin(embeds[i][:,0])
         xmax = np.amax(embeds[i][:,0])
         magnify = 0.01
@@ -607,7 +618,7 @@ def save_latent_interpolation(opts, data_test, label_test, # data, labels
                 dpi=dpi, format='png', bbox_inches='tight', pad_inches=0.01)
     plt.close()
 
-def save_vlae_experiment(opts, decoded, out_dir):
+def save_vlae_experiment(opts, decoded, exp_dir):
     # num_pics = opts['plot_num_pics']
     num_cols = 10
     greyscale = decoded[0].shape[-1] == 1
@@ -674,7 +685,7 @@ def save_vlae_experiment(opts, decoded, out_dir):
     ### Saving plots and data
     # Plot
     plots_dir = 'test_plots'
-    save_path = os.path.join(out_dir,plots_dir)
+    save_path = os.path.join(exp_dir,plots_dir)
     utils.create_dir(save_path)
     filename = 'vlae_exp.png'
     fig.savefig(utils.o_gfile((save_path, filename), 'wb'),

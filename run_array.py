@@ -23,7 +23,10 @@ parser.add_argument("--exp", default='mnist',
                     ' celebA/dsprites Not implemented yet')
 parser.add_argument("--data_dir", type=str, default='../data',
                     help='directory in which data is stored')
-parser.add_argument("--out_dir")
+parser.add_argument("--out_dir", type=str, default='code_outputs',
+                    help='root_directory in which outputs are saved')
+parser.add_argument("--exp_dir", type=str, default='results',
+                    help='directory in which exp. outputs are saved')
 parser.add_argument("--enum", type=int, default=100,
                     help='epoch number')
 parser.add_argument("--enet_archi", default='mlp',
@@ -51,6 +54,7 @@ def main():
     elif FLAGS.exp == '3Dchairs':
         opts = configs.config_3Dchairs
     elif FLAGS.exp == 'celebA':
+        assert False, 'CelebA dataset not implemented yet.'
         opts = configs.config_celebA
     elif FLAGS.exp == 'mnist':
         opts = configs.config_mnist
@@ -63,9 +67,6 @@ def main():
 
     # Data directory
     opts['data_dir'] = FLAGS.data_dir
-    # Working directory
-    if FLAGS.out_dir:
-        opts['out_dir'] = FLAGS.out_dir
 
     # Mode
     if FLAGS.mode=='fid':
@@ -79,22 +80,28 @@ def main():
     opts['save_every_epoch'] = 1000000
     opts['save_final'] = False
     opts['save_train_data'] = False
+    opts['vizu_encSigma'] = True
 
     # Model set up
     opts['zdim'] = 10
 
     # Objective Function Coefficients
-    if opts['model'] == 'WAE':
+    if opts['model'] == 'BetaVAE':
+        beta = [1, 3, 10, 20, 30, 40, 50, 75, 100]
+        opts['beta'] = beta[FLAGS.idx_beta-1]
+    elif opts['model'] == 'WAE':
+        lmba = [1, 3, 10, 20, 30, 40, 50, 75, 100]
+        opts['lambda'] = lmba[FLAGS.idx_lmba-1]
+    elif opts['model'] == 'disWAE':
         # Penalty
         lmba0 = [10**i for i in range(-2,3)]
         lmba1 = [10**i for i in range(-2,3)]
         lmba = list(itertools.product(lmba0,lmba1))
         opts['lambda'] = lmba[FLAGS.idx_lmba-1]
-        opts['out_dir'] = FLAGS.out_dir + str(lmba[FLAGS.idx_lmba-1][0]) + '_' + str(lmba[FLAGS.idx_lmba-1][1])
-    elif opts['model'] == 'BetaVAE':
-        beta = [10**i for i in range(-2,3)]
-        opts['beta'] = beta[FLAGS.idx_beta-1]
-
+    else:
+        assert False, 'unknown model {}'.format(opts['model'])
+    opts['pen_enc_sigma'] = False
+    opts['lambda_pen_enc_sigma'] = 0.1
 
     # NN set up
     opts['filter_size'] = [4,4,4,4]
@@ -111,13 +118,37 @@ def main():
     opts['d_nonlinearity'] = 'relu' # soft_plus, relu, leaky_relu, tanh
 
     # Create directories
-    if not tf.gfile.IsDirectory(opts['model']):
-        utils.create_dir(opts['model'])
-    out_dir = os.path.join(opts['model'],opts['out_dir'])
-    opts['out_dir'] = out_dir
-    if not tf.gfile.IsDirectory(out_dir):
-        utils.create_dir(out_dir)
-        utils.create_dir(os.path.join(out_dir, 'checkpoints'))
+    if FLAGS.out_dir:
+        opts['out_dir'] = FLAGS.out_dir
+    if FLAGS.exp_dir:
+        opts['exp_dir'] = FLAGS.exp_dir
+    if opts['model'] == 'BetaVAE':
+        exp_dir = os.path.join(opts['out_dir'],
+                               opts['model'],
+                               '{}_{}_{:%Y_%m_%d_%H_%M}'.format(
+                                    opts['beta'],opts['exp_dir'],
+                                    datetime.now()), )
+    elif opts['model'] == 'WAE':
+        exp_dir = os.path.join(opts['out_dir'],
+                               opts['model'],
+                               '{}_{}_{:%Y_%m_%d_%H_%M}'.format(
+                                    opts['lambda'],
+                                    opts['exp_dir'],
+                                    datetime.now()), )
+    elif opts['model'] == 'disWAE':
+        exp_dir = os.path.join(opts['out_dir'],
+                               opts['model'],
+                               '{}_{}_{}_{:%Y_%m_%d_%H_%M}'.format(
+                                    opts['lambda'][0],
+                                    opts['lambda'][1],
+                                    opts['exp_dir'],datetime.now()), )
+    else:
+        assert False, 'unknown model {}'.format(opts['model'])
+
+    opts['exp_dir'] = exp_dir
+    if not tf.gfile.IsDirectory(exp_dir):
+        utils.create_dir(exp_dir)
+        utils.create_dir(os.path.join(exp_dir, 'checkpoints'))
 
     # Verbose
     logging.basicConfig(filename=os.path.join(out_dir,'outputs.log'),
@@ -130,33 +161,18 @@ def main():
     #Reset tf graph
     tf.reset_default_graph()
 
-    # build WAE/VAE
-    if opts['model']=='WAE':
-        model = WAE(opts)
-    elif opts['model']=='BetaVAE':
-        model = BetaVAE(opts)
-    else:
-        assert False, 'Unknown methdo %s' % opts['model']
+    run = Run(opts)
 
     # Training/testing/vizu
     if FLAGS.mode=="train":
         # Dumping all the configs to the text file
-        with utils.o_gfile((out_dir, 'params.txt'), 'w') as text:
+        with utils.o_gfile((exp_dir, 'params.txt'), 'w') as text:
             text.write('Parameters:\n')
             for key in opts:
                 text.write('%s : %s\n' % (key, opts[key]))
-        model.train(data, FLAGS.weights_file, model=FLAGS.model)
-    # elif FLAGS.mode=="vizu":
-    #     opts['rec_loss_nsamples'] = 1
-    #     opts['sample_recons'] = False
-    #     wae.latent_interpolation(data, opts['out_dir'], FLAGS.weights_file)
-    # elif FLAGS.mode=="fid":
-    #     wae.fid_score(data, opts['out_dir'], FLAGS.weights_file)
-    # elif FLAGS.mode=="test":
-    #     wae.test_losses(data, opts['out_dir'], FLAGS.weights_file)
-    # elif FLAGS.mode=="vlae_exp":
-    #     wae.vlae_experiment(data, opts['out_dir'], FLAGS.weights_file)
+        run.train(data, FLAGS.weights_file)
     else:
         assert False, 'Unknown mode %s' % FLAGS.mode
+
 
 main()
