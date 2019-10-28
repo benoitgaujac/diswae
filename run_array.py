@@ -1,14 +1,13 @@
 import os
-import sys
+from datetime import datetime
 import logging
 import argparse
 import configs
-from train import WAE
+from train import Run
 from datahandler import DataHandler
 import utils
 
 import tensorflow as tf
-import itertools
 
 import pdb
 
