@@ -87,16 +87,16 @@ def main():
     # Objective Function Coefficients
     if opts['model'] == 'BetaVAE':
         beta = [1, 3, 10, 20, 30, 40, 50, 75, 100]
-        opts['beta'] = beta[FLAGS.idx_beta-1]
+        opts['obj_fn_coeffs'] = beta[FLAGS.idx_beta-1]
     elif opts['model'] == 'WAE':
         lmba = [1, 3, 10, 20, 30, 40, 50, 75, 100]
-        opts['lambda'] = lmba[FLAGS.idx_lmba-1]
+        opts['obj_fn_coeffs'] = lmba[FLAGS.idx_lmba-1]
     elif opts['model'] == 'disWAE':
         # Penalty
         lmba0 = [10**i for i in range(-2,3)]
         lmba1 = [10**i for i in range(-2,3)]
         lmba = list(itertools.product(lmba0,lmba1))
-        opts['lambda'] = lmba[FLAGS.idx_lmba-1]
+        opts['obj_fn_coeffs'] = lmba[FLAGS.idx_lmba-1]
     else:
         assert False, 'unknown model {}'.format(opts['model'])
     opts['pen_enc_sigma'] = False
@@ -121,29 +121,25 @@ def main():
         opts['out_dir'] = FLAGS.out_dir
     if FLAGS.exp_dir:
         opts['exp_dir'] = FLAGS.exp_dir
-    if opts['model'] == 'BetaVAE':
-        exp_dir = os.path.join(opts['out_dir'],
-                               opts['model'],
-                               '{}_{}_{:%Y_%m_%d_%H_%M}'.format(
-                                    opts['beta'],opts['exp_dir'],
-                                    datetime.now()), )
-    elif opts['model'] == 'WAE':
-        exp_dir = os.path.join(opts['out_dir'],
-                               opts['model'],
-                               '{}_{}_{:%Y_%m_%d_%H_%M}'.format(
-                                    opts['lambda'],
-                                    opts['exp_dir'],
-                                    datetime.now()), )
-    elif opts['model'] == 'disWAE':
+    if opts['model'] == 'disWAE':
         exp_dir = os.path.join(opts['out_dir'],
                                opts['model'],
                                '{}_{}_{}_{:%Y_%m_%d_%H_%M}'.format(
-                                    opts['lambda'][0],
-                                    opts['lambda'][1],
+                                    opts['obj_fn_coeffs'][0],
+                                    opts['obj_fn_coeffs'][1],
                                     opts['exp_dir'],datetime.now()), )
-    else:
-        assert False, 'unknown model {}'.format(opts['model'])
-
+        exp_dir = os.path.join(opts['out_dir'],
+                               opts['model'],
+                               '{}_{}_{:%Y_%m_%d_%H_%M}'.format(
+                                    opts['obj_fn_coeffs'],opts['exp_dir'],
+                                    datetime.now()), )
+    else :
+        exp_dir = os.path.join(opts['out_dir'],
+                               opts['model'],
+                               '{}_{}_{:%Y_%m_%d_%H_%M}'.format(
+                                    opts['obj_fn_coeffs'],
+                                    opts['exp_dir'],
+                                    datetime.now()), )
     opts['exp_dir'] = exp_dir
     if not tf.gfile.IsDirectory(exp_dir):
         utils.create_dir(exp_dir)
