@@ -87,7 +87,7 @@ def main():
         beta = [1, 3, 10, 20, 30, 40, 50, 75, 100]
         opts['obj_fn_coeffs'] = beta[FLAGS.idx-1]
     elif opts['model'] == 'WAE':
-        lmba = [0.0001, 0.0005, 0.001, 0.005, 0.01, 0.05, .1, .5, 1]
+        lmba = [1, 3, 10, 20, 30, 40, 50, 75, 100]
         opts['obj_fn_coeffs'] = lmba[FLAGS.idx-1]
     elif opts['model'] == 'disWAE':
         # Penalty
@@ -104,14 +104,14 @@ def main():
     opts['filter_size'] = [4,4,4,4]
     opts['mlp_init'] = 'glorot_uniform' #normal, he, glorot, glorot_he, glorot_uniform, ('uniform', range)
     opts['e_arch'] = FLAGS.enet_archi # mlp, dcgan, dcgan_v2, resnet
-    opts['e_nlayers'] = 4
+    opts['e_nlayers'] = 2
     opts['downsample'] = [None,]*opts['e_nlayers'] #None, True
-    opts['e_nfilters'] = [32,32,64,64]
+    opts['e_nfilters'] = [1200,1200] #[32,32,64,64]
     opts['e_nonlinearity'] = 'relu' # soft_plus, relu, leaky_relu, tanh
     opts['d_arch'] =  FLAGS.enet_archi # mlp, dcgan, dcgan_v2, resnet
     opts['upsample'] = [None,]*opts['d_nlayers'] #None, up
-    opts['d_nlayers'] = 4
-    opts['d_nfilters'] = [32,32,32,64]
+    opts['d_nlayers'] = 3
+    opts['d_nfilters'] = [1200,1200,1200] #[32,32,32,64]
     opts['d_nonlinearity'] = 'relu' # soft_plus, relu, leaky_relu, tanh
 
     # Create directories
