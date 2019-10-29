@@ -97,7 +97,7 @@ class BetaVAE(Model):
         Smean, Svar = tf.nn.moments(Sigma_tr, axes=[0])
         encSigmas_stats = tf.stack([Smean, Svar], axis=-1)
 
-        return objective, loss_reconstruct, divergences, tf.math.sigmoid(recon_x), enc_z, encSigmas_stats
+        return objective, loss_reconstruct, divergences, recon_x, enc_z, encSigmas_stats
 
 
 class TCBetaVAE(BetaVAE):
@@ -125,7 +125,7 @@ class TCBetaVAE(BetaVAE):
         Smean, Svar = tf.nn.moments(Sigma_tr, axes=[0])
         encSigmas_stats = tf.stack([Smean, Svar], axis=-1)
 
-        return objective, loss_reconstruct, divergences, tf.math.sigmoid(recon_x), enc_z, encSigmas_stats
+        return objective, loss_reconstruct, divergences, recon_x, enc_z, encSigmas_stats
 
 
 class FactorVAE(Model):
@@ -263,7 +263,7 @@ class disWAE(WAE):
         (lmbd1, lmbd2) = loss_coeffs
 
         # --- Encoding and reconstructing
-        enc_z, enc_mean, enc_Sigma, recon_x, _, recon_Sigma = self.forward_pass(inputs=inputs,
+        enc_z, enc_mean, enc_Sigma, recon_x, _, _ = self.forward_pass(inputs=inputs,
                                                                                 is_training=is_training,
                                                                                 dropout_rate=dropout_rate)
         loss_reconstruct = self.reconstruction_loss(self.opts, inputs, recon_x)
