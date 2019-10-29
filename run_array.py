@@ -112,7 +112,7 @@ def main():
     opts['upsample'] = [None,]*opts['d_nlayers'] #None, up
     opts['d_nlayers'] = 3
     opts['d_nfilters'] = [1200,1200,1200] #[32,32,32,64]
-    opts['d_nonlinearity'] = 'relu' # soft_plus, relu, leaky_relu, tanh
+    opts['d_nonlinearity'] = 'tanh' # soft_plus, relu, leaky_relu, tanh
 
     # Create directories
     if FLAGS.out_dir:
