@@ -32,10 +32,8 @@ parser.add_argument("--enet_archi", default='mlp',
                     help='encoder networks architecture [mlp/dcgan_v2/resnet]')
 parser.add_argument("--dnet_archi", default='mlp',
                     help='decoder networks architecture [mlp/dcgan_v2/resnet]')
-parser.add_argument("--idx_lmba", type=int, default=0,
-                    help='idx lambda setup')
-parser.add_argument("--idx_beta", type=float, default=10.,
-                    help='idx lambda setup')
+parser.add_argument("--idx", type=int, default=0,
+                    help='idx latent reg weight setup')
 parser.add_argument("--weights_file")
 parser.add_argument('--gpu_id', default='cpu',
                     help='gpu id for DGX box. Default is cpu')
@@ -87,16 +85,16 @@ def main():
     # Objective Function Coefficients
     if opts['model'] == 'BetaVAE':
         beta = [1, 3, 10, 20, 30, 40, 50, 75, 100]
-        opts['obj_fn_coeffs'] = beta[FLAGS.idx_beta-1]
+        opts['obj_fn_coeffs'] = beta[FLAGS.idx-1]
     elif opts['model'] == 'WAE':
         lmba = [1, 3, 10, 20, 30, 40, 50, 75, 100]
-        opts['obj_fn_coeffs'] = lmba[FLAGS.idx_lmba-1]
+        opts['obj_fn_coeffs'] = lmba[FLAGS.idx-1]
     elif opts['model'] == 'disWAE':
         # Penalty
         lmba0 = [10**i for i in range(-2,3)]
         lmba1 = [10**i for i in range(-2,3)]
         lmba = list(itertools.product(lmba0,lmba1))
-        opts['obj_fn_coeffs'] = lmba[FLAGS.idx_lmba-1]
+        opts['obj_fn_coeffs'] = lmba[FLAGS.idx-1]
     else:
         assert False, 'unknown model {}'.format(opts['model'])
     opts['pen_enc_sigma'] = False
