@@ -19,38 +19,38 @@ def encoder(opts, input, output_dim, scope=None, reuse=False,
                                             is_training=False,
                                             dropout_rate=1.):
     with tf.variable_scope(scope, reuse=reuse):
-        if opts['e_arch'] == 'mlp':
+        if opts['network']['e_arch'] == 'mlp':
             # Encoder uses only fully connected layers with ReLus
             outputs = mlp_encoder(opts, input, output_dim,
                                             reuse,
                                             is_training,
                                             dropout_rate)
-        elif opts['e_arch'] == 'dcgan':
+        elif opts['network']['e_arch'] == 'dcgan':
             # Fully convolutional architecture similar to DCGAN
             outputs = dcgan_encoder(opts, input, output_dim,
                                             reuse,
                                             is_training,
                                             dropout_rate)
-        elif opts['e_arch'] == 'dcgan_v2':
+        elif opts['network']['e_arch'] == 'dcgan_v2':
             # Fully convolutional architecture similar to Wasserstein GAN
             outputs = dcgan_v2_encoder(opts, input, output_dim,
                                             reuse,
                                             is_training,
                                             dropout_rate)
-        elif opts['e_arch'] == 'conv_locatello':
+        elif opts['network']['e_arch'] == 'conv_locatello':
             # Fully convolutional architecture similar to Locatello & al.
             outputs = locatello_encoder(opts, input, output_dim,
                                             reuse,
                                             is_training,
                                             dropout_rate)
-        elif opts['e_arch'] == 'resnet':
+        elif opts['network']['e_arch'] == 'resnet':
             assert False, 'To Do'
             # Resnet archi similar to Improved training of WAGAN
             outputs = resnet_encoder(opts, input, output_dim,
                                             reuse,
                                             is_training,
                                             dropout_rate)
-        elif opts['e_arch'] == 'resnet_v2':
+        elif opts['network']['e_arch'] == 'resnet_v2':
             assert False, 'To Do'
             # Full conv Resnet archi similar to Improved training of WAGAN
             outputs = resnet_v2_encoder(opts, input, output_dim,
@@ -58,7 +58,7 @@ def encoder(opts, input, output_dim, scope=None, reuse=False,
                                             is_training,
                                             dropout_rate)
         else:
-            raise ValueError('%s : Unknown encoder architecture' % opts['e_arch'])
+            raise ValueError('%s : Unknown encoder architecture' % opts['network']['e_arch'])
 
     mean, logSigma = tf.split(outputs,2,axis=-1)
     logSigma = tf.clip_by_value(logSigma, -20, 500)
@@ -81,38 +81,38 @@ def decoder(opts, input, output_dim, scope=None, reuse=False,
                                             is_training=False,
                                             dropout_rate=1.):
     with tf.variable_scope(scope, reuse=reuse):
-        if opts['d_arch'] == 'mlp':
+        if opts['network']['d_arch'] == 'mlp':
             # Encoder uses only fully connected layers with ReLus
             outputs = mlp_decoder(opts, input, output_dim,
                                             reuse,
                                             is_training,
                                             dropout_rate)
-        elif opts['d_arch'] == 'dcgan':
+        elif opts['network']['d_arch'] == 'dcgan':
             # Fully convolutional architecture similar to DCGAN
             outputs = dcgan_decoder(opts, input, output_dim,
                                             reuse,
                                             is_training,
                                             dropout_rate)
-        elif opts['d_arch'] == 'dcgan_v2':
+        elif opts['network']['d_arch'] == 'dcgan_v2':
             # Fully convolutional architecture similar to improve Wasserstein nGAN
             outputs = dcgan_v2_decoder(opts, input, output_dim,
                                             reuse,
                                             is_training,
                                             dropout_rate)
-        elif opts['d_arch'] == 'conv_locatello':
+        elif opts['network']['d_arch'] == 'conv_locatello':
             # Fully convolutional architecture similar to Locatello & al.
             outputs = locatello_decoder(opts, input, output_dim,
                                             reuse,
                                             is_training,
                                             dropout_rate)
-        elif opts['d_arch'] == 'resnet':
+        elif opts['network']['d_arch'] == 'resnet':
             assert False, 'To Do'
             # Fully convolutional architecture similar to improve Wasserstein nGAN
             outputs = resnet_decoder(opts, input, output_dim,
                                             reuse,
                                             is_training,
                                             dropout_rate)
-        elif opts['d_arch'] == 'resnet_v2':
+        elif opts['network']['d_arch'] == 'resnet_v2':
             assert False, 'To Do'
             # Fully convolutional architecture similar to improve Wasserstein nGAN
             outputs = resnet_v2_decoder(opts, input, output_dim,
@@ -120,7 +120,7 @@ def decoder(opts, input, output_dim, scope=None, reuse=False,
                                             is_training,
                                             dropout_rate)
         else:
-            raise ValueError('%s Unknown encoder architecture for mixtures' % opts['d_arch'])
+            raise ValueError('%s Unknown encoder architecture for mixtures' % opts['network']['d_arch'])
 
     mean, logSigma = tf.split(outputs,2,axis=-1)
     logSigma = tf.clip_by_value(logSigma, -20, 500)
@@ -152,17 +152,17 @@ def mlp_encoder(opts, input, output_dim, reuse=False,
                                             is_training=False,
                                             dropout_rate=1.):
     layer_x = input
-    for i in range(opts['e_nlayers']):
+    for i in range(opts['network']['e_nlayers']):
         layer_x = ops.linear.Linear(opts, layer_x, np.prod(layer_x.get_shape().as_list()[1:]),
-                    opts['e_nfilters'][i], init=opts['mlp_init'], scope='hid{}/lin'.format(i))
+                    opts['network']['e_nfilters'][i], init=opts['mlp_init'], scope='hid{}/lin'.format(i))
         # Note for mlp, batchnorm and layernorm are equivalent
-        if opts['e_norm']=='batchnorm':
+        if opts['normalization']=='batchnorm':
             layer_x = ops.batchnorm.Batchnorm_layers(
                 opts, layer_x, 'hid%d/bn' % i, is_training, reuse)
-        elif opts['e_norm']=='layernorm':
+        elif opts['normalization']=='layernorm':
             layer_x = ops.layernorm.Layernorm(
                 opts, layer_x, 'hid%d/bn' % i, reuse)
-        layer_x = ops._ops.non_linear(layer_x,opts['e_nonlinearity'])
+        layer_x = ops._ops.non_linear(layer_x,opts['network']['e_nonlinearity'])
         layer_x = tf.nn.dropout(layer_x, keep_prob=dropout_rate)
     outputs = ops.linear.Linear(opts, layer_x, np.prod(layer_x.get_shape().as_list()[1:]),
                 output_dim, init=opts['mlp_init'], scope='hid_final')
@@ -178,20 +178,20 @@ def dcgan_encoder(opts, input, output_dim, reuse=False,
     """
     layer_x = input
     # Conv block
-    for i in range(opts['e_nlayers']):
-        if opts['downsample'][i]:
-            layer_x = ops.conv2d.Conv2d(opts, layer_x,layer_x.get_shape().as_list()[-1],opts['e_nfilters'][i],
-                    opts['filter_size'][i],stride=2,scope='hid{}/conv'.format(i+1),init=opts['conv_init'])
+    for i in range(opts['network']['e_nlayers']):
+        if opts['network']['downsample'][i]:
+            layer_x = ops.conv2d.Conv2d(opts, layer_x,layer_x.get_shape().as_list()[-1],opts['network']['e_nfilters'][i],
+                    opts['network']['filter_size'][i],stride=2,scope='hid{}/conv'.format(i+1),init=opts['conv_init'])
         else:
-            layer_x = ops.conv2d.Conv2d(opts,layer_x,layer_x.get_shape().as_list()[-1],opts['e_nfilters'][i],
-                    opts['filter_size'][i],stride=1,scope='hid{}/conv'.format(i),init=opts['conv_init'])
-        if opts['e_norm']=='batchnorm':
+            layer_x = ops.conv2d.Conv2d(opts,layer_x,layer_x.get_shape().as_list()[-1],opts['network']['e_nfilters'][i],
+                    opts['network']['filter_size'][i],stride=1,scope='hid{}/conv'.format(i),init=opts['conv_init'])
+        if opts['normalization']=='batchnorm':
             layer_x = ops.batchnorm.Batchnorm_layers(
                 opts, layer_x, 'hid%d/bn' % i, is_training, reuse)
-        elif opts['e_norm']=='layernorm':
+        elif opts['normalization']=='layernorm':
             layer_x = ops.layernorm.Layernorm(
                 opts, layer_x, 'hid%d/bn' % i, reuse)
-        layer_x = ops._ops.non_linear(layer_x,opts['e_nonlinearity'])
+        layer_x = ops._ops.non_linear(layer_x,opts['network']['e_nonlinearity'])
         layer_x = tf.nn.dropout(layer_x, keep_prob=dropout_rate)
     # Final linear
     layer_x = tf.reshape(layer_x,[-1,np.prod(output_dim)])
@@ -209,30 +209,30 @@ def dcgan_v2_encoder(opts, input, output_dim, reuse=False,
     """
     layer_x = input
     # Conv block
-    for i in range(opts['e_nlayers']):
-        if opts['downsample'][i]:
-            layer_x = ops.conv2d.Conv2d(opts, layer_x,layer_x.get_shape().as_list()[-1],opts['e_nfilters'][i],
-                    opts['filter_size'][i],stride=2,scope='hid{}/conv'.format(i+1),init=opts['conv_init'])
+    for i in range(opts['network']['e_nlayers']):
+        if opts['network']['downsample'][i]:
+            layer_x = ops.conv2d.Conv2d(opts, layer_x,layer_x.get_shape().as_list()[-1],opts['network']['e_nfilters'][i],
+                    opts['network']['filter_size'][i],stride=2,scope='hid{}/conv'.format(i+1),init=opts['conv_init'])
         else:
-            layer_x = ops.conv2d.Conv2d(opts,layer_x,layer_x.get_shape().as_list()[-1],opts['e_nfilters'][i],
-                    opts['filter_size'][i],stride=1,scope='hid{}/conv'.format(i),init=opts['conv_init'])
-        if opts['e_norm']=='batchnorm':
+            layer_x = ops.conv2d.Conv2d(opts,layer_x,layer_x.get_shape().as_list()[-1],opts['network']['e_nfilters'][i],
+                    opts['network']['filter_size'][i],stride=1,scope='hid{}/conv'.format(i),init=opts['conv_init'])
+        if opts['normalization']=='batchnorm':
             layer_x = ops.batchnorm.Batchnorm_layers(
                 opts, layer_x, 'hid%d/bn' % i, is_training, reuse)
-        elif opts['e_norm']=='layernorm':
+        elif opts['normalization']=='layernorm':
             layer_x = ops.layernorm.Layernorm(
                 opts, layer_x, 'hid%d/bn' % i, reuse)
-        layer_x = ops._ops.non_linear(layer_x,opts['e_nonlinearity'])
+        layer_x = ops._ops.non_linear(layer_x,opts['network']['e_nonlinearity'])
         layer_x = tf.nn.dropout(layer_x, keep_prob=dropout_rate)
     # Final conv linear
-    assert len(opts['downsample'])>opts['e_nlayers'], \
+    assert len(opts['network']['downsample'])>opts['network']['e_nlayers'], \
                 'Need to pass nlayers+1 filters & downsample description'
-    if opts['downsample'][i+1]:
-        outputs = ops.conv2d.Conv2d(opts, layer_x,layer_x.get_shape().as_list()[-1],2*opts['e_nfilters'][i+1],
-                opts['filter_size'][i],stride=2,scope='hid_final',init=opts['conv_init'])
+    if opts['network']['downsample'][i+1]:
+        outputs = ops.conv2d.Conv2d(opts, layer_x,layer_x.get_shape().as_list()[-1],2*opts['network']['e_nfilters'][i+1],
+                opts['network']['filter_size'][i],stride=2,scope='hid_final',init=opts['conv_init'])
     else:
-        outputs = ops.conv2d.Conv2d(opts,layer_x,layer_x.get_shape().as_list()[-1],opts['e_nfilters'][i+1],
-                opts['filter_size'][i],stride=1,scope='hid_final',init=opts['conv_init'])
+        outputs = ops.conv2d.Conv2d(opts,layer_x,layer_x.get_shape().as_list()[-1],opts['network']['e_nfilters'][i+1],
+                opts['network']['filter_size'][i],stride=1,scope='hid_final',init=opts['conv_init'])
     assert np.prod(outputs.get_shape().as_list()[-1])==output_dim, 'latent dimension mismatch'
 
     return outputs
@@ -245,9 +245,9 @@ def locatello_encoder(opts, input, output_dim, reuse=False,
     """
     layer_x = input
     # Conv block
-    for i in range(opts['e_nlayers']):
-        layer_x = ops.conv2d.Conv2d(opts, layer_x,layer_x.get_shape().as_list()[-1],opts['e_nfilters'][i],
-                opts['filter_size'][i],stride=2,scope='hid{}/conv'.format(i+1),init=opts['conv_init'])
+    for i in range(opts['network']['e_nlayers']):
+        layer_x = ops.conv2d.Conv2d(opts, layer_x,layer_x.get_shape().as_list()[-1],opts['network']['e_nfilters'][i],
+                opts['network']['filter_size'][i],stride=2,scope='hid{}/conv'.format(i+1),init=opts['conv_init'])
         layer_x = ops._ops.non_linear(layer_x,'relu')
         layer_x = tf.nn.dropout(layer_x, keep_prob=dropout_rate)
     # 256 FC layer
@@ -281,13 +281,13 @@ def resnet_encoder(opts, input, output_dim, reuse=False,
     for i in range(num_layers-1):
         conv = ops.conv2d.Conv2d(opts,conv,conv.get_shape().as_list()[-1],num_units,
                 filter_size,stride=1,scope='hid{}/conv'.format(i),init=opts['conv_init'])
-        if opts['e_norm']=='batchnorm':
+        if opts['normalization']=='batchnorm':
             conv = ops.batchnorm.Batchnorm_layers(
                 opts, conv, 'hid%d/bn' % (i+1), is_training, reuse)
-        elif opts['e_norm']=='layernorm':
+        elif opts['normalization']=='layernorm':
             conv = ops.layernorm.Layernorm(
                 opts, conv, 'hid%d/bn' % (i+1), reuse)
-        conv = ops._ops.non_linear(conv,opts['e_nonlinearity'])
+        conv = ops._ops.non_linear(conv,opts['network']['e_nonlinearity'])
         conv = tf.nn.dropout(conv, keep_prob=dropout_rate)
     # Last conv resampling
     if resample=='down':
@@ -313,13 +313,13 @@ def resnet_encoder(opts, input, output_dim, reuse=False,
         assert False, 'Resample %s not allowed for encoder' % resample
     # -- Resnet output
     outputs = conv + shortcut
-    if opts['e_norm']=='batchnorm':
+    if opts['normalization']=='batchnorm':
         outputs = ops.batchnorm.Batchnorm_layers(
             opts, outputs, 'hid%d/bn' % (i+2), is_training, reuse)
-    elif opts['e_norm']=='layernorm':
+    elif opts['normalization']=='layernorm':
         outputs = ops.layernorm.Layernorm(
             opts, outputs, 'hid%d/bn' % (i+2), reuse)
-    outputs = ops._ops.non_linear(outputs,opts['e_nonlinearity'])
+    outputs = ops._ops.non_linear(outputs,opts['network']['e_nonlinearity'])
     outputs = tf.nn.dropout(outputs, keep_prob=dropout_rate)
     outputs = ops.linear.Linear(opts,outputs,np.prod(outputs.get_shape().as_list()[1:]),
                 output_dim, scope='hid_final')
@@ -347,13 +347,13 @@ def resnet_v2_encoder(opts, input, output_dim, reuse=False,
     for i in range(num_layers-1):
         conv = ops.conv2d.Conv2d(opts,conv,conv.get_shape().as_list()[-1],num_units,
                 filter_size,stride=1,scope='hid{}/conv'.format(i),init=opts['conv_init'])
-        if opts['e_norm']=='batchnorm':
+        if opts['normalization']=='batchnorm':
             conv = ops.batchnorm.Batchnorm_layers(
                 opts, conv, 'hid%d/bn' % (i+1), is_training, reuse)
-        elif opts['e_norm']=='layernorm':
+        elif opts['normalization']=='layernorm':
             conv = ops.layernorm.Layernorm(
                 opts, conv, 'hid%d/bn' % (i+1), reuse)
-        conv = ops._ops.non_linear(conv,opts['e_nonlinearity'])
+        conv = ops._ops.non_linear(conv,opts['network']['e_nonlinearity'])
         conv = tf.nn.dropout(conv, keep_prob=dropout_rate)
     # Last conv resampling
     if resample=='down':
@@ -378,13 +378,13 @@ def resnet_v2_encoder(opts, input, output_dim, reuse=False,
         assert False, 'Resample %s not allowed for encoder' % resample
     # -- Resnet output
     outputs = conv + shortcut
-    if opts['e_norm']=='batchnorm':
+    if opts['normalization']=='batchnorm':
         outputs = ops.batchnorm.Batchnorm_layers(
             opts, outputs, 'hid%d/bn' % (i+2), is_training, reuse)
-    elif opts['e_norm']=='layernorm':
+    elif opts['normalization']=='layernorm':
         outputs = ops.layernorm.Layernorm(
             opts, outputs, 'hid%d/bn' % (i+2), reuse)
-    outputs = ops._ops.non_linear(outputs,opts['e_nonlinearity'])
+    outputs = ops._ops.non_linear(outputs,opts['network']['e_nonlinearity'])
     outputs = tf.nn.dropout(outputs, keep_prob=dropout_rate)
 
     # Shape
@@ -414,15 +414,15 @@ def mlp_decoder(opts, input, output_dim, reuse, is_training,
                                             dropout_rate=1.):
     # Architecture with only fully connected layers and ReLUs
     layer_x = input
-    for i in range(opts['d_nlayers']):
+    for i in range(opts['network']['d_nlayers']):
         layer_x = ops.linear.Linear(opts, layer_x,np.prod(layer_x.get_shape().as_list()[1:]),
-                    opts['d_nfilters'][opts['d_nlayers']-1-i], init=opts['mlp_init'], scope='hid%d/lin' % i)
-        layer_x = ops._ops.non_linear(layer_x,opts['d_nonlinearity'])
+                    opts['network']['d_nfilters'][opts['network']['d_nlayers']-1-i], init=opts['mlp_init'], scope='hid%d/lin' % i)
+        layer_x = ops._ops.non_linear(layer_x,opts['network']['d_nonlinearity'])
         # Note for mlp, batchnorm and layernorm are equivalent
-        if opts['d_norm']=='batchnorm':
+        if opts['normalization']=='batchnorm':
             layer_x = ops.batchnorm.Batchnorm_layers(
                 opts, layer_x, 'hid%d/bn' % i, is_training, reuse)
-        elif opts['d_norm']=='layernorm':
+        elif opts['normalization']=='layernorm':
             layer_x = ops.layernorm.Layernorm(
                 opts, layer_x, 'hid%d/bn' % i, reuse)
         layer_x = tf.nn.dropout(layer_x, keep_prob=dropout_rate)
@@ -443,36 +443,36 @@ def  dcgan_decoder(opts, input, output_dim, reuse,
     """
 
     batch_size = tf.shape(input)[0]
-    height = output_dim[0] / 2**np.sum(opts['upsample'])
-    width = output_dim[1] / 2**np.sum(opts['upsample'])
+    height = output_dim[0] / 2**np.sum(opts['network']['upsample'])
+    width = output_dim[1] / 2**np.sum(opts['network']['upsample'])
     h0 = ops.linear.Linear(opts,input,np.prod(input.get_shape().as_list()[1:]),
-            opts['d_nfilters'][-1] * ceil(height) * ceil(width), scope='hid0/lin')
-    if opts['d_norm']=='batchnorm':
+            opts['network']['d_nfilters'][-1] * ceil(height) * ceil(width), scope='hid0/lin')
+    if opts['normalization']=='batchnorm':
         h0 = ops.batchnorm.Batchnorm_layers(
             opts, h0, 'hid0/bn_lin', is_training, reuse)
-    elif opts['d_norm']=='layernorm':
+    elif opts['normalization']=='layernorm':
         h0 = ops.layernorm.Layernorm(
             opts, h0, 'hid0/bn_lin', reuse)
-    h0 = tf.reshape(h0, [-1, ceil(height), ceil(width), opts['d_nfilters'][-1]])
-    h0 = ops._ops.non_linear(h0,opts['d_nonlinearity'])
+    h0 = tf.reshape(h0, [-1, ceil(height), ceil(width), opts['network']['d_nfilters'][-1]])
+    h0 = ops._ops.non_linear(h0,opts['network']['d_nonlinearity'])
     layer_x = h0
-    for i in range(opts['d_nlayers'] - 1):
+    for i in range(opts['network']['d_nlayers'] - 1):
         scale = 2**(i + 1)
         _out_shape = [batch_size, ceil(height * scale), ceil(width * scale),
-                                    opts['d_nfilters'][opts['d_nlayers']-1-i]]
+                                    opts['network']['d_nfilters'][opts['network']['d_nlayers']-1-i]]
         layer_x = ops.deconv2d.Deconv2D(opts, layer_x, layer_x.get_shape().as_list()[-1], _out_shape,
-                   opts['filter_size'][opts['d_nlayers']-1-i], scope='hid%d/deconv' % i, init= opts['conv_init'])
-        if opts['d_norm']=='batchnorm':
+                   opts['network']['filter_size'][opts['network']['d_nlayers']-1-i], scope='hid%d/deconv' % i, init= opts['conv_init'])
+        if opts['normalization']=='batchnorm':
             layer_x = ops.batchnorm.Batchnorm_layers(
                 opts, layer_x, 'hid%d/bn' % i, is_training, reuse)
-        elif opts['d_norm']=='layernorm':
+        elif opts['normalization']=='layernorm':
             layer_x = ops.layernorm.Layernorm(
                 opts, layer_x, 'hid%d/bn' % i, reuse)
-        layer_x = ops._ops.non_linear(layer_x,opts['d_nonlinearity'])
+        layer_x = ops._ops.non_linear(layer_x,opts['network']['d_nonlinearity'])
         layer_x = tf.nn.dropout(layer_x, keep_prob=dropout_rate)
     _out_shape = [batch_size] + list(output_dim)
     outputs = ops.deconv2d.Deconv2D(opts, layer_x, layer_x.get_shape().as_list()[-1], _out_shape,
-                opts['filter_size'][0], scope='hid_final/deconv', init= opts['conv_init'])
+                opts['network']['filter_size'][0], scope='hid_final/deconv', init= opts['conv_init'])
 
     return outputs
 
@@ -512,13 +512,13 @@ def  dcgan_v2_decoder(opts, input, archi, num_layers, num_units,
     h0 = ops.linear.Linear(opts,input,np.prod(input.get_shape().as_list()[1:]),
             np.prod(reshape), scope='hid0/lin')
     h0 = tf.reshape(h0, [-1,]+ reshape)
-    if opts['d_norm']=='batchnorm':
+    if opts['normalization']=='batchnorm':
         h0 = ops.batchnorm.Batchnorm_layers(
                     opts, h0, 'hid0/bn', is_training, reuse)
-    elif opts['d_norm']=='layernorm':
+    elif opts['normalization']=='layernorm':
         h0 = ops.layernorm.Layernorm(
                     opts, h0, 'hid0/bn', reuse)
-    h0 = ops._ops.non_linear(h0,opts['d_nonlinearity'])
+    h0 = ops._ops.non_linear(h0,opts['network']['d_nonlinearity'])
     layer_x = h0
     # First deconv resampling
     if resample=='up':
@@ -534,13 +534,13 @@ def  dcgan_v2_decoder(opts, input, archi, num_layers, num_units,
         assert False, 'Resample {} not allowed for encoder'.format(resample)
     # Deconv block
     for i in range(num_layers - 1):
-        if opts['d_norm']=='batchnorm':
+        if opts['normalization']=='batchnorm':
             layer_x = ops.batchnorm.Batchnorm_layers(
                         opts, layer_x, 'hid%d/bn' % (i+1), is_training, reuse)
-        elif opts['d_norm']=='layernorm':
+        elif opts['normalization']=='layernorm':
             layer_x = ops.layernorm.Layernorm(
                         opts, layer_x, 'hid%d/bn' % (i+1), reuse)
-        layer_x = ops._ops.non_linear(layer_x,opts['d_nonlinearity'])
+        layer_x = ops._ops.non_linear(layer_x,opts['network']['d_nonlinearity'])
         layer_x = tf.nn.dropout(layer_x, keep_prob=dropout_rate)
         # layer_x = ops.deconv2d.Deconv2D(opts, layer_x, layer_x.get_shape().as_list()[-1], [-1,]+features_dim,
         #             filter_size, stride=1, scope='hid%d/deconv' % (i+1), init= opts['conv_init'])
@@ -571,16 +571,16 @@ def  locatello_decoder(opts, input, output_dim, reuse,
     h1 = tf.reshape(h1, [-1, 4, 4, 64])
     layer_x = h1
     # Conv block
-    for i in range(opts['d_nlayers'] - 1):
+    for i in range(opts['network']['d_nlayers'] - 1):
         _out_shape = [batch_size, 2*layer_x.get_shape().as_list()[1],
                         2*layer_x.get_shape().as_list()[2],
-                        opts['d_nfilters'][opts['d_nlayers']-1-i]]
+                        opts['network']['d_nfilters'][opts['network']['d_nlayers']-1-i]]
         layer_x = ops.deconv2d.Deconv2D(opts, layer_x, layer_x.get_shape().as_list()[-1], _out_shape,
-                   opts['filter_size'][opts['d_nlayers']-1-i], stride=2, scope='hid%d/deconv' % i, init= opts['conv_init'])
+                   opts['network']['filter_size'][opts['network']['d_nlayers']-1-i], stride=2, scope='hid%d/deconv' % i, init= opts['conv_init'])
         layer_x = ops._ops.non_linear(layer_x,'relu')
         layer_x = tf.nn.dropout(layer_x, keep_prob=dropout_rate)
     outputs = ops.deconv2d.Deconv2D(opts, layer_x, layer_x.get_shape().as_list()[-1], [batch_size,]+output_dim,
-                opts['filter_size'][0], stride=2, scope='hid_final/deconv', init= opts['conv_init'])
+                opts['network']['filter_size'][0], stride=2, scope='hid_final/deconv', init= opts['conv_init'])
 
     return outputs
 
@@ -632,13 +632,13 @@ def  resnet_decoder(opts, input, archi, num_layers, num_units,
         assert False, 'Resample {} not allowed for encoder'.format(resample)
     # Deconv block
     for i in range(num_layers - 1):
-        if opts['d_norm']=='batchnorm':
+        if opts['normalization']=='batchnorm':
             conv = ops.batchnorm.Batchnorm_layers(
                         opts, conv, 'hid%d/bn' % (i+1), is_training, reuse)
-        elif opts['d_norm']=='layernorm':
+        elif opts['normalization']=='layernorm':
             conv = ops.layernorm.Layernorm(
                         opts, conv, 'hid%d/bn' % (i+1), reuse)
-        conv = ops._ops.non_linear(conv,opts['d_nonlinearity'])
+        conv = ops._ops.non_linear(conv,opts['network']['d_nonlinearity'])
         # conv = tf.nn.dropout(conv, keep_prob=dropout_rate)
         conv = ops.conv2d.Conv2d(opts, conv,conv.get_shape().as_list()[-1], num_units,
                 filter_size, stride=1, scope='hid%d/deconv' % (i+1), init=opts['conv_init'])
@@ -657,13 +657,13 @@ def  resnet_decoder(opts, input, archi, num_layers, num_units,
         assert False, 'Resample {} not allowed for encoder'.format(resample)
     # -- Resnet output
     outputs = conv + shortcut
-    if opts['d_norm']=='batchnorm':
+    if opts['normalization']=='batchnorm':
         outputs = ops.batchnorm.Batchnorm_layers(
                     opts, outputs, 'hid%d/bn' % (i+2), is_training, reuse)
-    elif opts['d_norm']=='layernorm':
+    elif opts['normalization']=='layernorm':
         outputs = ops.layernorm.Layernorm(
                     opts, outputs, 'hid%d/bn' % (i+2), reuse)
-    outputs = ops._ops.non_linear(outputs,opts['d_nonlinearity'])
+    outputs = ops._ops.non_linear(outputs,opts['network']['d_nonlinearity'])
     if np.prod(output_dim)==2*np.prod(features_dim):
         outputs = ops.conv2d.Conv2d(opts, outputs,outputs.get_shape().as_list()[-1], output_dim[-1],
                 filter_size, stride=1, scope='hid_final', init=opts['conv_init'])
@@ -706,13 +706,13 @@ def  resnet_v2_decoder(opts, input, archi, num_layers, num_units,
         assert False, 'Resample {} not allowed for encoder'.format(resample)
     # Deconv block
     for i in range(num_layers - 1):
-        if opts['d_norm']=='batchnorm':
+        if opts['normalization']=='batchnorm':
             conv = ops.batchnorm.Batchnorm_layers(
                         opts, conv, 'hid%d/bn' % (i+1), is_training, reuse)
-        elif opts['d_norm']=='layernorm':
+        elif opts['normalization']=='layernorm':
             conv = ops.layernorm.Layernorm(
                         opts, conv, 'hid%d/bn' % (i+1), reuse)
-        conv = ops._ops.non_linear(conv,opts['d_nonlinearity'])
+        conv = ops._ops.non_linear(conv,opts['network']['d_nonlinearity'])
         # conv = tf.nn.dropout(conv, keep_prob=dropout_rate)
         conv = ops.conv2d.Conv2d(opts, conv,conv.get_shape().as_list()[-1], num_units,
                 filter_size, stride=1, scope='hid%d/deconv' % (i+1), init=opts['conv_init'])
@@ -731,13 +731,13 @@ def  resnet_v2_decoder(opts, input, archi, num_layers, num_units,
         assert False, 'Resample {} not allowed for encoder'.format(resample)
     # -- Resnet output
     outputs = conv + shortcut
-    if opts['d_norm']=='batchnorm':
+    if opts['normalization']=='batchnorm':
         outputs = ops.batchnorm.Batchnorm_layers(
                     opts, outputs, 'hid%d/bn' % (i+2), is_training, reuse)
-    elif opts['d_norm']=='layernorm':
+    elif opts['normalization']=='layernorm':
         outputs = ops.layernorm.Layernorm(
                     opts, outputs, 'hid%d/bn' % (i+2), reuse)
-    outputs = ops._ops.non_linear(outputs,opts['d_nonlinearity'])
+    outputs = ops._ops.non_linear(outputs,opts['network']['d_nonlinearity'])
 
     # last hidden layer
     if last_archi=='dense':

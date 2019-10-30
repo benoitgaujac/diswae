@@ -28,10 +28,8 @@ parser.add_argument("--exp_dir", type=str, default='results',
                     help='directory in which exp. outputs are saved')
 parser.add_argument("--enum", type=int, default=100,
                     help='epoch number')
-parser.add_argument("--enet_archi", default='mlp',
-                    help='encoder networks architecture [mlp/dcgan_v2/resnet]')
-parser.add_argument("--dnet_archi", default='mlp',
-                    help='decoder networks architecture [mlp/dcgan_v2/resnet]')
+parser.add_argument("--net_archi", default='mlp',
+                    help='networks architecture [mlp/conv_locatello]')
 parser.add_argument("--idx", type=int, default=0,
                     help='idx latent reg weight setup')
 parser.add_argument("--weights_file")
@@ -40,6 +38,18 @@ parser.add_argument('--gpu_id', default='cpu',
 
 
 FLAGS = parser.parse_args()
+
+
+# --- Network architectures
+mlp_config = { 'e_arch': 'mlp' , 'e_nlayers': 2, 'e_nfilters': [1200, 1200], 'e_nonlinearity': 'relu',
+        'd_arch': 'mlp' , 'd_nlayers': 3, 'd_nfilters': [1200, 1200, 1200], 'd_nonlinearity': 'tanh'}
+
+conv_config = { 'e_arch': 'conv_locatello' , 'e_nlayers': 4, 'e_nfilters': [32,32,64,64], 'e_nonlinearity': 'relu',
+        'd_arch': 'conv_locatello' , 'd_nlayers': 4, 'd_nfilters': [32,32,32,64], 'd_nonlinearity': 'tanh',
+        'filter_size': [4,4,4,4], 'downsample': [None,None,None,None], 'upsample': [None,None,None,None]}
+
+net_configs = {'mlp': mlp_config, 'conv_locatello': conv_config}
+
 
 def main():
 
@@ -87,7 +97,7 @@ def main():
         beta = [1, 3, 10, 20, 30, 40, 50, 75, 100]
         opts['obj_fn_coeffs'] = beta[FLAGS.idx-1]
     elif opts['model'] == 'WAE':
-        lmba = [1, 3, 10, 20, 30, 40, 50, 75, 100]
+        lmba = [0.0001, 0.001, 0.1, 1, 10, 25, 50, 75, 100]
         opts['obj_fn_coeffs'] = lmba[FLAGS.idx-1]
     elif opts['model'] == 'disWAE':
         # Penalty
@@ -101,18 +111,7 @@ def main():
     opts['lambda_pen_enc_sigma'] = 0.1
 
     # NN set up
-    opts['filter_size'] = [4,4,4,4]
-    opts['mlp_init'] = 'glorot_uniform' #normal, he, glorot, glorot_he, glorot_uniform, ('uniform', range)
-    opts['e_arch'] = FLAGS.enet_archi # mlp, dcgan, dcgan_v2, resnet
-    opts['e_nlayers'] = 2
-    opts['downsample'] = [None,]*opts['e_nlayers'] #None, True
-    opts['e_nfilters'] = [1200,1200] #[32,32,64,64]
-    opts['e_nonlinearity'] = 'relu' # soft_plus, relu, leaky_relu, tanh
-    opts['d_arch'] =  FLAGS.enet_archi # mlp, dcgan, dcgan_v2, resnet
-    opts['upsample'] = [None,]*opts['d_nlayers'] #None, up
-    opts['d_nlayers'] = 3
-    opts['d_nfilters'] = [1200,1200,1200] #[32,32,32,64]
-    opts['d_nonlinearity'] = 'tanh' # soft_plus, relu, leaky_relu, tanh
+    opts['network'] = net_configs[FLAGS.net_archi]
 
     # Create directories
     if FLAGS.out_dir:
@@ -123,20 +122,21 @@ def main():
         exp_dir = os.path.join(opts['out_dir'],
                                opts['model'],
                                '{}_{}_{}_{:%Y_%m_%d_%H_%M}'.format(
+                                    opts['exp_dir'],
                                     opts['obj_fn_coeffs'][0],
-                                    opts['obj_fn_coeffs'][1],
-                                    opts['exp_dir'],datetime.now()), )
+                                    opts['obj_fn_coeffs'][1],datetime.now()), )
         exp_dir = os.path.join(opts['out_dir'],
                                opts['model'],
                                '{}_{}_{:%Y_%m_%d_%H_%M}'.format(
-                                    opts['obj_fn_coeffs'],opts['exp_dir'],
+                                    opts['exp_dir'],
+                                    opts['obj_fn_coeffs'],
                                     datetime.now()), )
     else :
         exp_dir = os.path.join(opts['out_dir'],
                                opts['model'],
                                '{}_{}_{:%Y_%m_%d_%H_%M}'.format(
-                                    opts['obj_fn_coeffs'],
                                     opts['exp_dir'],
+                                    opts['obj_fn_coeffs'],
                                     datetime.now()), )
     opts['exp_dir'] = exp_dir
     if not tf.gfile.IsDirectory(exp_dir):

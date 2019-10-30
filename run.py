@@ -6,11 +6,13 @@ import configs
 from train import Run
 from datahandler import DataHandler
 import utils
+import pdb
 
 import tensorflow as tf
 
+# --- Args for experiment
 parser = argparse.ArgumentParser()
-# Args for experiment
+
 parser.add_argument("--model", default='WAE',
                     help='model to train [WAE/disWAE/BetaVAE/...]')
 parser.add_argument("--mode", default='train',
@@ -26,10 +28,8 @@ parser.add_argument("--exp_dir", type=str, default='results',
                     help='directory in which exp. outputs are saved')
 parser.add_argument("--enum", type=int, default=100,
                     help='epoch number')
-parser.add_argument("--enet_archi", default='mlp',
-                    help='encoder networks architecture [mlp/dcgan_v2/resnet]')
-parser.add_argument("--dnet_archi", default='mlp',
-                    help='decoder networks architecture [mlp/dcgan_v2/resnet]')
+parser.add_argument("--net_archi", default='mlp',
+                    help='networks architecture [mlp/conv_locatello]')
 parser.add_argument("--lmba0", type=float, default=10.,
                     help='lambda dimension wise match for WAE')
 parser.add_argument("--lmba1", type=float, default=10.,
@@ -42,6 +42,19 @@ parser.add_argument('--gpu_id', default='cpu',
 
 FLAGS = parser.parse_args()
 
+
+# --- Network architectures
+mlp_config = { 'e_arch': 'mlp' , 'e_nlayers': 2, 'e_nfilters': [1200, 1200], 'e_nonlinearity': 'relu',
+        'd_arch': 'mlp' , 'd_nlayers': 3, 'd_nfilters': [1200, 1200, 1200], 'd_nonlinearity': 'tanh'}
+
+conv_config = { 'e_arch': 'conv_locatello' , 'e_nlayers': 4, 'e_nfilters': [32,32,64,64], 'e_nonlinearity': 'relu',
+        'd_arch': 'conv_locatello' , 'd_nlayers': 4, 'd_nfilters': [32,32,32,64], 'd_nonlinearity': 'relu',
+        'filter_size': [4,4,4,4], 'downsample': [None,None,None,None], 'upsample': [None,None,None,None]}
+
+net_configs = {'mlp': mlp_config, 'conv_locatello': conv_config}
+
+
+# --- main
 def main():
 
     # Select dataset to use
@@ -74,7 +87,7 @@ def main():
 
     # Experiemnts set up
     opts['epoch_num'] = FLAGS.enum
-    opts['print_every'] = 500 #30000
+    opts['print_every'] = 200 #30000
     opts['save_every_epoch'] = 1000000
     opts['save_final'] = False
     opts['save_train_data'] = False
@@ -90,18 +103,10 @@ def main():
     elif opts['model'] == 'BetaVAE':
         opts['obj_fn_coeffs'] = FLAGS.beta
     opts['pen_enc_sigma'] = True
-    opts['lambda_pen_enc_sigma'] = 0.1
+    opts['lambda_pen_enc_sigma'] = 0.5
 
     # NN set up
-    opts['filter_size'] = [5,3]
-    opts['e_arch'] = FLAGS.enet_archi # mlp, dcgan, dcgan_v2, resnet
-    opts['e_nlayers'] = 2
-    opts['e_nfilters'] = [1200,1200]
-    opts['e_nonlinearity'] = 'relu' # soft_plus, relu, leaky_relu, tanh
-    opts['d_arch'] =  FLAGS.enet_archi # mlp, dcgan, dcgan_v2, resnet
-    opts['d_nlayers'] = 3
-    opts['d_nfilters'] = [1200,1200,1200]
-    opts['d_nonlinearity'] = 'tanh' # soft_plus, relu, leaky_relu, tanh
+    opts['network'] = net_configs[FLAGS.net_archi]
 
     # Create directories
     if FLAGS.out_dir:
