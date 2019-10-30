@@ -16,4 +16,4 @@ source /share/apps/examples/source_files/python/python-3.6.4.source
 source /share/apps/examples/source_files/cuda/cuda-9.0.source
 
 # python3 run.py --out_dir dsprites  --exp dsprites --enum 100 --lmba0 1 --lmba1 1
-python3 run_array.py --exp_dir dsprites --exp dsprites --enum 100 --enet_archi conv_locatello --dnet_archi conv_locatello --idx_lmba $SGE_TASK_ID --model WAE
+python3 run_array.py --exp_dir dsprites --exp dsprites --enum 100 --net_archi mlp --idx $SGE_TASK_ID --model WAE
