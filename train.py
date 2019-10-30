@@ -265,7 +265,7 @@ class Run(object):
                     # Encode anchors points and interpolate
                     if opts['vizu_interpolation']:
                         logging.error('Latent interpolation..')
-                        num_steps = 10
+                        num_steps = 15
 
                         enc_var = np.ones(opts['zdim'])
                         # crate linespace
@@ -279,7 +279,6 @@ class Run(object):
                                                                      self.dropout_rate: 1.,
                                                                      self.is_training: False})
                         inter_anchors = np.reshape(dec_interpolation, [-1, opts['zdim'], num_steps]+im_shape)
-                        inter_anchors = np.transpose(inter_anchors, (1, 0, 2, 3, 4, 5))
                         plot_interpolation(opts, inter_anchors, exp_dir,
                                            'inter_e%04d_mb%05d.png' % (epoch, it))
 
