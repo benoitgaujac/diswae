@@ -75,7 +75,7 @@ class BetaVAE(Model):
         labels = tf.layers.flatten(labels)
         # cross_entropy = - labels*tf.log(mean_params + eps) + (1. - labels)*tf.log(1. - mean_params - eps)
         cross_entropy = tf.nn.sigmoid_cross_entropy_with_logits(labels=labels, logits=logits)
-        return tf.reduce_mean(cross_entropy)
+        return tf.reduce_mean(tf.reduce_sum(cross_entropy,axis=-1))
 
 
     def loss(self, inputs, samples, loss_coeffs, is_training, dropout_rate):
