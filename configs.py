@@ -53,10 +53,10 @@ config_dsprites['decoder'] = 'det' # deterministic, gaussian
 config_dsprites['lambda'] = [10,10]
 config_dsprites['lambda_schedule'] = 'constant' # adaptive, constant
 # NN set up
-config_dsprites['init_std'] = 0.99999
+config_dsprites['init_std'] = 0.099999
 config_dsprites['init_bias'] = 0.0
 config_dsprites['mlp_init'] = 'glorot_uniform' #normal, he, glorot, glorot_he, glorot_uniform, ('uniform', range)
-config_dsprites['conv_init'] = 'he' #he, glorot, normilized_glorot, truncated_norm
+config_dsprites['conv_init'] = 'normilized_glorot' #he, glorot, normilized_glorot, truncated_norm
 
 
 ### smallNORB config
@@ -89,7 +89,7 @@ config_smallNORB['use_trained'] = False #train from pre-trained model
 config_smallNORB['optimizer'] = 'adam' # adam, sgd
 config_smallNORB['adam_beta1'] = 0.9
 config_smallNORB['adam_beta2'] = 0.999
-config_smallNORB['lr'] = 0.0001
+config_smallNORB['lr'] = 0.001
 config_smallNORB['lr_adv'] = 0.0008
 config_smallNORB['normalization'] = 'batchnorm' #batchnorm, layernorm, none
 config_smallNORB['batch_norm_eps'] = 1e-05
@@ -110,7 +110,7 @@ config_smallNORB['decoder'] = 'det' # deterministic, gaussian
 config_smallNORB['lambda'] = [10,10]
 config_smallNORB['lambda_schedule'] = 'constant' # adaptive, constant
 # NN set up
-config_smallNORB['init_std'] = 0.99999
+config_smallNORB['init_std'] = 0.099999
 config_smallNORB['init_bias'] = 0.0
 config_smallNORB['mlp_init'] = 'glorot_uniform' #normal, he, glorot, glorot_he, glorot_uniform, ('uniform', range)
 config_smallNORB['conv_init'] = 'normilized_glorot' #he, glorot, normilized_glorot, truncated_norm
@@ -167,7 +167,7 @@ config_3Dchairs['decoder'] = 'det' # deterministic, gaussian
 config_3Dchairs['lambda'] = [10,10]
 config_3Dchairs['lambda_schedule'] = 'constant' # adaptive, constant
 # NN set up
-config_3Dchairs['init_std'] = 0.99999
+config_3Dchairs['init_std'] = 0.099999
 config_3Dchairs['init_bias'] = 0.0
 config_3Dchairs['mlp_init'] = 'glorot_uniform' #normal, he, glorot, glorot_he, glorot_uniform, ('uniform', range)
 config_3Dchairs['conv_init'] = 'normilized_glorot' #he, glorot, normilized_glorot, truncated_norm
@@ -225,7 +225,7 @@ config_celebA['decoder'] = 'det' # deterministic, gaussian
 config_celebA['lambda'] = [10,10]
 config_celebA['lambda_schedule'] = 'constant' # adaptive, constant
 # NN set up
-config_celebA['init_std'] = 0.99999
+config_celebA['init_std'] = 0.099999
 config_celebA['init_bias'] = 0.0
 config_celebA['mlp_init'] = 'glorot_uniform' #normal, he, glorot, glorot_he, glorot_uniform, ('uniform', range)
 config_celebA['conv_init'] = 'normilized_glorot' #he, glorot, normilized_glorot, truncated_norm
@@ -250,6 +250,7 @@ config_mnist['plot_num_cols'] = 10
 # Data set up
 config_mnist['dataset'] = 'mnist'
 config_mnist['MNIST_data_source_url'] = 'http://yann.lecun.com/exdb/mnist/'
+config_mnist['input_normalize_sym'] = False
 # Experiment set up
 config_mnist['train_dataset_size'] = -1
 config_mnist['batch_size'] = 128
@@ -280,7 +281,7 @@ config_mnist['decoder'] = 'det' # deterministic, gaussian
 config_mnist['lambda'] = [10,10]
 config_mnist['lambda_schedule'] = 'constant' # adaptive, constant
 # NN set up
-config_mnist['init_std'] = 0.99999
+config_mnist['init_std'] = 0.099999
 config_mnist['init_bias'] = 0.0
 config_mnist['mlp_init'] = 'glorot_uniform' #normal, he, glorot, glorot_he, glorot_uniform, ('uniform', range)
 config_mnist['conv_init'] = 'he' #he, glorot, normilized_glorot, truncated_norm
@@ -305,6 +306,7 @@ config_svhn['plot_num_cols'] = 15
 # Data set up
 config_svhn['dataset'] = 'svhn'
 config_svhn['SVHN_data_source_url'] = 'http://ufldl.stanford.edu/housenumbers/'
+config_svhn['input_normalize_sym'] = False
 # Experiment set up
 config_svhn['train_dataset_size'] = -1
 config_svhn['use_extra'] = False
@@ -338,7 +340,7 @@ config_svhn['lambda'] = [1/config_svhn['zdim'][i] for i in range(config_svhn['nl
 config_svhn['lambda'].append(0.0001/config_svhn['zdim'][-1])
 config_svhn['lambda_schedule'] = 'constant' # adaptive, constant
 # NN set up
-config_svhn['init_std'] = 0.0099999
+config_svhn['init_std'] = 0.099999
 config_svhn['init_bias'] = 0.0
 config_svhn['mlp_init'] = 'glorot_he' #normal, he, glorot, glorot_he, glorot_uniform, ('uniform', range)
 config_svhn['conv_init'] = 'he' #he, glorot, normilized_glorot, truncated_norm
