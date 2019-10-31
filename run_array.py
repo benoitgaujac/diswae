@@ -97,12 +97,12 @@ def main():
         beta = [1, 3, 10, 20, 30, 40, 50, 75, 100]
         opts['obj_fn_coeffs'] = beta[FLAGS.idx-1]
     elif opts['model'] == 'WAE':
-        lmba = [0.0001, 0.001, 0.1, 1, 10, 25, 50, 75, 100]
+        lmba = [1, 3, 10, 20, 30, 40, 50, 75, 100]
         opts['obj_fn_coeffs'] = lmba[FLAGS.idx-1]
     elif opts['model'] == 'disWAE':
         # Penalty
-        lmba0 = [10**i for i in range(-2,3)]
-        lmba1 = [10**i for i in range(-2,3)]
+        lmba0 = [1, 10, 25, 50, 75, 100]
+        lmba1 = [1, 10, 25, 50, 75, 100]
         lmba = list(itertools.product(lmba0,lmba1))
         opts['obj_fn_coeffs'] = lmba[FLAGS.idx-1]
     else:
