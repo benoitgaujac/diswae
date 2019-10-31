@@ -304,9 +304,9 @@ class Run(object):
                         debug_str = 'REC=%.3f, REC TEST=%.3f, lambda1 HSIC=%10.3e, lambda2DIMWISE=%10.3e, WAE=%10.3e\n ' % (
                                                     Loss_rec[-1],
                                                     Loss_rec_test[-1],
+                                                    Divergences[-1][1],
                                                     Divergences[-1][0],
-                                                    Divergences[-1][0],
-                                                    Divergences[-1][0])
+                                                    Divergences[-1][3])
                     else:
                         raise NotImplementedError('Model type not recognised')
                     logging.error(debug_str)
