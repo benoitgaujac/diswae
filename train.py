@@ -306,7 +306,7 @@ class Run(object):
                                                     Loss_rec_test[-1],
                                                     Divergences[-1][1],
                                                     Divergences[-1][0],
-                                                    Divergences[-1][3])
+                                                    Divergences[-1][2])
                     else:
                         raise NotImplementedError('Model type not recognised')
                     logging.error(debug_str)

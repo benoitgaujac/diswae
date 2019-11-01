@@ -6,6 +6,7 @@ import configs
 from train import Run
 from datahandler import DataHandler
 import utils
+import itertools
 
 import tensorflow as tf
 
