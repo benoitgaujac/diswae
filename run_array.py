@@ -126,12 +126,6 @@ def main():
                                     opts['exp_dir'],
                                     opts['obj_fn_coeffs'][0],
                                     opts['obj_fn_coeffs'][1],datetime.now()), )
-        exp_dir = os.path.join(opts['out_dir'],
-                               opts['model'],
-                               '{}_{}_{:%Y_%m_%d_%H_%M}'.format(
-                                    opts['exp_dir'],
-                                    opts['obj_fn_coeffs'],
-                                    datetime.now()), )
     else :
         exp_dir = os.path.join(opts['out_dir'],
                                opts['model'],
