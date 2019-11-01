@@ -8,7 +8,7 @@
 #$ -l tmem=4G
 #$ -l h_rt=100:00:00
 
-#$ -t 1-25
+#$ -t 1-36
 
 #$ -N chairs3d
 
@@ -16,4 +16,4 @@ source /share/apps/examples/source_files/python/python-3.6.4.source
 source /share/apps/examples/source_files/cuda/cuda-9.0.source
 
 # python3 run.py --out_dir 3Dchairs_test  --exp 3Dchairs --enum 100 --lmba0 50 --lmba1 10
-python3 run_array.py --out_dir 3Dchairs/ --exp 3Dchairs --enum 510 --enet_archi conv_locatello --dnet_archi conv_locatello --idx_lmba $SGE_TASK_ID
+python3 run_array.py --exp_dir 3Dchairs --exp 3Dchairs --enum 510 --net_archi conv_locatello --idx $SGE_TASK_ID --model disWAE
