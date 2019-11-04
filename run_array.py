@@ -102,8 +102,8 @@ def main():
         opts['obj_fn_coeffs'] = lmba[FLAGS.idx-1]
     elif opts['model'] == 'disWAE':
         # Penalty
-        lmba0 = [1, 10, 25, 50, 75, 100]
-        lmba1 = [1, 10, 25, 50, 75, 100]
+        lmba0 = [1, 50, 100]
+        lmba1 = [1, 50, 100]
         lmba = list(itertools.product(lmba0,lmba1))
         opts['obj_fn_coeffs'] = lmba[FLAGS.idx-1]
     else:

@@ -188,19 +188,19 @@ class Run(object):
                 # writer.add_summary(loss_train_summary, it)
                 # writer.add_summary(loss_rec_train_summary, it)
 
-                summary_vals_train = [tf.Summary.Value(tag="loss_train", simple_value=loss),
-                                      tf.Summary.Value(tag="loss_rec_train", simple_value=loss_rec)]
-
-                if opts['model'] == 'BetaVAE':
-                    summary_vals_train.append(tf.Summary.Value(tag="kl_train", simple_value=divergences))
-                elif opts['model'] == 'WAE':
-                    summary_vals_train.append(tf.Summary.Value(tag="dim_wise_match_train", simple_value=divergences))
-                elif opts['model'] == 'disWAE':
-                    summary_vals_train.append(tf.Summary.Value(tag="dim_wise_match_train", simple_value=divergences[0]))
-                    summary_vals_train.append(tf.Summary.Value(tag="hsic_match_train", simple_value=divergences[1]))
-                    summary_vals_train.append(tf.Summary.Value(tag="wae_match_train", simple_value=divergences[2]))
-                else:
-                    raise NotImplementedError()
+                # summary_vals_train = [tf.Summary.Value(tag="loss_train", simple_value=loss),
+                #                       tf.Summary.Value(tag="loss_rec_train", simple_value=loss_rec)]
+                #
+                # if opts['model'] == 'BetaVAE':
+                #     summary_vals_train.append(tf.Summary.Value(tag="kl_train", simple_value=divergences))
+                # elif opts['model'] == 'WAE':
+                #     summary_vals_train.append(tf.Summary.Value(tag="dim_wise_match_train", simple_value=divergences))
+                # elif opts['model'] == 'disWAE':
+                #     summary_vals_train.append(tf.Summary.Value(tag="dim_wise_match_train", simple_value=divergences[0]))
+                #     summary_vals_train.append(tf.Summary.Value(tag="hsic_match_train", simple_value=divergences[1]))
+                #     summary_vals_train.append(tf.Summary.Value(tag="wae_match_train", simple_value=divergences[2]))
+                # else:
+                #     raise NotImplementedError()
 
                 if opts['vizu_encSigma']:
                     enc_Sigmas.append(enc_sigmastats)
@@ -209,7 +209,7 @@ class Run(object):
                     summary_vals_train.append(tf.Summary.Value(tag="enc_sigma_var_train",
                                                                simple_value=enc_sigmastats[1]))
 
-                writer.add_summary(tf.Summary(value=summary_vals_train), it + (epoch * batches_num))
+                # writer.add_summary(tf.Summary(value=summary_vals_train), it + (epoch * batches_num))
 
                 ##### TESTING LOOP #####
                 if (counter+1) % opts['print_every'] == 0 or (counter+1) == 100:
