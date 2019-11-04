@@ -122,7 +122,7 @@ class Run(object):
         logging.error('Training {}'.format(self.opts['model']))
         exp_dir = opts['exp_dir']
 
-        writer = tf.summary.FileWriter(exp_dir)
+        # writer = tf.summary.FileWriter(exp_dir)
 
         # - Init sess and load trained weights if needed
         if opts['use_trained']:
