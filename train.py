@@ -202,12 +202,12 @@ class Run(object):
                 # else:
                 #     raise NotImplementedError()
 
-                # if opts['vizu_encSigma']:
-                #     enc_Sigmas.append(enc_sigmastats)
-                #     summary_vals_train.append(tf.Summary.Value(tag="enc_sigma_mean_train",
-                #                                                simple_value=enc_sigmastats[0]))
-                #     summary_vals_train.append(tf.Summary.Value(tag="enc_sigma_var_train",
-                #                                                simple_value=enc_sigmastats[1]))
+                if opts['vizu_encSigma']:
+                    enc_Sigmas.append(enc_sigmastats)
+                    # summary_vals_train.append(tf.Summary.Value(tag="enc_sigma_mean_train",
+                    #                                            simple_value=enc_sigmastats[0]))
+                    # summary_vals_train.append(tf.Summary.Value(tag="enc_sigma_var_train",
+                    #                                            simple_value=enc_sigmastats[1]))
 
                 # writer.add_summary(tf.Summary(value=summary_vals_train), it + (epoch * batches_num))
 
