@@ -33,6 +33,8 @@ parser.add_argument("--net_archi", default='mlp',
                     help='networks architecture [mlp/conv_locatello]')
 parser.add_argument("--idx", type=int, default=0,
                     help='idx latent reg weight setup')
+parser.add_argument("--sigma_pen", default=False,
+                    help='penalization of Sigma_q')
 parser.add_argument("--weights_file")
 parser.add_argument('--gpu_id', default='cpu',
                     help='gpu id for DGX box. Default is cpu')
@@ -108,7 +110,9 @@ def main():
         opts['obj_fn_coeffs'] = lmba[FLAGS.idx-1]
     else:
         assert False, 'unknown model {}'.format(opts['model'])
-    opts['pen_enc_sigma'] = False
+
+    # Penalty Sigma_q
+    opts['pen_enc_sigma'] = FLAGS.sigma_pen=='True'
     opts['lambda_pen_enc_sigma'] = 0.1
 
     # NN set up
