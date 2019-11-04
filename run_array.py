@@ -113,7 +113,7 @@ def main():
 
     # Penalty Sigma_q
     opts['pen_enc_sigma'] = FLAGS.sigma_pen=='True'
-    opts['lambda_pen_enc_sigma'] = 0.1
+    opts['lambda_pen_enc_sigma'] = 0.3
 
     # NN set up
     opts['network'] = net_configs[FLAGS.net_archi]
