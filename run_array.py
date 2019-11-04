@@ -33,7 +33,7 @@ parser.add_argument("--net_archi", default='mlp',
                     help='networks architecture [mlp/conv_locatello]')
 parser.add_argument("--idx", type=int, default=0,
                     help='idx latent reg weight setup')
-parser.add_argument("--sigma_pen", default=False,
+parser.add_argument("--sigma_pen", default='False',
                     help='penalization of Sigma_q')
 parser.add_argument("--weights_file")
 parser.add_argument('--gpu_id', default='cpu',
