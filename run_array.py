@@ -104,10 +104,10 @@ def main():
         opts['obj_fn_coeffs'] = lmba[FLAGS.idx-1]
     elif opts['model'] == 'disWAE':
         # Penalty
-        # lmba0 = [1, 50, 100]
-        # lmba1 = [1, 50, 100]
-        # lmba = list(itertools.product(lmba0,lmba1))
-        lmba = [[50,50],[25,75],[75,25],[50,100],[100,50]]
+        lmba0 = [1, 50, 100]
+        lmba1 = [1, 50, 100]
+        lmba = list(itertools.product(lmba0,lmba1))
+        # lmba = [[50,50],[25,75],[75,25],[50,100],[100,50]]
         opts['obj_fn_coeffs'] = lmba[FLAGS.idx-1]
     else:
         assert False, 'unknown model {}'.format(opts['model'])
