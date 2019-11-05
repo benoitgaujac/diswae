@@ -302,11 +302,11 @@ class Run(object):
                                                     Loss_rec_test[-1],
                                                     Divergences[-1])
                     elif opts['model'] == 'disWAE':
-                        debug_str = 'REC=%.3f, REC TEST=%.3f, lambda1 HSIC=%10.3e, lambda2DIMWISE=%10.3e, WAE=%10.3e\n ' % (
+                        debug_str = 'REC=%.3f, REC TEST=%.3f, l1*HSIC=%10.3e, l2*DIMWISE=%10.3e, WAE=%10.3e\n ' % (
                                                     Loss_rec[-1],
                                                     Loss_rec_test[-1],
-                                                    Divergences[-1][1],
                                                     Divergences[-1][0],
+                                                    Divergences[-1][1],
                                                     Divergences[-1][2])
                     else:
                         raise NotImplementedError('Model type not recognised')

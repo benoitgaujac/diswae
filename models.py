@@ -284,13 +284,13 @@ class disWAE(WAE):
 
         shuffled_encoded = sample_gaussian(p_params, 'tensorflow')
         # - Dimension-wise latent reg
-        dimension_wise_match_penalty = self.mmd_penalty(self.opts, enc_z, shuffled_encoded)
+        dimension_wise_match_penalty = self.mmd_penalty(self.opts, shuffled_encoded, samples)
         # - Multidim. HSIC
-        hsic_match_penalty = self.mmd_penalty(self.opts, shuffled_encoded, samples)
+        hsic_match_penalty = self.mmd_penalty(self.opts, enc_z, shuffled_encoded)
         # - WAE latent reg
         wae_match_penalty = self.mmd_penalty(self.opts, enc_z, samples)
-        matching_penalty = lmbd1*dimension_wise_match_penalty + lmbd2*hsic_match_penalty
-        divergences = (lmbd1*dimension_wise_match_penalty, lmbd2*hsic_match_penalty, wae_match_penalty)
+        matching_penalty = lmbd1*hsic_match_penalty + lmbd2*dimension_wise_match_penalty
+        divergences = (lmbd1*hsic_match_penalty, lmbd2*dimension_wise_match_penalty, wae_match_penalty)
         objective = loss_reconstruct + matching_penalty
 
         # - Pen Encoded Sigma

@@ -138,8 +138,7 @@ def save_train(opts, data_train, data_test,
     plt.text(0.47, 1., 'Obj curve', ha="center", va="bottom",
                                 size=20, transform=ax.transAxes)
 
-    ### The reconstruction loss curves
-    # base = plt.cm.get_cmap('Vega10')
+    ### The loss curves
     base = plt.cm.get_cmap('tab10')
     color_list = base(np.linspace(0, 1, 5))
     ax = plt.subplot(gs[1, 1])
@@ -164,6 +163,26 @@ def save_train(opts, data_train, data_test,
     plt.legend(loc='upper right')
     plt.text(0.47, 1., 'Loss curves', ha="center", va="bottom",
                                 size=20, transform=ax.transAxes)
+
+    ### The latent reg curves
+    if opts['model'] == 'disWAE':
+        base = plt.cm.get_cmap('tab10')
+        color_list = base(np.linspace(0, 1, 5))
+        ax = plt.subplot(gs[1, 2])
+        losses = list(zip(*loss_match))
+        labels = ['|hsci|','|dimwise|','|wae|']
+        lmbda = opts['obj_fn_coeffs'] + [1,]
+        for i, los, lmb, lab in zip([j for j in range(3)],
+                                losses,
+                                lmbda,
+                                labels):
+            l = np.array(los) / lmb
+            y = np.log(np.abs(l[::x_step]))
+            plt.plot(x, y, linewidth=2, color=color_list[i+1], label=lab)
+        plt.grid(axis='y')
+        plt.legend(loc='upper right')
+        plt.text(0.47, 1., 'Latent Reg. curves', ha="center", va="bottom",
+                                    size=20, transform=ax.transAxes)
 
     ### Saving plots and data
     # Plot
