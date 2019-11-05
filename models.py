@@ -296,7 +296,7 @@ class disWAE(WAE):
         # - Pen Encoded Sigma
         if self.opts['pen_enc_sigma'] and self.opts['encoder'] == 'gauss':
             pen_enc_sigma = self.opts['lambda_pen_enc_sigma'] * tf.reduce_mean(
-                tf.reduce_sum(tf.abs(tf.log(self.enc_Sigma)), axis=-1))
+                tf.reduce_sum(tf.abs(tf.log(enc_Sigma)), axis=-1))
             objective += pen_enc_sigma
         # - Enc Sigma stats
         Sigma_tr = tf.reduce_mean(enc_Sigma, axis=-1)
