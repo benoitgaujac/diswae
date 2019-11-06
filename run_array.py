@@ -108,7 +108,6 @@ def main():
         lmba1 = [1, 10, 100, 1000]
         lmba = list(itertools.product(lmba0,lmba1))
         # lmba = [[50,50],[25,75],[75,25],[50,100],[100,50]]
-        pdb.set_trace()
         opts['obj_fn_coeffs'] = list(lmba[FLAGS.idx-1])
     else:
         assert False, 'unknown model {}'.format(opts['model'])
