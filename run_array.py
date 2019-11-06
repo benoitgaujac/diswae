@@ -104,8 +104,8 @@ def main():
         opts['obj_fn_coeffs'] = lmba[FLAGS.idx-1]
     elif opts['model'] == 'disWAE':
         # Penalty
-        lmba0 = [1, 50, 100]
-        lmba1 = [1, 50, 100]
+        lmba0 = [1, 10, 100, 1000]
+        lmba1 = [1, 10, 100, 1000]
         lmba = list(itertools.product(lmba0,lmba1))
         # lmba = [[50,50],[25,75],[75,25],[50,100],[100,50]]
         pdb.set_trace()
@@ -115,7 +115,7 @@ def main():
 
     # Penalty Sigma_q
     opts['pen_enc_sigma'] = FLAGS.sigma_pen=='True'
-    opts['lambda_pen_enc_sigma'] = 0.3
+    opts['lambda_pen_enc_sigma'] = 0.2
 
     # NN set up
     opts['network'] = net_configs[FLAGS.net_archi]
