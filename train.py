@@ -411,6 +411,14 @@ class Run(object):
             x_samples = 1
             raise NotImplementedError('Would be testing on the train set')
 
+        # for j, k in J, K:
+        #     sample v_k uniformly from {0, .., |v_k|}
+        #     sample x from dataset with v_k = v_k
+        #     encode z_j from x
+
+        # p(n | v_1), ... , p(n | v_K) = factor_sizes / np.prod(factor_sizes)
+        # q(z_j | n) is just evaluating the prob of a gaussian taking the value z_j for each n.
+
         feed_dict = {self.batch: x,
                      self.dropout_rate: 1.,
                      self.is_training: False}
