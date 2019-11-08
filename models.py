@@ -21,13 +21,13 @@ class Model(object):
         self.pz_mean = np.zeros(opts['zdim'], dtype='float32')      # TODO don't hardcode this
         self.pz_sigma = np.ones(opts['zdim'], dtype='float32')
 
-    def forward_pass(self, inputs, is_training, dropout_rate):
+    def forward_pass(self, inputs, is_training, dropout_rate, reuse=False):
 
         enc_z, enc_mean, enc_Sigma = encoder(self.opts,
                                              input=inputs,
                                              output_dim=2 * self.opts['zdim'],
                                              scope='encoder',
-                                             reuse=False,
+                                             reuse=reuse,
                                              is_training=is_training,
                                              dropout_rate=dropout_rate)
 
@@ -35,7 +35,7 @@ class Model(object):
                                              input=enc_z,
                                              output_dim=self.output_dim,
                                              scope='decoder',
-                                             reuse=False,
+                                             reuse=reuse,
                                              is_training=is_training,
                                              dropout_rate=dropout_rate)
 
@@ -76,7 +76,6 @@ class BetaVAE(Model):
         # cross_entropy = - labels*tf.log(mean_params + eps) + (1. - labels)*tf.log(1. - mean_params - eps)
         cross_entropy = tf.nn.sigmoid_cross_entropy_with_logits(labels=labels, logits=logits)
         return tf.reduce_mean(tf.reduce_sum(cross_entropy,axis=-1))
-
 
     def loss(self, inputs, samples, loss_coeffs, is_training, dropout_rate):
 

@@ -59,6 +59,11 @@ class Run(object):
                               is_training=self.is_training,
                               dropout_rate=self.dropout_rate)
 
+        self.z_samples, self.z_mean, _, _, _, _ = self.model.forward_pass(inputs=self.batch,
+                                                                          is_training=self.is_training,
+                                                                          dropout_rate=self.dropout_rate,
+                                                                          reuse=True)
+
         self.generated_x = self.model.sample_x_from_prior(noise=self.samples_pz)
 
         # --- Optimizers, savers, etc
@@ -156,6 +161,9 @@ class Run(object):
                 self.saver.save(self.sess,
                                 os.path.join(exp_dir, 'checkpoints', 'trained-wae'),
                                 global_step=counter)
+
+            # TODO Remove this after testing!!
+            mig = self.calculate_mig_score(data)
 
             # Training Loop
             for it in range(batches_num):
@@ -356,6 +364,11 @@ class Run(object):
 
                 counter += 1
 
+        # - evaluate the MIG score
+        mig = self.calculate_mig_score(data)
+        print("MIG score: {}".format(mig))
+
+
         # - Save the final model
         if opts['save_final'] and epoch > 0:
             self.saver.save(self.sess, os.path.join(exp_dir,
@@ -373,3 +386,40 @@ class Run(object):
                      rec_train=reconstructions_train, rec_test=reconstructions_test[:npics],
                      samples=generations_test, loss=np.array(Loss), loss_rec=np.array(Loss_rec),
                      loss_rec_test=np.array(Loss_rec_test), divergences=np.array(Divergences))
+
+    def calculate_mig_score(self, data, num_samples=32, test_only=True):
+
+        def sample_factors(factor_sizes, num_samples):
+            samples = []
+            for f in factor_sizes:
+                samples.append(
+                    np.random.randint(f, size=num_samples)
+                )
+            return np.stack(samples, axis=1)
+
+        factor_sizes = data.factor_sizes
+
+        if test_only:
+            x = data.test_data
+            y = data.test_labels
+            idx = np.random.choice(len(x), num_samples, replace=False)
+            v_samples = y[idx]
+            x_samples = x[idx]
+        else:
+            x = data.test_data
+            v_samples = sample_factors(factor_sizes, num_samples)
+            x_samples = 1
+            raise NotImplementedError('Would be testing on the train set')
+
+        feed_dict = {self.batch: x,
+                     self.dropout_rate: 1.,
+                     self.is_training: False}
+
+        [z_samples, z_mean] = self.sess.run([self.z_samples,
+                                             self.z_mean],
+                                            feed_dict=feed_dict)
+
+        # TODO continue from here!
+
+        a = 1
+        return a

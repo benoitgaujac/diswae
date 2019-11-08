@@ -348,20 +348,32 @@ class DataHandler(object):
         logging.error('Loading dsprites')
         data_dir = _data_dir(opts)
         data_file = os.path.join(data_dir, 'dsprites_ndarray_co1sh3sc6or40x32y32_64x64.npz')
-        X = np.load(data_file,allow_pickle=True)['imgs']
+        X = np.load(data_file, allow_pickle=True)['imgs']
         X = X[:, :, :, None]
+        Y = np.load(data_file, allow_pickle=True)['latents_classes']
+
 
         seed = 123
         np.random.seed(seed)
-        np.random.shuffle(X)
         np.random.seed()
 
         self.data_shape = (64, 64, 1)
         test_size = 10000
+        train_prop = (len(X) - test_size) / len(X)
 
-        self.data = Data(opts, X[:-test_size])
-        self.test_data = Data(opts, X[-test_size:])
+        training_mask = np.random.rand(len(X)) < train_prop
+
+        self.data = Data(opts, X[training_mask])
+        self.test_data = Data(opts, X[~training_mask])
+
+        self.labels = Data(opts, Y[training_mask])
+        self.test_labels = Data(opts, Y[~training_mask])
+
         self.num_points = len(self.data)
+
+        self.factor_sizes = np.array(
+            np.load(data_file, allow_pickle=True, encoding="latin1")['metadata'][()]["latents_sizes"],
+            dtype=np.int64)
 
         logging.error('Loading Done.')
 
