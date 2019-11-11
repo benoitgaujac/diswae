@@ -100,18 +100,18 @@ def main():
         beta = [1, 3, 10, 20, 30, 40, 50, 75, 100]
         opts['obj_fn_coeffs'] = beta[FLAGS.idx-1]
     elif opts['model'] == 'WAE':
-        lmba = [1, 3, 10, 20, 30, 40, 50, 75, 100]
+        lmba = [1, 50, 100, 200, 400, 800]
         opts['obj_fn_coeffs'] = lmba[FLAGS.idx-1]
     elif opts['model'] == 'disWAE':
         # Penalty
-        lmba0 = [1, 10, 100, 1000]
-        lmba1 = [1, 10, 100, 1000]
-        lmba = list(itertools.product(lmba0,lmba1))
+        lmba0 = [1, 50, 100, 200, 400, 800]
+        lmba1 = [1, 50, 100, 200, 400, 800]
+        lmba = list(zip(lmba0,lmba1))
+        # lmba = list(itertools.product(lmba0,lmba1))
         # lmba = [[50,50],[25,75],[75,25],[50,100],[100,50]]
         opts['obj_fn_coeffs'] = list(lmba[FLAGS.idx-1])
     else:
         assert False, 'unknown model {}'.format(opts['model'])
-
     # Penalty Sigma_q
     opts['pen_enc_sigma'] = FLAGS.sigma_pen=='True'
     opts['lambda_pen_enc_sigma'] = 0.2
