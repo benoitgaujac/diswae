@@ -156,7 +156,7 @@ class WAE(Model):
         n = utils.get_batch_size(sample_qz)
         n = tf.cast(n, tf.int32)
         nf = tf.cast(n, tf.float32)
-        half_size = (n * n - n) / 2
+        half_size = tf.cast((n * n - n) / 2,tf.int32)
 
         distances_pz = self.square_dist(sample_pz, sample_pz)
         distances_qz = self.square_dist(sample_qz, sample_qz)
