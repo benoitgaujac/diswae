@@ -355,6 +355,9 @@ class DataHandler(object):
 
         seed = 123
         np.random.seed(seed)
+        np.random.shuffle(X)
+        np.random.seed(seed)
+        np.random.shuffle(Y)        
         np.random.seed()
 
         self.data_shape = (64, 64, 1)
