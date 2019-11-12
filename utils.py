@@ -15,6 +15,9 @@ import logging
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
+import sklearn
+
+import pdb
 
 class ArraySaver(object):
     """A simple class helping with saving/loading numpy arrays from files.
@@ -79,3 +82,29 @@ def listdir(dirname):
 
 def get_batch_size(inputs):
     return tf.cast(tf.shape(inputs)[0], tf.float32)
+
+def discretizer(target, num_bins=20):
+    """Discretize target based on histograms."""
+    discretized = np.zeros_like(target)
+    for i in range(target.shape[0]):
+        discretized[i, :] = np.digitize(target[i, :], np.histogram(
+                                target[i, :], num_bins)[1][:-1])
+    return discretized
+
+def discrete_mutual_info(zs, ys):
+  """Compute discrete mutual information."""
+  num_codes = zs.shape[0]
+  num_factors = ys.shape[0]
+  m = np.zeros([num_codes, num_factors])
+  for i in range(num_codes):
+    for j in range(num_factors):
+      m[i, j] = sklearn.metrics.mutual_info_score(ys[j, :], zs[i, :])
+  return m
+
+def discrete_entropy(ys):
+  """Compute discrete mutual information."""
+  num_factors = ys.shape[0]
+  h = np.zeros(num_factors)
+  for j in range(num_factors):
+    h[j] = sklearn.metrics.mutual_info_score(ys[j, :], ys[j, :])
+  return h

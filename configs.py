@@ -22,6 +22,7 @@ config_dsprites['plot_num_cols'] = 10
 config_dsprites['dataset'] = 'dsprites'
 config_dsprites['DSprites_data_source_url'] = 'https://github.com/deepmind/dsprites-dataset/blob/master/'
 config_dsprites['input_normalize_sym'] = False
+config_dsprites['num_factors'] = 5
 # Experiment set up
 config_dsprites['train_dataset_size'] = -1
 config_dsprites['batch_size'] = 128

@@ -350,14 +350,14 @@ class DataHandler(object):
         data_file = os.path.join(data_dir, 'dsprites_ndarray_co1sh3sc6or40x32y32_64x64.npz')
         X = np.load(data_file, allow_pickle=True)['imgs']
         X = X[:, :, :, None]
-        Y = np.load(data_file, allow_pickle=True)['latents_classes']
+        Y = np.load(data_file, allow_pickle=True)['latents_classes'][:,1:]
 
 
         seed = 123
         np.random.seed(seed)
         np.random.shuffle(X)
         np.random.seed(seed)
-        np.random.shuffle(Y)        
+        np.random.shuffle(Y)
         np.random.seed()
 
         self.data_shape = (64, 64, 1)

@@ -14,6 +14,7 @@ from plot_functions import plot_embedded, plot_encSigma, plot_interpolation
 import models
 from datahandler import datashapes
 
+import pdb
 
 class Run(object):
 
@@ -80,6 +81,9 @@ class Run(object):
         self.samples_pz = tf.placeholder(tf.float32,
                                          [None] + [opts['zdim'],],
                                          name='noise_ph')
+        self.labels = tf.placeholder(tf.int32,
+                                         [None] + [opts['num_factors'],],
+                                         name='labels_ph')
 
     def add_training_placeholders(self):
         self.lr_decay = tf.placeholder(tf.float32, name='rate_decay_ph')
@@ -95,6 +99,28 @@ class Run(object):
             self.lmbd2 = tf.placeholder(tf.float32, name='lambda2_ph')
         else:
             raise NotImplementedError()
+
+    def compute_mig(self,z_mean,labels):
+        """Compute Discrete mutual information as in ICML 2019"""
+        opts = self.opts
+        # Discretize enc_mean
+        discretized_z_mean = utils.discretizer(np.transpose(z_mean), 20)
+        assert np.shape(discretized_z_mean)[0]==opts['zdim'], \
+                    'Wrong shape for discretized mean representation'
+        # mutual discrete information
+        assert np.shape(labels)[1]==opts['num_factors'], \
+                    'Wrong shape for labels'
+        mutual_info = utils.discrete_mutual_info(discretized_z_mean,np.transpose(labels))
+        # laten entropy
+        entropy = utils.discrete_entropy(np.transpose(labels))
+        # mig metric
+        assert mutual_info.shape[0] == discretized_z_mean.shape[0]
+        assert mutual_info.shape[1] == labels.shape[1]
+        sorted_mutual_info = np.sort(mutual_info, axis=0)[::-1]
+        mig = (sorted_mutual_info[0, :] - sorted_mutual_info[1, :]) / entropy
+
+        return np.mean(mig)
+
 
     def add_savers(self):
         saver = tf.train.Saver(max_to_keep=10)
@@ -149,6 +175,7 @@ class Run(object):
         # - Init all monitoring variables
         Loss, Loss_rec, Loss_rec_test = [], [], []
         Divergences = []
+        MIG, MIG_test = [], []
         if opts['vizu_encSigma']:
             enc_Sigmas = []
 
@@ -162,12 +189,8 @@ class Run(object):
                                 os.path.join(exp_dir, 'checkpoints', 'trained-wae'),
                                 global_step=counter)
 
-            # TODO Remove this after testing!!
-            mig = self.calculate_mig_score(data)
-
-            # Training Loop
+            #####  TRAINING LOOP #####
             for it in range(batches_num):
-
                 # Sample batches of data points and Pz noise
                 data_ids = np.random.choice(train_size, opts['batch_size'], replace=True)
                 batch_images = data.data[data_ids].astype(np.float32)
@@ -179,7 +202,6 @@ class Run(object):
                              self.obj_fn_coeffs: opts['obj_fn_coeffs'],
                              self.dropout_rate: opts['dropout_rate'],
                              self.is_training: True}
-
                 [_, loss, loss_rec, divergences, enc_sigmastats] = self.sess.run([
                                                 self.opt,
                                                 self.objective,
@@ -187,10 +209,16 @@ class Run(object):
                                                 self.divergences,
                                                 self.enc_sigmastats],
                                                 feed_dict=feed_dict)
-
                 Loss.append(loss)
                 Loss_rec.append(loss_rec)
                 Divergences.append(divergences)
+                # MIG score
+                batch_labels = data.labels[data_ids].astype(np.int32)
+                z_mean = self.sess.run(self.z_mean, feed_dict={
+                                        self.batch: batch_images,
+                                        self.dropout_rate: 1.,
+                                        self.is_training: False})
+                MIG.append(self.compute_mig(z_mean,batch_labels))
 
                 # loss_train_summary = tf.Summary(value=[tf.Summary.Value(tag="loss_train", simple_value=loss)])
                 # loss_rec_train_summary = tf.Summary(value=[tf.Summary.Value(tag="loss_rec_train", simple_value=loss_rec)])
@@ -211,6 +239,7 @@ class Run(object):
                 # else:
                 #     raise NotImplementedError()
 
+                # Encoded Sigma
                 if opts['vizu_encSigma']:
                     enc_Sigmas.append(enc_sigmastats)
                     # summary_vals_train.append(tf.Summary.Value(tag="enc_sigma_mean_train",
@@ -227,23 +256,25 @@ class Run(object):
                     test_size = np.shape(data.test_data)[0]
                     batches_num_te = int(test_size/batch_size_te)
                     # Test loss
-                    loss_rec_test = 0.
+                    loss_rec_test, mig_test = 0., 0.
                     for it_ in range(batches_num_te):
                         # Sample batches of data points
                         data_ids = np.random.choice(test_size, batch_size_te, replace=True)
                         batch_images_test = data.test_data[data_ids].astype(np.float32)
                         batch_pz_samples_test = sample_pz(opts, self.pz_params, batch_size_te)
-
+                        batch_labels_test = data.test_labels[data_ids].astype(np.int32)
                         test_feed_dict = {self.batch: batch_images_test,
                                           self.samples_pz: batch_pz_samples_test,
                                           self.obj_fn_coeffs: opts['obj_fn_coeffs'],
                                           self.dropout_rate: 1.,
                                           self.is_training: False}
-                        l_rec = self.sess.run(self.loss_reconstruct,
-                                              feed_dict=test_feed_dict)
+                        [l_rec, z_mean] = self.sess.run([self.loss_reconstruct,
+                                                         self.z_mean],
+                                                        feed_dict=test_feed_dict)
                         loss_rec_test += l_rec / batches_num_te
+                        mig_test += self.compute_mig(z_mean, batch_labels_test) / batches_num_te
                     Loss_rec_test.append(loss_rec_test)
-
+                    MIG_test.append(mig_test)
                     # Auto-encoding test images & samples generated by the model
                     [reconstructions_test, latents_test, generations_test] = self.sess.run(
                                                 [self.recon_x,
@@ -297,22 +328,25 @@ class Run(object):
                                                                it + 1,
                                                                batches_num)
                     logging.error(debug_str)
-                    debug_str = 'TRAIN LOSS=%.3f' % (Loss[-1])
+                    debug_str = 'TRAIN LOSS=%.3f, TRAIN MIG=%.3f' % (Loss[-1],MIG[-1])
                     logging.error(debug_str)
                     if opts['model'] == 'BetaVAE':
-                        debug_str = 'REC=%.3f, REC TEST=%.3f, beta KL=%10.3e\n '  % (
-                            Loss_rec[-1],
-                            Loss_rec_test[-1],
-                            Divergences[-1])
-                    elif opts['model'] == 'WAE':
-                        debug_str = 'REC=%.3f, REC TEST=%.3f, lambda MMD=%10.3e\n ' % (
+                        debug_str = 'REC=%.3f, TEST REC=%.3f, TEST MIG=%.3f, beta KL=%10.3e, \n '  % (
                                                     Loss_rec[-1],
                                                     Loss_rec_test[-1],
+                                                    MIG_test[-1],
+                                                    Divergences[-1])
+                    elif opts['model'] == 'WAE':
+                        debug_str = 'REC=%.3f, TEST REC=%.3f, TEST MIG=%.3f, lambda MMD=%10.3e\n ' % (
+                                                    Loss_rec[-1],
+                                                    Loss_rec_test[-1],
+                                                    MIG_test[-1],
                                                     Divergences[-1])
                     elif opts['model'] == 'disWAE':
-                        debug_str = 'REC=%.3f, REC TEST=%.3f, l1*HSIC=%10.3e, l2*DIMWISE=%10.3e, WAE=%10.3e\n ' % (
+                        debug_str = 'REC=%.3f, TEST REC=%.3f, TEST MIG=%.3f, l1*HSIC=%10.3e, l2*DIMWISE=%10.3e, WAE=%10.3e\n ' % (
                                                     Loss_rec[-1],
                                                     Loss_rec_test[-1],
+                                                    MIG_test[-1],
                                                     Divergences[-1][0],
                                                     Divergences[-1][1],
                                                     Divergences[-1][2])
@@ -327,6 +361,7 @@ class Run(object):
                                generations_test,                                        # model samples
                                Loss,                                                    # loss
                                Loss_rec, Loss_rec_test,                                 # rec losses
+                               MIG,                                                     # MIG
                                Divergences,                                             # divergence terms
                                exp_dir,                                                 # working directory
                                'res_e%04d_mb%05d.png' % (epoch, it))                    # filename
@@ -364,11 +399,6 @@ class Run(object):
 
                 counter += 1
 
-        # - evaluate the MIG score
-        mig = self.calculate_mig_score(data)
-        print("MIG score: {}".format(mig))
-
-
         # - Save the final model
         if opts['save_final'] and epoch > 0:
             self.saver.save(self.sess, os.path.join(exp_dir,
@@ -385,49 +415,5 @@ class Run(object):
                      data_test=data.data[200:200 + npics], data_train=data.test_data[:npics], encoded=latents_test,
                      rec_train=reconstructions_train, rec_test=reconstructions_test[:npics],
                      samples=generations_test, loss=np.array(Loss), loss_rec=np.array(Loss_rec),
-                     loss_rec_test=np.array(Loss_rec_test), divergences=np.array(Divergences))
-
-    def calculate_mig_score(self, data, num_samples=32, test_only=True):
-
-        def sample_factors(factor_sizes, num_samples):
-            samples = []
-            for f in factor_sizes:
-                samples.append(
-                    np.random.randint(f, size=num_samples)
-                )
-            return np.stack(samples, axis=1)
-
-        factor_sizes = data.factor_sizes
-
-        if test_only:
-            x = data.test_data
-            y = data.test_labels
-            idx = np.random.choice(len(x), num_samples, replace=False)
-            v_samples = y[idx]
-            x_samples = x[idx]
-        else:
-            x = data.test_data
-            v_samples = sample_factors(factor_sizes, num_samples)
-            x_samples = 1
-            raise NotImplementedError('Would be testing on the train set')
-
-        # for j, k in J, K:
-        #     sample v_k uniformly from {0, .., |v_k|}
-        #     sample x from dataset with v_k = v_k
-        #     encode z_j from x
-
-        # p(n | v_1), ... , p(n | v_K) = factor_sizes / np.prod(factor_sizes)
-        # q(z_j | n) is just evaluating the prob of a gaussian taking the value z_j for each n.
-
-        feed_dict = {self.batch: x,
-                     self.dropout_rate: 1.,
-                     self.is_training: False}
-
-        [z_samples, z_mean] = self.sess.run([self.z_samples,
-                                             self.z_mean],
-                                            feed_dict=feed_dict)
-
-        # TODO continue from here!
-
-        a = 1
-        return a
+                     loss_rec_test=np.array(Loss_rec_test), divergences=np.array(Divergences),
+                     mig_train=np.array(MIG), mig_test=np.array(MIG_test))
