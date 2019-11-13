@@ -272,8 +272,6 @@ class disWAE(WAE):
         shuffle_encoded = []
         seed = 456
         for i in range(enc_z.get_shape()[1]):
-            # shuffle_encoded.append(tf.random_shuffle(enc_z[:, i]))
-            pdb.set_trace()
             shuffle_encoded.append(tf.gather(enc_z[:, i], tf.random.shuffle(tf.range(tf.shape(enc_z[:, i])[0]))))
         shuffled_encoded = tf.stack(shuffle_encoded, axis=-1, name="encoded_shuffled")
         # shuffle_mask = [tf.constant(np.random.choice(np.arange(self.opts['batch_size']),
