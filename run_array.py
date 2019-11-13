@@ -97,7 +97,7 @@ def main():
 
     # Objective Function Coefficients
     if opts['model'] == 'BetaVAE':
-        beta = [1, 3, 10, 20, 30, 40, 50, 75, 100]
+        beta = [1, 50, 75, 100, 150, 200, 300, 400, 600, 800]
         opts['obj_fn_coeffs'] = beta[FLAGS.idx-1]
     elif opts['model'] == 'WAE':
         lmba = [1, 50, 75, 100, 150, 200, 300, 400, 600, 800]
