@@ -268,20 +268,26 @@ class disWAE(WAE):
         loss_reconstruct = self.reconstruction_loss(self.opts, inputs, recon_x)
 
         # --- Latent regularization
-        shuffle_mask = [tf.constant(np.random.choice(np.arange(self.opts['batch_size']),
-                                                     self.opts['batch_size'], False))
-                        for _ in range(self.opts['zdim'])]
-        shuffled_mean = []
-        shuffled_Sigma = []
-        for dim in range(self.opts['zdim']):
-            shuffled_mean.append(tf.gather(enc_mean[:, dim], shuffle_mask[dim]))
-            shuffled_Sigma.append(tf.gather(enc_Sigma[:, dim], shuffle_mask[dim]))
-
-        shuffled_mean = tf.stack(shuffled_mean, axis=-1)
-        shuffled_Sigma = tf.stack(shuffled_Sigma, axis=-1)
-        p_params = tf.concat((shuffled_mean, shuffled_Sigma), axis=-1)
-
-        shuffled_encoded = sample_gaussian(p_params, 'tensorflow')
+        # shuffling latent codes
+        shuffle_encoded = []
+        seed = 456
+        for i in range(enc_z.get_shape()[1]):
+            # shuffle_encoded.append(tf.random_shuffle(enc_z[:, i]))
+            pdb.set_trace()
+            shuffle_encoded.append(tf.gather(enc_z[:, i], tf.random.shuffle(tf.range(tf.shape(enc_z[:, i])[0]))))
+        shuffled_encoded = tf.stack(shuffle_encoded, axis=-1, name="encoded_shuffled")
+        # shuffle_mask = [tf.constant(np.random.choice(np.arange(self.opts['batch_size']),
+        #                                              self.opts['batch_size'], False))
+        #                 for _ in range(self.opts['zdim'])]
+        # shuffled_mean = []
+        # shuffled_Sigma = []
+        # for dim in range(self.opts['zdim']):
+        #     shuffled_mean.append(tf.gather(enc_mean[:, dim], shuffle_mask[dim]))
+        #     shuffled_Sigma.append(tf.gather(enc_Sigma[:, dim], shuffle_mask[dim]))
+        # shuffled_mean = tf.stack(shuffle_mean, axis=-1, name="mean_shuffled")
+        # shuffled_Sigma = tf.stack(shuffle_Sigma, axis=-1, name="sigma_shuffled")
+        # p_params = tf.concat((shuffled_mean, shuffled_Sigma), axis=-1)
+        # shuffled_encoded = sample_gaussian(p_params, 'tensorflow')
         # - Dimension-wise latent reg
         dimension_wise_match_penalty = self.mmd_penalty(self.opts, shuffled_encoded, samples)
         # - Multidim. HSIC
