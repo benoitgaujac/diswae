@@ -100,12 +100,12 @@ def main():
         beta = [1, 3, 10, 20, 30, 40, 50, 75, 100]
         opts['obj_fn_coeffs'] = beta[FLAGS.idx-1]
     elif opts['model'] == 'WAE':
-        lmba = [1, 50, 100, 200, 400, 800]
+        lmba = [1, 50, 75, 100, 150, 200, 300, 400, 600, 800]
         opts['obj_fn_coeffs'] = lmba[FLAGS.idx-1]
     elif opts['model'] == 'disWAE':
         # Penalty
-        lmba0 = [1, 50, 100, 200, 400, 800]
-        lmba1 = [1, 50, 100, 200, 400, 800]
+        lmba0 = [1, 50, 75, 100, 150, 200, 300, 400, 600, 800]
+        lmba1 = [1, 50, 75, 100, 150, 200, 300, 400, 600, 800]
         lmba = list(zip(lmba0,lmba1))
         # lmba = list(itertools.product(lmba0,lmba1))
         # lmba = [[50,50],[25,75],[75,25],[50,100],[100,50]]
@@ -114,7 +114,7 @@ def main():
         assert False, 'unknown model {}'.format(opts['model'])
     # Penalty Sigma_q
     opts['pen_enc_sigma'] = FLAGS.sigma_pen=='True'
-    opts['lambda_pen_enc_sigma'] = 1.
+    opts['lambda_pen_enc_sigma'] = 2.
 
     # NN set up
     opts['network'] = net_configs[FLAGS.net_archi]
