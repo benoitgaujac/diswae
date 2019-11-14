@@ -11,6 +11,7 @@ import os
 import sys
 import copy
 import numpy as np
+import math
 import logging
 import matplotlib
 matplotlib.use("Agg")
@@ -108,3 +109,10 @@ def discrete_entropy(ys):
   for j in range(num_factors):
     h[j] = sklearn.metrics.mutual_info_score(ys[j, :], ys[j, :])
   return h
+
+def gaussian_log_density(samples, mean, log_var):
+  pi = tf.constant(math.pi)
+  normalization = tf.log(2. * pi)
+  inv_sigma = tf.exp(-log_var)
+  tmp = (samples - mean)
+  return -0.5 * (tmp * tmp * inv_sigma + log_var + normalization)

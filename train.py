@@ -43,6 +43,9 @@ class Run(object):
         if opts['model'] == 'BetaVAE':
             self.model = models.BetaVAE(opts)
             self.obj_fn_coeffs = self.beta
+        elif opts['model'] == 'BetaTCVAE':
+            self.model = models.BetaTCVAE(opts)
+            self.obj_fn_coeffs = self.beta
         elif opts['model'] == 'WAE':
             self.model = models.WAE(opts)
             self.obj_fn_coeffs = self.lmbd
@@ -90,7 +93,7 @@ class Run(object):
         self.is_training = tf.placeholder(tf.bool, name='is_training_ph')
         self.dropout_rate = tf.placeholder(tf.float32, name='dropout_rate_ph')
         self.batch_size = tf.placeholder(tf.int32, name='batch_size_ph')
-        if self.opts['model']=='BetaVAE':
+        if self.opts['model']=='BetaVAE' or self.opts['model'] == 'BetaTCVAE':
             self.beta = tf.placeholder(tf.float32, name='beta_ph')
         elif self.opts['model']=='WAE':
             self.lmbd = tf.placeholder(tf.float32, name='lambda_ph')
@@ -259,7 +262,10 @@ class Run(object):
 
                     # Test losses
                     loss_test, loss_rec_test, mig_test = 0., 0., 0.
-                    divergences_test = np.zeros(len(divergences))
+                    if type(divergences)==list:
+                        divergences_test = np.zeros(len(divergences))
+                    else:
+                        divergences_test = 0.
                     for it_ in range(batches_num_te):
                         # Sample batches of data points
                         data_ids = np.random.choice(test_size, batch_size_te, replace=True)
@@ -346,43 +352,51 @@ class Run(object):
                                   'res_e%04d_mb%05d.png' % (epoch, it))                 # filename
 
 
-                    # Printing various loss values
-                    debug_str = 'EPOCH: %d/%d, BATCH:%d/%d' % (epoch,
-                                                               opts['epoch_num'],
-                                                               it + 1,
-                                                               batches_num)
-                    logging.error(debug_str)
-                    debug_str = 'TRAIN LOSS=%.3f, TEST LOSS=%.3f' % (Loss[-1],Loss_test[-1])
-                    logging.error(debug_str)
-                    debug_str = 'TRAIN MIG=%.3f, TEST MIG=%.3f' % (MIG[-1],MIG_test[-1])
-                    logging.error(debug_str)
-                    if opts['model'] == 'BetaVAE':
-                        debug_str = 'REC=%.3f, TEST REC=%.3f, beta*KL=%10.3e, beta*TEST KL=%10.3e, \n '  % (
-                                                    Loss_rec[-1],
-                                                    Loss_rec_test[-1],
-                                                    Divergences[-1],
-                                                    Divergences_test[-1])
-                    elif opts['model'] == 'WAE':
-                        debug_str = 'REC=%.3f, TEST REC=%.3f, l*MMD=%10.3e, l*TEST MMD=%10.3e \n ' % (
-                                                    Loss_rec[-1],
-                                                    Loss_rec_test[-1],
-                                                    Divergences[-1],
-                                                    Divergences_test[-1])
-                    elif opts['model'] == 'disWAE':
-                        debug_str = 'TRAIN: REC=%.3f,l1*HSIC=%10.3e, l2*DIMWISE=%10.3e, WAE=%10.3e \n ' % (
-                                                    Loss_rec[-1],
-                                                    Divergences[-1][0],
-                                                    Divergences[-1][1],
-                                                    Divergences[-1][2])
+                        # Printing various loss values
+                        debug_str = 'EPOCH: %d/%d, BATCH:%d/%d' % (epoch,
+                                                                   opts['epoch_num'],
+                                                                   it + 1,
+                                                                   batches_num)
                         logging.error(debug_str)
-                        debug_str = 'TEST : REC=%.3f, l1*HSIC=%10.3e, l2*DIMWISE=%10.3e, WAE=%10.3e \n ' % (
-                                                    Loss_rec_test[-1],
-                                                    Divergences_test[-1][0],
-                                                    Divergences_test[-1][1],
-                                                    Divergences_test[-1][2])
-                    else:
-                        raise NotImplementedError('Model type not recognised')
-                    logging.error(debug_str)
+                        debug_str = 'TRAIN LOSS=%.3f, TEST LOSS=%.3f' % (Loss[-1],Loss_test[-1])
+                        logging.error(debug_str)
+                        debug_str = 'TRAIN MIG=%.3f, TEST MIG=%.3f' % (MIG[-1],MIG_test[-1])
+                        logging.error(debug_str)
+                        if opts['model'] == 'BetaVAE':
+                            debug_str = 'REC=%.3f, TEST REC=%.3f, beta*KL=%10.3e, beta*TEST KL=%10.3e, \n '  % (
+                                                        Loss_rec[-1],
+                                                        Loss_rec_test[-1],
+                                                        Divergences[-1],
+                                                        Divergences_test[-1])
+                        elif opts['model'] == 'BetaTCVAE':
+                            debug_str = 'REC=%.3f, TEST REC=%.3f, b*TC=%10.3e, TEST b*TC=%10.3e, KL=%10.3e, TEST KL=%10.3e, \n '  % (
+                                                        Loss_rec[-1],
+                                                        Loss_rec_test[-1],
+                                                        Divergences[-1][0],
+                                                        Divergences_test[-1][0],
+                                                        Divergences[-1][1],
+                                                        Divergences_test[-1][1])
+                        elif opts['model'] == 'WAE':
+                            debug_str = 'REC=%.3f, TEST REC=%.3f, l*MMD=%10.3e, l*TEST MMD=%10.3e \n ' % (
+                                                        Loss_rec[-1],
+                                                        Loss_rec_test[-1],
+                                                        Divergences[-1],
+                                                        Divergences_test[-1])
+                        elif opts['model'] == 'disWAE':
+                            debug_str = 'TRAIN: REC=%.3f,l1*HSIC=%10.3e, l2*DIMWISE=%10.3e, WAE=%10.3e' % (
+                                                        Loss_rec[-1],
+                                                        Divergences[-1][0],
+                                                        Divergences[-1][1],
+                                                        Divergences[-1][2])
+                            logging.error(debug_str)
+                            debug_str = 'TEST : REC=%.3f, l1*HSIC=%10.3e, l2*DIMWISE=%10.3e, WAE=%10.3e \n ' % (
+                                                        Loss_rec_test[-1],
+                                                        Divergences_test[-1][0],
+                                                        Divergences_test[-1][1],
+                                                        Divergences_test[-1][2])
+                            logging.error(debug_str)
+                        else:
+                            raise NotImplementedError('Model type not recognised')
 
                 # - Update learning rate if necessary and counter
                 if counter >= batches_num * opts['epoch_num'] / 5 and counter % decay_steps == 0:

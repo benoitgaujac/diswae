@@ -131,7 +131,7 @@ def save_train(opts, data_train, data_test,
 
     ### The loss curves
     ax = plt.subplot(gs[1, 0])
-    size_filter = min(int(len(loss_test)/10),5000)
+    size_filter = min(int(len(loss_test)/2),100)
     # Obj
     y = np.convolve(loss_test, np.ones((size_filter,))/size_filter, mode='valid')
     total_num = len(y)
@@ -161,6 +161,12 @@ def save_train(opts, data_train, data_test,
         y = np.log(y[::x_step])
         losses_test.append(list(y))
         labels = ['rec',r'$\beta$KL']
+    elif opts['model'] == 'BetaTCVAE':
+        for l in zip(*loss_match_test):
+            y = np.convolve(l, np.ones((size_filter,))/size_filter, mode='valid')
+            y = np.log(y[::x_step])
+            losses_test.append(list(y))
+        labels = ['rec',r'$\beta$TC', 'KL']
     elif opts['model'] == 'WAE':
         y = np.convolve(loss_match_test, np.ones((size_filter,))/size_filter, mode='valid')
         y = np.log(y[::x_step])
@@ -182,36 +188,25 @@ def save_train(opts, data_train, data_test,
         y = np.convolve(loss_match, np.ones((size_filter,))/size_filter, mode='valid')
         y = np.log(np.abs(y[::x_step]))
         losses.append(list(y))
-        # labels = ['rec',r'$\beta$KL']
+    elif opts['model'] == 'BetaTCVAE':
+        for l in zip(*loss_match):
+            y = np.convolve(l, np.ones((size_filter,))/size_filter, mode='valid')
+            y = np.log(y[::x_step])
+            losses.append(list(y))
     elif opts['model'] == 'WAE':
         y = np.convolve(loss_match, np.ones((size_filter,))/size_filter, mode='valid')
         y = np.log(np.abs(y[::x_step]))
         losses.append(list(y))
-        # labels = ['rec',r'$\lambda$|mmd|']
     elif opts['model'] == 'disWAE':
         for l in zip(*loss_match):
             y = np.convolve(l, np.ones((size_filter,))/size_filter, mode='valid')
             y = np.log(np.abs(y[::x_step]))
             losses.append(list(y))
-        # labels = ['rec', r"$\lambda_1$|hsci|",r"$\lambda_2$|dimwise|",'|wae|']
     else:
         raise NotImplementedError('Model type not recognised')
-
     for i in range(len(labels)):
         plt.plot(x, losses_test[i], linewidth=4, color=color_list[i], label=labels[i]+r' test')
         plt.plot(x, losses[i], linewidth=2, color=color_list[i], linestyle='--', label=labels[i])
-    # for i, los, lab in zip([j for j in range(4)],
-    #                         losses,
-    #                         labels):
-    #     l = np.array(los)
-    #     y = np.log(np.abs(l[::x_step]))
-    #     plt.plot(x, y, linewidth=2, color=color_list[i], linestyle='--', label=lab)
-    # for i, los, lab in zip([j for j in range(4)],
-    #                         losses,
-    #                         labels):
-    #     l = np.array(los)
-    #     y = np.log(np.abs(l[::x_step]))
-    #     plt.plot(x, y, linewidth=4, color=color_list[i], label=lab)
 
     plt.grid(axis='y')
     plt.legend(loc='upper right')

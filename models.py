@@ -99,7 +99,33 @@ class BetaVAE(Model):
         return objective, loss_reconstruct, divergences, recon_x, enc_z, encSigmas_stats
 
 
-class TCBetaVAE(BetaVAE):
+class BetaTCVAE(BetaVAE):
+
+    def total_correlation(self, z, z_mean, z_logvar):
+      """Estimate of total correlation on a batch.
+      Based on ICML paper
+      """
+      # Compute log(q(z(x_j)|x_i)) for every sample in the batch, which is a
+      # tensor of size [batch_size, batch_size, num_latents]. In the following
+      # comments, [batch_size, batch_size, num_latents] are indexed by [j, i, l].
+      log_qz_prob = utils.gaussian_log_density(
+          tf.expand_dims(z, 1), tf.expand_dims(z_mean, 0),
+          tf.expand_dims(z_logvar, 0))
+      # Compute log prod_l p(z(x_j)_l) = sum_l(log(sum_i(q(z(z_j)_l|x_i)))
+      # + constant) for each sample in the batch, which is a vector of size
+      # [batch_size,].
+      log_qz_product = tf.reduce_sum(
+          tf.reduce_logsumexp(log_qz_prob, axis=1, keepdims=False),
+          axis=1,
+          keepdims=False)
+      # Compute log(q(z(x_j))) as log(sum_i(q(z(x_j)|x_i))) + constant =
+      # log(sum_i(prod_l q(z(x_j)_l|x_i))) + constant.
+      log_qz = tf.reduce_logsumexp(
+          tf.reduce_sum(log_qz_prob, axis=2, keepdims=False),
+          axis=1,
+          keepdims=False)
+      return tf.reduce_mean(log_qz - log_qz_product)
+
 
     def loss(self, inputs, samples, loss_coeffs, is_training, dropout_rate):
 
@@ -109,14 +135,12 @@ class TCBetaVAE(BetaVAE):
                                                                       is_training=is_training,
                                                                       dropout_rate=dropout_rate)
 
-        loss_reconstruct = self.reconstruction_loss(inputs, dec_mean, dec_Sigma)
+        loss_reconstruct = self.reconstruction_loss(inputs, dec_mean)
+        kl = self.kl_penalty(self.pz_mean, self.pz_sigma, enc_mean, enc_Sigma)
+        tc = self.total_correlation(enc_z, enc_mean, tf.log(enc_Sigma))
 
-        raise NotImplementedError()
-        kl_mi = self.kl_penalty()
-        kl_tc = self.kl_penalty()
-        kl_dimwise = self.kl_penalty()
-        matching_penalty = - (beta[0]*kl_mi + beta[1]*kl_tc + beta[2]*kl_dimwise)
-        divergences = (-beta[0]*kl_mi, -beta[1]*kl_tc, -beta[2]*kl_dimwise)
+        matching_penalty = (beta - 1.) * tc + kl
+        divergences = (beta*tc, kl-tc)
         objective = loss_reconstruct + matching_penalty
 
         # - Enc Sigma stats
@@ -274,18 +298,6 @@ class disWAE(WAE):
         for i in range(enc_z.get_shape()[1]):
             shuffle_encoded.append(tf.gather(enc_z[:, i], tf.random.shuffle(tf.range(tf.shape(enc_z[:, i])[0]))))
         shuffled_encoded = tf.stack(shuffle_encoded, axis=-1, name="encoded_shuffled")
-        # shuffle_mask = [tf.constant(np.random.choice(np.arange(self.opts['batch_size']),
-        #                                              self.opts['batch_size'], False))
-        #                 for _ in range(self.opts['zdim'])]
-        # shuffled_mean = []
-        # shuffled_Sigma = []
-        # for dim in range(self.opts['zdim']):
-        #     shuffled_mean.append(tf.gather(enc_mean[:, dim], shuffle_mask[dim]))
-        #     shuffled_Sigma.append(tf.gather(enc_Sigma[:, dim], shuffle_mask[dim]))
-        # shuffled_mean = tf.stack(shuffle_mean, axis=-1, name="mean_shuffled")
-        # shuffled_Sigma = tf.stack(shuffle_Sigma, axis=-1, name="sigma_shuffled")
-        # p_params = tf.concat((shuffled_mean, shuffled_Sigma), axis=-1)
-        # shuffled_encoded = sample_gaussian(p_params, 'tensorflow')
         # - Dimension-wise latent reg
         dimension_wise_match_penalty = self.mmd_penalty(self.opts, shuffled_encoded, samples)
         # - Multidim. HSIC
