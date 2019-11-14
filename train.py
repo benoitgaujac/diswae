@@ -173,8 +173,8 @@ class Run(object):
         anchors_ids = [10, 11, 12, 13, 14]
 
         # - Init all monitoring variables
-        Loss, Loss_rec, Loss_rec_test = [], [], []
-        Divergences = []
+        Loss, Loss_test, Loss_rec, Loss_rec_test = [], [], [], []
+        Divergences, Divergences_test = [], []
         MIG, MIG_test = [], []
         if opts['vizu_encSigma']:
             enc_Sigmas = []
@@ -209,54 +209,57 @@ class Run(object):
                                                 self.divergences,
                                                 self.enc_sigmastats],
                                                 feed_dict=feed_dict)
-                Loss.append(loss)
-                Loss_rec.append(loss_rec)
-                Divergences.append(divergences)
-                # MIG score
-                batch_labels = data.labels[data_ids].astype(np.int32)
-                z_mean = self.sess.run(self.z_mean, feed_dict={
-                                        self.batch: batch_images,
-                                        self.dropout_rate: 1.,
-                                        self.is_training: False})
-                MIG.append(self.compute_mig(z_mean,batch_labels))
-
-                # loss_train_summary = tf.Summary(value=[tf.Summary.Value(tag="loss_train", simple_value=loss)])
-                # loss_rec_train_summary = tf.Summary(value=[tf.Summary.Value(tag="loss_rec_train", simple_value=loss_rec)])
-                # writer.add_summary(loss_train_summary, it)
-                # writer.add_summary(loss_rec_train_summary, it)
-
-                # summary_vals_train = [tf.Summary.Value(tag="loss_train", simple_value=loss),
-                #                       tf.Summary.Value(tag="loss_rec_train", simple_value=loss_rec)]
-                #
-                # if opts['model'] == 'BetaVAE':
-                #     summary_vals_train.append(tf.Summary.Value(tag="kl_train", simple_value=divergences))
-                # elif opts['model'] == 'WAE':
-                #     summary_vals_train.append(tf.Summary.Value(tag="dim_wise_match_train", simple_value=divergences))
-                # elif opts['model'] == 'disWAE':
-                #     summary_vals_train.append(tf.Summary.Value(tag="dim_wise_match_train", simple_value=divergences[0]))
-                #     summary_vals_train.append(tf.Summary.Value(tag="hsic_match_train", simple_value=divergences[1]))
-                #     summary_vals_train.append(tf.Summary.Value(tag="wae_match_train", simple_value=divergences[2]))
-                # else:
-                #     raise NotImplementedError()
-
-                # Encoded Sigma
-                if opts['vizu_encSigma']:
-                    enc_Sigmas.append(enc_sigmastats)
-                    # summary_vals_train.append(tf.Summary.Value(tag="enc_sigma_mean_train",
-                    #                                            simple_value=enc_sigmastats[0]))
-                    # summary_vals_train.append(tf.Summary.Value(tag="enc_sigma_var_train",
-                    #                                            simple_value=enc_sigmastats[1]))
-
-                # writer.add_summary(tf.Summary(value=summary_vals_train), it + (epoch * batches_num))
 
                 ##### TESTING LOOP #####
-                if (counter+1) % opts['print_every'] == 0 or (counter+1) == 100:
+                if (counter+1)%opts['evaluate_every'] == 0 or (counter < 20 and (counter+1)%10 == 0):
                     print("Epoch {}, Iteration {}".format(epoch, it+1))
                     batch_size_te = 200
                     test_size = np.shape(data.test_data)[0]
                     batches_num_te = int(test_size/batch_size_te)
-                    # Test loss
-                    loss_rec_test, mig_test = 0., 0.
+                    # Train losses
+                    Loss.append(loss)
+                    Loss_rec.append(loss_rec)
+                    Divergences.append(divergences)
+                    # MIG score
+                    batch_labels = data.labels[data_ids].astype(np.int32)
+                    z_mean = self.sess.run(self.z_mean, feed_dict={
+                                            self.batch: batch_images,
+                                            self.dropout_rate: 1.,
+                                            self.is_training: False})
+                    MIG.append(self.compute_mig(z_mean,batch_labels))
+
+                    # loss_train_summary = tf.Summary(value=[tf.Summary.Value(tag="loss_train", simple_value=loss)])
+                    # loss_rec_train_summary = tf.Summary(value=[tf.Summary.Value(tag="loss_rec_train", simple_value=loss_rec)])
+                    # writer.add_summary(loss_train_summary, it)
+                    # writer.add_summary(loss_rec_train_summary, it)
+
+                    # summary_vals_train = [tf.Summary.Value(tag="loss_train", simple_value=loss),
+                    #                       tf.Summary.Value(tag="loss_rec_train", simple_value=loss_rec)]
+                    #
+                    # if opts['model'] == 'BetaVAE':
+                    #     summary_vals_train.append(tf.Summary.Value(tag="kl_train", simple_value=divergences))
+                    # elif opts['model'] == 'WAE':
+                    #     summary_vals_train.append(tf.Summary.Value(tag="dim_wise_match_train", simple_value=divergences))
+                    # elif opts['model'] == 'disWAE':
+                    #     summary_vals_train.append(tf.Summary.Value(tag="dim_wise_match_train", simple_value=divergences[0]))
+                    #     summary_vals_train.append(tf.Summary.Value(tag="hsic_match_train", simple_value=divergences[1]))
+                    #     summary_vals_train.append(tf.Summary.Value(tag="wae_match_train", simple_value=divergences[2]))
+                    # else:
+                    #     raise NotImplementedError()
+
+                    # Encoded Sigma
+                    if opts['vizu_encSigma']:
+                        enc_Sigmas.append(enc_sigmastats)
+                        # summary_vals_train.append(tf.Summary.Value(tag="enc_sigma_mean_train",
+                        #                                            simple_value=enc_sigmastats[0]))
+                        # summary_vals_train.append(tf.Summary.Value(tag="enc_sigma_var_train",
+                        #                                            simple_value=enc_sigmastats[1]))
+
+                    # writer.add_summary(tf.Summary(value=summary_vals_train), it + (epoch * batches_num))
+
+                    # Test losses
+                    loss_test, loss_rec_test, mig_test = 0., 0., 0.
+                    divergences_test = np.zeros(len(divergences))
                     for it_ in range(batches_num_te):
                         # Sample batches of data points
                         data_ids = np.random.choice(test_size, batch_size_te, replace=True)
@@ -268,59 +271,80 @@ class Run(object):
                                           self.obj_fn_coeffs: opts['obj_fn_coeffs'],
                                           self.dropout_rate: 1.,
                                           self.is_training: False}
-                        [l_rec, z_mean] = self.sess.run([self.loss_reconstruct,
+                        [loss, l_rec, divergences, z_mean] = self.sess.run([self.objective,
+                                                         self.loss_reconstruct,
+                                                         self.divergences,
                                                          self.z_mean],
                                                         feed_dict=test_feed_dict)
+                        loss_test += loss / batches_num_te
                         loss_rec_test += l_rec / batches_num_te
+                        divergences_test += np.array(divergences) / batches_num_te
                         mig_test += self.compute_mig(z_mean, batch_labels_test) / batches_num_te
+                    Loss_test.append(loss_test)
                     Loss_rec_test.append(loss_rec_test)
+                    Divergences_test.append(divergences_test.tolist())
                     MIG_test.append(mig_test)
-                    # Auto-encoding test images & samples generated by the model
-                    [reconstructions_test, latents_test, generations_test] = self.sess.run(
-                                                [self.recon_x,
-                                                 self.enc_z,
-                                                 self.generated_x],
-                                                feed_dict={self.batch: data.test_data[:npics],       # TODO what is this?
-                                                           self.samples_pz: fixed_noise,
-                                                           self.dropout_rate: 1.,
-                                                           self.is_training: False})
-                    # Auto-encoding training images
-                    reconstructions_train = self.sess.run(self.recon_x,
-                                                          feed_dict={self.batch: data.data[200:200+npics],  # TODO what is this?
-                                                                     self.dropout_rate: 1.,
-                                                                     self.is_training: False})
+                    # Plot vizualizations
+                    if (counter+1) % opts['plot_every'] == 0 or (counter+1) == 100:
+                        # Auto-encoding test images & samples generated by the model
+                        [reconstructions_test, latents_test, generations] = self.sess.run(
+                                                    [self.recon_x,
+                                                     self.enc_z,
+                                                     self.generated_x],
+                                                    feed_dict={self.batch: data.test_data[:npics],       # TODO what is this?
+                                                               self.samples_pz: fixed_noise,
+                                                               self.dropout_rate: 1.,
+                                                               self.is_training: False})
+                        # Auto-encoding training images
+                        reconstructions_train = self.sess.run(self.recon_x,
+                                                              feed_dict={self.batch: data.data[200:200+npics],  # TODO what is this?
+                                                                         self.dropout_rate: 1.,
+                                                                         self.is_training: False})
 
-                    # - Plotting embeddings, Sigma, latent interpolation, and saving
-                    # Embeddings
-                    if opts['vizu_embedded'] and counter > 1:
-                        plot_embedded(opts, [latents_test[:npics]], [fixed_noise],
-                                      data.test_labels[:npics],
-                                      exp_dir, 'embedded_e%04d_mb%05d.png' % (epoch, it))
-                    # Encoded sigma
-                    if opts['vizu_encSigma'] and counter > 1:
-                        plot_encSigma(opts,
-                                      enc_Sigmas,
-                                      exp_dir,
-                                      'encSigma_e%04d_mb%05d.png' % (epoch, it))
-                    # Encode anchors points and interpolate
-                    if opts['vizu_interpolation']:
-                        logging.error('Latent interpolation..')
-                        num_steps = 15
+                        # - Plotting embeddings, Sigma, latent interpolation, and saving
+                        # Embeddings
+                        if opts['vizu_embedded'] and counter > 1:
+                            plot_embedded(opts, [latents_test[:npics]], [fixed_noise],
+                                          data.test_labels[:npics],
+                                          exp_dir, 'embedded_e%04d_mb%05d.png' % (epoch, it))
+                        # Encoded sigma
+                        if opts['vizu_encSigma'] and counter > 1:
+                            plot_encSigma(opts,
+                                          enc_Sigmas,
+                                          exp_dir,
+                                          'encSigma_e%04d_mb%05d.png' % (epoch, it))
+                        # Encode anchors points and interpolate
+                        if opts['vizu_interpolation']:
+                            logging.error('Latent interpolation..')
+                            num_steps = 15
 
-                        enc_var = np.ones(opts['zdim'])
-                        # crate linespace
-                        enc_interpolation = linespace(opts, num_steps,  # shape: [nanchors, zdim, nsteps, zdim]
-                                                      anchors=latents_test[anchors_ids],
-                                                      std=enc_var)
-                        # reconstructing
-                        dec_interpolation = self.sess.run(self.generated_x,
-                                                          feed_dict={self.samples_pz: np.reshape(enc_interpolation,
-                                                                                                 [-1, opts['zdim']]),
-                                                                     self.dropout_rate: 1.,
-                                                                     self.is_training: False})
-                        inter_anchors = np.reshape(dec_interpolation, [-1, opts['zdim'], num_steps]+im_shape)
-                        plot_interpolation(opts, inter_anchors, exp_dir,
-                                           'inter_e%04d_mb%05d.png' % (epoch, it))
+                            enc_var = np.ones(opts['zdim'])
+                            # crate linespace
+                            enc_interpolation = linespace(opts, num_steps,  # shape: [nanchors, zdim, nsteps, zdim]
+                                                          anchors=latents_test[anchors_ids],
+                                                          std=enc_var)
+                            # reconstructing
+                            dec_interpolation = self.sess.run(self.generated_x,
+                                                              feed_dict={self.samples_pz: np.reshape(enc_interpolation,
+                                                                                                     [-1, opts['zdim']]),
+                                                                         self.dropout_rate: 1.,
+                                                                         self.is_training: False})
+                            inter_anchors = np.reshape(dec_interpolation, [-1, opts['zdim'], num_steps]+im_shape)
+                            plot_interpolation(opts, inter_anchors, exp_dir,
+                                               'inter_e%04d_mb%05d.png' % (epoch, it))
+
+                        # Saving plots
+                        save_train(opts,
+                                  data.data[200:200+npics], data.test_data[:npics],     # images
+                                  reconstructions_train, reconstructions_test,          # reconstructions
+                                  generations,                                          # model samples
+                                  Loss, Loss_test,                                      # loss
+                                  Loss_rec, Loss_rec_test,                              # rec loss
+                                  MIG, MIG_test,                                        # MIG
+                                  Divergences, Divergences_test,                        # divergence terms
+                                  exp_dir,                                              # working directory
+                                  'res_e%04d_mb%05d.png' % (epoch, it))                 # filename
+
 
                     # Printing various loss values
                     debug_str = 'EPOCH: %d/%d, BATCH:%d/%d' % (epoch,
@@ -328,43 +352,37 @@ class Run(object):
                                                                it + 1,
                                                                batches_num)
                     logging.error(debug_str)
-                    debug_str = 'TRAIN LOSS=%.3f, TRAIN MIG=%.3f' % (Loss[-1],MIG[-1])
+                    debug_str = 'TRAIN LOSS=%.3f, TEST LOSS=%.3f' % (Loss[-1],Loss_test[-1])
+                    logging.error(debug_str)
+                    debug_str = 'TRAIN MIG=%.3f, TEST MIG=%.3f' % (MIG[-1],MIG_test[-1])
                     logging.error(debug_str)
                     if opts['model'] == 'BetaVAE':
-                        debug_str = 'REC=%.3f, TEST REC=%.3f, TEST MIG=%.3f, beta KL=%10.3e, \n '  % (
+                        debug_str = 'REC=%.3f, TEST REC=%.3f, beta*KL=%10.3e, beta*TEST KL=%10.3e, \n '  % (
                                                     Loss_rec[-1],
                                                     Loss_rec_test[-1],
-                                                    MIG_test[-1],
-                                                    Divergences[-1])
+                                                    Divergences[-1],
+                                                    Divergences_test[-1])
                     elif opts['model'] == 'WAE':
-                        debug_str = 'REC=%.3f, TEST REC=%.3f, TEST MIG=%.3f, lambda MMD=%10.3e\n ' % (
+                        debug_str = 'REC=%.3f, TEST REC=%.3f, l*MMD=%10.3e, l*TEST MMD=%10.3e \n ' % (
                                                     Loss_rec[-1],
                                                     Loss_rec_test[-1],
-                                                    MIG_test[-1],
-                                                    Divergences[-1])
+                                                    Divergences[-1],
+                                                    Divergences_test[-1])
                     elif opts['model'] == 'disWAE':
-                        debug_str = 'REC=%.3f, TEST REC=%.3f, TEST MIG=%.3f, l1*HSIC=%10.3e, l2*DIMWISE=%10.3e, WAE=%10.3e\n ' % (
+                        debug_str = 'TRAIN: REC=%.3f,l1*HSIC=%10.3e, l2*DIMWISE=%10.3e, WAE=%10.3e \n ' % (
                                                     Loss_rec[-1],
-                                                    Loss_rec_test[-1],
-                                                    MIG_test[-1],
                                                     Divergences[-1][0],
                                                     Divergences[-1][1],
                                                     Divergences[-1][2])
+                        logging.error(debug_str)
+                        debug_str = 'TEST : REC=%.3f, l1*HSIC=%10.3e, l2*DIMWISE=%10.3e, WAE=%10.3e \n ' % (
+                                                    Loss_rec_test[-1],
+                                                    Divergences_test[-1][0],
+                                                    Divergences_test[-1][1],
+                                                    Divergences_test[-1][2])
                     else:
                         raise NotImplementedError('Model type not recognised')
                     logging.error(debug_str)
-
-                    # Saving plots
-                    save_train(opts,
-                               data.data[200:200+npics], data.test_data[:npics],        # images
-                               reconstructions_train, reconstructions_test,             # reconstructions
-                               generations_test,                                        # model samples
-                               Loss,                                                    # loss
-                               Loss_rec, Loss_rec_test,                                 # rec losses
-                               MIG,                                                     # MIG
-                               Divergences,                                             # divergence terms
-                               exp_dir,                                                 # working directory
-                               'res_e%04d_mb%05d.png' % (epoch, it))                    # filename
 
                 # - Update learning rate if necessary and counter
                 if counter >= batches_num * opts['epoch_num'] / 5 and counter % decay_steps == 0:
@@ -412,8 +430,7 @@ class Run(object):
             utils.create_dir(save_path)
             name = 'res_train_final'
             np.savez(os.path.join(save_path, name),
-                     data_test=data.data[200:200 + npics], data_train=data.test_data[:npics], encoded=latents_test,
-                     rec_train=reconstructions_train, rec_test=reconstructions_test[:npics],
-                     samples=generations_test, loss=np.array(Loss), loss_rec=np.array(Loss_rec),
-                     loss_rec_test=np.array(Loss_rec_test), divergences=np.array(Divergences),
-                     mig_train=np.array(MIG), mig_test=np.array(MIG_test))
+                    loss=np.array(Loss), loss_test=np.array(Loss_test),
+                    loss_rec=np.array(Loss_rec), loss_rec_test=np.array(Loss_rec_test),
+                    divergences=np.array(Divergences), divergences_test=np.array(Divergences_test),
+                    mig_train=np.array(MIG), mig_test=np.array(MIG_test))

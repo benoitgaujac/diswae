@@ -1,4 +1,5 @@
 import os
+import re
 import pdb
 
 from math import sqrt
@@ -17,22 +18,23 @@ import utils
 def save_train(opts, data_train, data_test,
                      rec_train, rec_test,
                      samples,
-                     loss,
+                     loss, loss_test,
                      loss_rec, loss_rec_test,
-                     mig,
-                     loss_match,
+                     mig, mig_test,
+                     loss_match, loss_match_test,
                      exp_dir,
                      filename):
 
     """ Generates and saves the plot of the following layout:
         img1 | img2 | img3
-        img4 | img5 |
+        img4 | img5 | img6
 
         img1    -   test reconstructions
         img2    -   train reconstructions
         img3    -   samples
         img4    -   loss curves
-        img5    -   rec loss curves
+        img5    -   split loss curves
+        img6    -   dis. metrics curves
 
     """
     num_pics = opts['plot_num_pics']
@@ -129,40 +131,91 @@ def save_train(opts, data_train, data_test,
 
     ### The loss curves
     ax = plt.subplot(gs[1, 0])
-    total_num = len(loss)
+    size_filter = min(int(len(loss_test)/10),5000)
+    # Obj
+    y = np.convolve(loss_test, np.ones((size_filter,))/size_filter, mode='valid')
+    total_num = len(y)
     x_step = max(int(total_num / 200), 1)
-    x = np.arange(1, len(loss) + 1, x_step)
-    y = np.log(loss[::x_step])
-    plt.plot(x, y, linewidth=3, color='black', label='loss')
+    x = np.arange(1, len(y) + 1, x_step)
+    y = np.log(y[::x_step])
+    plt.plot(x, y, linewidth=4, color='black', label='loss test')
+    y = np.convolve(loss, np.ones((size_filter,))/size_filter, mode='valid')
+    y = np.log(y[::x_step])
+    plt.plot(x, y, linewidth=2, color='black', linestyle='--',label='loss')
     plt.grid(axis='y')
     plt.legend(loc='upper right')
-    plt.text(0.47, 1., 'Obj curve', ha="center", va="bottom",
+    plt.text(0.47, 1., 'Log Loss curves', ha="center", va="bottom",
                                 size=20, transform=ax.transAxes)
 
-    ### The loss curves
+    ### The split loss curves
     base = plt.cm.get_cmap('tab10')
-    color_list = base(np.linspace(0, 1, 5))
+    color_list = base(np.linspace(0, 1, 6))
     ax = plt.subplot(gs[1, 1])
+    losses, losses_test = [], []
+    # Test
+    y = np.convolve(loss_rec_test, np.ones((size_filter,))/size_filter, mode='valid')
+    y = np.log(y[::x_step])
+    losses_test.append(list(y))
     if opts['model'] == 'BetaVAE':
-        losses = [loss_rec,loss_match]
+        y = np.convolve(loss_match_test, np.ones((size_filter,))/size_filter, mode='valid')
+        y = np.log(y[::x_step])
+        losses_test.append(list(y))
         labels = ['rec',r'$\beta$KL']
     elif opts['model'] == 'WAE':
-        losses = [loss_rec,loss_match]
+        y = np.convolve(loss_match_test, np.ones((size_filter,))/size_filter, mode='valid')
+        y = np.log(y[::x_step])
+        losses_test.append(list(y))
         labels = ['rec',r'$\lambda$|mmd|']
     elif opts['model'] == 'disWAE':
-        losses = [loss_rec,] + list(zip(*loss_match))
-        labels = ['rec',r'$\lambda_1$|hsci|]','$\lambda_2$|dimwise|','|wae|']
+        for l in zip(*loss_match_test):
+            y = np.convolve(l, np.ones((size_filter,))/size_filter, mode='valid')
+            y = np.log(y[::x_step])
+            losses_test.append(list(y))
+        labels = ['rec', r"$\lambda_1$|hsci|",r"$\lambda_2$|dimwise|",'|wae|']
     else:
         raise NotImplementedError('Model type not recognised')
-    for i, los, lab in zip([j for j in range(4)],
-                            losses,
-                            labels):
-        l = np.array(los)
-        y = np.log(np.abs(l[::x_step]))
-        plt.plot(x, y, linewidth=2, color=color_list[i], label=lab)
+    # Train
+    y = np.convolve(loss_rec, np.ones((size_filter,))/size_filter, mode='valid')
+    y = np.log(y[::x_step])
+    losses.append(list(y))
+    if opts['model'] == 'BetaVAE':
+        y = np.convolve(loss_match, np.ones((size_filter,))/size_filter, mode='valid')
+        y = np.log(np.abs(y[::x_step]))
+        losses.append(list(y))
+        # labels = ['rec',r'$\beta$KL']
+    elif opts['model'] == 'WAE':
+        y = np.convolve(loss_match, np.ones((size_filter,))/size_filter, mode='valid')
+        y = np.log(np.abs(y[::x_step]))
+        losses.append(list(y))
+        # labels = ['rec',r'$\lambda$|mmd|']
+    elif opts['model'] == 'disWAE':
+        for l in zip(*loss_match):
+            y = np.convolve(l, np.ones((size_filter,))/size_filter, mode='valid')
+            y = np.log(np.abs(y[::x_step]))
+            losses.append(list(y))
+        # labels = ['rec', r"$\lambda_1$|hsci|",r"$\lambda_2$|dimwise|",'|wae|']
+    else:
+        raise NotImplementedError('Model type not recognised')
+
+    for i in range(len(labels)):
+        plt.plot(x, losses_test[i], linewidth=4, color=color_list[i], label=labels[i]+r' test')
+        plt.plot(x, losses[i], linewidth=2, color=color_list[i], linestyle='--', label=labels[i])
+    # for i, los, lab in zip([j for j in range(4)],
+    #                         losses,
+    #                         labels):
+    #     l = np.array(los)
+    #     y = np.log(np.abs(l[::x_step]))
+    #     plt.plot(x, y, linewidth=2, color=color_list[i], linestyle='--', label=lab)
+    # for i, los, lab in zip([j for j in range(4)],
+    #                         losses,
+    #                         labels):
+    #     l = np.array(los)
+    #     y = np.log(np.abs(l[::x_step]))
+    #     plt.plot(x, y, linewidth=4, color=color_list[i], label=lab)
+
     plt.grid(axis='y')
     plt.legend(loc='upper right')
-    plt.text(0.47, 1., 'Loss curves', ha="center", va="bottom",
+    plt.text(0.47, 1., 'Log split Loss curves', ha="center", va="bottom",
                                 size=20, transform=ax.transAxes)
 
     # ### The latent reg curves
@@ -185,21 +238,17 @@ def save_train(opts, data_train, data_test,
     #     plt.text(0.47, 1., 'Latent Reg. curves', ha="center", va="bottom",
     #                                 size=20, transform=ax.transAxes)
 
-    ### The MIG curves
+    ### The disentangle metrics curves
     ax = plt.subplot(gs[1, 2])
-    total_num = len(mig)
-    x_step = max(int(total_num / 200), 1)
-    x = np.arange(1, len(mig) + 1, x_step)
-    size_filter = min(int(len(mig)/10),10000)
+    y = np.convolve(mig_test, np.ones((size_filter,))/size_filter, mode='valid')
+    # y = np.log(y[::x_step])
+    plt.plot(x, y[::x_step], linewidth=4, color='black', label='MIG test')
     y = np.convolve(mig, np.ones((size_filter,))/size_filter, mode='valid')
-    total_num = len(y)
-    x_step = max(int(total_num / 200), 1)
-    x = np.arange(1, len(y) + 1, x_step)
-    y = np.log(y[::x_step])
-    plt.plot(x, y, linewidth=3, color='black', label='MIG')
+    # y = np.log(y[::x_step])
+    plt.plot(x, y[::x_step], linewidth=2, color='black', linestyle='--', label='MIG')
     plt.grid(axis='y')
     plt.legend(loc='upper right')
-    plt.text(0.47, 1., 'MIG curve', ha="center", va="bottom",
+    plt.text(0.47, 1., 'MIG curves', ha="center", va="bottom",
                                 size=20, transform=ax.transAxes)
 
 

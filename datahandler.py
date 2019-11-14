@@ -364,7 +364,10 @@ class DataHandler(object):
         test_size = 10000
         train_prop = (len(X) - test_size) / len(X)
 
+        seed = 123
+        np.random.seed(seed)
         training_mask = np.random.rand(len(X)) < train_prop
+        np.random.seed()
 
         self.data = Data(opts, X[training_mask])
         self.test_data = Data(opts, X[~training_mask])
