@@ -88,7 +88,7 @@ def main():
     opts['epoch_num'] = FLAGS.enum
     opts['evaluate_every'] = 1000
     opts['plot_every'] = 120000
-    opts['save_every_epoch'] = 100000000
+    opts['save_every_epoch'] = 1000000000
     opts['save_final'] = False
     opts['save_train_data'] = True
     opts['vizu_encSigma'] = True
@@ -98,22 +98,22 @@ def main():
 
     # Objective Function Coefficients
     if opts['model'] == 'BetaVAE':
-        beta = [60, 80, 110, 130, 140 ]
+        beta = [2, 4, 6, 8, 10, 16]
         opts['obj_fn_coeffs'] = beta[FLAGS.idx-1]
     elif opts['model'] == 'BetaTCVAE':
-        beta = [5, 10 ,15, 20, 25]
+        beta = [2, 4, 6, 8, 10, 16]
         opts['obj_fn_coeffs'] = beta[FLAGS.idx-1]
     elif opts['model'] == 'WAE':
-        lmba = [80, 120, 140, 160, 300]
+        lmba = [80, 130, 160, 250, 300, 500]
         opts['obj_fn_coeffs'] = lmba[FLAGS.idx-1]
     elif opts['model'] == 'disWAE':
         # Penalty
-        lmba0 = [1, 50, 100, 200, 400, 1000]
-        lmba1 = [0, 0, 0, 0, 0, 0]
-        lmba_ = list(zip(lmba0,lmba1))
-        lmba__ = list(zip(lmba1,lmba0))
-        lmba = lmba_ + lmba__
-        # lmba = list(itertools.product(lmba0,lmba1))
+        lmba0 = [0, 1, 50, 100, 150, 200, 500, 1000, 2000]
+        lmba1 = [0, 1, 50, 100, 150, 200, 500, 1000, 2000]
+        # lmba_ = list(zip(lmba0,lmba1))
+        # lmba__ = list(zip(lmba1,lmba0))
+        # lmba = lmba_ + lmba__
+        lmba = list(itertools.product(lmba0,lmba1))
         # lmba = [[50,50],[25,75],[75,25],[50,100],[100,50]]
         opts['obj_fn_coeffs'] = list(lmba[FLAGS.idx-1])
     else:
