@@ -91,7 +91,7 @@ def main():
     opts['save_every'] = 1000000000
     opts['save_final'] = False
     opts['save_train_data'] = True
-    opts['vizu_encSigma'] = True
+    opts['vizu_encSigma'] = False
 
     # Model set up
     opts['zdim'] = 10
