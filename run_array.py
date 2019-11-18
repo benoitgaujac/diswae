@@ -98,13 +98,13 @@ def main():
 
     # Objective Function Coefficients
     if opts['model'] == 'BetaVAE':
-        beta = [2, 4, 6, 8, 10, 16]
+        beta = [1, 2, 4, 6, 8, 10, 16, 20, 50]
         opts['obj_fn_coeffs'] = beta[FLAGS.idx-1]
     elif opts['model'] == 'BetaTCVAE':
-        beta = [2, 4, 6, 8, 10, 16]
+        beta = [1, 2, 4, 6, 8, 10, 16, 20, 50]
         opts['obj_fn_coeffs'] = beta[FLAGS.idx-1]
     elif opts['model'] == 'WAE':
-        lmba = [80, 130, 160, 250, 300, 500]
+        lmba = [1, 50, 75, 100, 125, 150, 175, 200, 400, 800, 1000]
         opts['obj_fn_coeffs'] = lmba[FLAGS.idx-1]
     elif opts['model'] == 'disWAE':
         # Penalty
