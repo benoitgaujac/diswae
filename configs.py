@@ -41,7 +41,7 @@ config_dsprites['batch_norm_eps'] = 1e-05
 config_dsprites['batch_norm_momentum'] = 0.99
 config_dsprites['dropout_rate'] = 1.
 # Objective set up
-config_dsprites['cost'] = 'l2sq' #l2, l2sq, l2sq_norm, l1
+config_dsprites['cost'] = 'l2sq' #l2, l2sq, l2sq_norm, l1, xentropy
 config_dsprites['mmd_kernel'] = 'IMQ' # RBF, IMQ
 config_dsprites['pen_enc_sigma'] = True
 config_dsprites['lambda_pen_enc_sigma'] = 0.001

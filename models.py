@@ -5,7 +5,7 @@ from math import pi
 from networks import encoder, decoder
 from datahandler import datashapes
 from sampling_functions import sample_gaussian
-from loss_functions import l2_cost, l2sq_cost, l2sq_norm_cost, l1_cost
+from loss_functions import l2_cost, l2sq_cost, l2sq_norm_cost, l1_cost, xentropy_cost
 import utils
 
 import pdb
@@ -243,6 +243,8 @@ class WAE(Model):
             cost = l2sq_norm_cost(x1, x2)
         elif self.opts['cost'] == 'l1':
             cost = l1_cost(x1, x2)
+        elif self.opts['cost'] == 'xentropy':
+            cost = xentropy_cost(x1, x2)
         else:
             assert False, 'Unknown cost function %s' % self.opts['obs_cost']
 

@@ -180,3 +180,12 @@ def l1_cost(x1, x2):
     # c(x,y) = ||x - y||_1
     cost = tf.reduce_sum(tf.abs(x1 - x2), axis=-1)
     return cost
+
+def xentropy_cost(labels, preds):
+    # c(z,x) = z * -log(x) + (1 - z) * -log(1 - x)
+    # where x = preds, z = labels
+    eps = 1e-8
+    labels = tf.layers.flatten(labels)
+    cross_entropy = labels * tf.log(preds+eps) + (1. - labels) * tf.log(1 - (preds+eps))
+    # cross_entropy = tf.nn.sigmoid_cross_entropy_with_logits(labels=labels, logits=logits)
+    return - tf.reduce_mean(tf.reduce_sum(cross_entropy,axis=-1))

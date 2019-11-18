@@ -95,6 +95,7 @@ def main():
 
     # Model set up
     opts['zdim'] = 10
+    opts['cost'] = 'xentropy' #l2, l2sq, l2sq_norm, l1, xentropy
 
     # Objective Function Coefficients
     if opts['model'] == 'BetaVAE':
