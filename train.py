@@ -368,6 +368,7 @@ class Run(object):
                                                         Loss_rec_test[-1],
                                                         Divergences[-1],
                                                         Divergences_test[-1])
+                            logging.error(debug_str)
                         elif opts['model'] == 'BetaTCVAE':
                             debug_str = 'REC=%.3f, TEST REC=%.3f, b*TC=%10.3e, TEST b*TC=%10.3e, KL=%10.3e, TEST KL=%10.3e, \n '  % (
                                                         Loss_rec[-1],
@@ -376,12 +377,14 @@ class Run(object):
                                                         Divergences_test[-1][0],
                                                         Divergences[-1][1],
                                                         Divergences_test[-1][1])
+                            logging.error(debug_str)
                         elif opts['model'] == 'WAE':
                             debug_str = 'REC=%.3f, TEST REC=%.3f, l*MMD=%10.3e, l*TEST MMD=%10.3e \n ' % (
                                                         Loss_rec[-1],
                                                         Loss_rec_test[-1],
                                                         Divergences[-1],
                                                         Divergences_test[-1])
+                            logging.error(debug_str)
                         elif opts['model'] == 'disWAE':
                             debug_str = 'TRAIN: REC=%.3f,l1*HSIC=%10.3e, l2*DIMWISE=%10.3e, WAE=%10.3e' % (
                                                         Loss_rec[-1],
