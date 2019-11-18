@@ -87,7 +87,7 @@ def main():
     # Experiemnts set up
     opts['epoch_num'] = FLAGS.enum
     opts['evaluate_every'] = 1000
-    opts['plot_every'] = 120000
+    opts['plot_every'] = 568000
     opts['save_every'] = 1000000000
     opts['save_final'] = False
     opts['save_train_data'] = True
