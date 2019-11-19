@@ -230,7 +230,7 @@ class WAE(Model):
 
         return stat
 
-    def reconstruction_loss(self, opts, x1, x2):
+    def reconstruction_loss(self, opts, x1, x2, logits):
         # Flatten last dim input
         x1 = tf.layers.flatten(x1)
         x2 = tf.layers.flatten(x2)
@@ -244,7 +244,7 @@ class WAE(Model):
         elif self.opts['cost'] == 'l1':
             cost = l1_cost(x1, x2)
         elif self.opts['cost'] == 'xentropy':
-            cost = xentropy_cost(x1, x2)
+            cost = xentropy_cost(x1, logits)
         else:
             assert False, 'Unknown cost function %s' % self.opts['obs_cost']
 
@@ -255,11 +255,11 @@ class WAE(Model):
         lmbd = loss_coeffs
 
         # --- Encoding and reconstructing
-        enc_z, enc_mean, enc_Sigma, recon_x, _, _ = self.forward_pass(inputs=inputs,
+        enc_z, enc_mean, enc_Sigma, recon_x, dec_mean, _ = self.forward_pass(inputs=inputs,
                                                                                 is_training=is_training,
                                                                                 dropout_rate=dropout_rate)
 
-        loss_reconstruct = self.reconstruction_loss(self.opts, inputs, recon_x)
+        loss_reconstruct = self.reconstruction_loss(self.opts, inputs, recon_x, dec_mean)
         match_penalty = lmbd*self.mmd_penalty(self.opts, enc_z, samples)
         divergences = match_penalty
         objective = loss_reconstruct + match_penalty
@@ -288,10 +288,10 @@ class disWAE(WAE):
         (lmbd1, lmbd2) = loss_coeffs
 
         # --- Encoding and reconstructing
-        enc_z, enc_mean, enc_Sigma, recon_x, _, _ = self.forward_pass(inputs=inputs,
+        enc_z, enc_mean, enc_Sigma, recon_x, dec_mean, _ = self.forward_pass(inputs=inputs,
                                                                                 is_training=is_training,
                                                                                 dropout_rate=dropout_rate)
-        loss_reconstruct = self.reconstruction_loss(self.opts, inputs, recon_x)
+        loss_reconstruct = self.reconstruction_loss(self.opts, inputs, recon_x, dec_mean)
 
         # --- Latent regularization
         # shuffling latent codes
