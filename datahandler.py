@@ -351,23 +351,23 @@ class DataHandler(object):
         X = np.load(data_file, allow_pickle=True)['imgs']
         X = X[:, :, :, None]
         Y = np.load(data_file, allow_pickle=True)['latents_classes'][:,1:]
-
-
+        # shuffling data
         seed = 123
         np.random.seed(seed)
         np.random.shuffle(X)
         np.random.seed(seed)
         np.random.shuffle(Y)
         np.random.seed()
-
+        # Set vizu data aside
+        self.vizu_data = Data(opts, X[:opts['plot_num_pics']])
+        self.vizu_labels = Data(opts, Y[:opts['plot_num_pics']])
+        X = X[opts['plot_num_pics']:]
+        Y = Y[opts['plot_num_pics']:]
+        # shuffling dataset train/test split
         self.data_shape = (64, 64, 1)
-        test_size = 10000
+        test_size = 10000 - opts['plot_num_pics']
         train_prop = (len(X) - test_size) / len(X)
-
-        seed = 123
-        np.random.seed(seed)
         training_mask = np.random.rand(len(X)) < train_prop
-        np.random.seed()
 
         self.data = Data(opts, X[training_mask])
         self.test_data = Data(opts, X[~training_mask])

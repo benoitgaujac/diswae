@@ -297,7 +297,7 @@ class Run(object):
                                                     [self.recon_x,
                                                      self.enc_z,
                                                      self.generated_x],
-                                                    feed_dict={self.batch: data.test_data[:npics],       # TODO what is this?
+                                                    feed_dict={self.batch: data.vizu_data,       # TODO what is this?
                                                                self.samples_pz: fixed_noise,
                                                                self.dropout_rate: 1.,
                                                                self.is_training: False})
@@ -311,7 +311,7 @@ class Run(object):
                         # Embeddings
                         if opts['vizu_embedded'] and counter > 1:
                             plot_embedded(opts, [latents_test[:npics]], [fixed_noise],
-                                          data.test_labels[:npics],
+                                          data.vizu_labels[:npics],
                                           exp_dir, 'embedded_e%04d_mb%05d.png' % (epoch, it))
                         # Encoded sigma
                         if opts['vizu_encSigma'] and counter > 1:
@@ -341,7 +341,7 @@ class Run(object):
 
                         # Saving plots
                         save_train(opts,
-                                  data.data[200:200+npics], data.test_data[:npics],     # images
+                                  data.data[200:200+npics], data.vizu_data[:npics],     # images
                                   reconstructions_train, reconstructions_test,          # reconstructions
                                   generations,                                          # model samples
                                   Loss, Loss_test,                                      # loss
