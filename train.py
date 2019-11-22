@@ -84,9 +84,6 @@ class Run(object):
         self.samples_pz = tf.placeholder(tf.float32,
                                          [None] + [opts['zdim'],],
                                          name='noise_ph')
-        self.labels = tf.placeholder(tf.int32,
-                                         [None] + [opts['num_factors'],],
-                                         name='labels_ph')
 
     def add_training_placeholders(self):
         self.lr_decay = tf.placeholder(tf.float32, name='rate_decay_ph')
@@ -104,15 +101,13 @@ class Run(object):
             raise NotImplementedError()
 
     def compute_mig(self,z_mean,labels):
-        """Compute Discrete mutual information as in ICML 2019"""
+        """MIG metric.
+        Compute the discrete mutual information between
+        mean latent codes and factors as in ICML 2019"""
         opts = self.opts
         # Discretize enc_mean
         discretized_z_mean = utils.discretizer(np.transpose(z_mean), 20)
-        assert np.shape(discretized_z_mean)[0]==opts['zdim'], \
-                    'Wrong shape for discretized mean representation'
         # mutual discrete information
-        assert np.shape(labels)[1]==opts['num_factors'], \
-                    'Wrong shape for labels'
         mutual_info = utils.discrete_mutual_info(discretized_z_mean,np.transpose(labels))
         # laten entropy
         entropy = utils.discrete_entropy(np.transpose(labels))
@@ -124,6 +119,55 @@ class Run(object):
 
         return np.mean(mig)
 
+    def generate_training_sample(self, sess, data, global_variances, active_dims):
+        opts = self.opts
+        # sample factor idx
+        factor_index = np.random.randint(len(data.factor_sizes))
+        # sample batch of images with fix selected factor
+        batch_size = 64
+        batch_images = utils.sample_images(batch_size, data, factor_index)
+        # encode images
+        z = sess.run(self.z_samples, feed_dict={self.batch: batch_images,
+                                                self.dropout_rate: 1.,
+                                                self.is_training: False})
+        # get variance per dimension and vote
+        local_variances = np.var(z, axis=0, ddof=1)
+        argmin = np.argmin(local_variances[active_dims] / global_variances[active_dims])
+
+        return factor_index, argmin
+
+    def compute_factorVAE(self, sess, data, codes):
+        """Compute FactorVAE metric"""
+        opts = self.opts
+        threshold = .05
+        # Compute global variance and pruning dimensions
+        global_variances = np.var(codes, axis=0, ddof=1)
+        active_dims = np.sqrt(global_variances)>=threshold
+        # Generate classifier training set and build classifier
+        training_size = 10000
+        votes = np.zeros((len(data.factor_sizes), opts['zdim']),dtype=np.int32)
+        for i in range(training_size):
+            factor, vote = self.generate_training_sample(sess,
+                                                    data,
+                                                    global_variances,
+                                                    active_dims)
+            votes[factor, vote] += 1
+            # print('{} training points generated'.format(i+1))
+        classifier = np.argmax(votes, axis=0)
+        other_index = np.arange(votes.shape[1])
+        # Generate classifier eval set and get eval accuracy
+        eval_size = 5000
+        votes = np.zeros((len(data.factor_sizes), opts['zdim']),dtype=np.int32)
+        for i in range(eval_size):
+            factor, vote = self.generate_training_sample(sess,
+                                                    data,
+                                                    global_variances,
+                                                    active_dims)
+            votes[factor, vote] += 1
+            # print('{} eval points generated'.format(i+1))
+        acc = np.sum(votes[classifier, other_index]) * 1. / np.sum(votes)
+
+        return acc
 
     def add_savers(self):
         saver = tf.train.Saver(max_to_keep=10)
@@ -178,7 +222,7 @@ class Run(object):
         # - Init all monitoring variables
         Loss, Loss_test, Loss_rec, Loss_rec_test = [], [], [], []
         Divergences, Divergences_test = [], []
-        MIG, MIG_test = [], []
+        MIG, factorVAE = [], []
         if opts['vizu_encSigma']:
             enc_Sigmas = []
 
@@ -223,13 +267,15 @@ class Run(object):
                     Loss.append(loss)
                     Loss_rec.append(loss_rec)
                     Divergences.append(divergences)
-                    # MIG score
-                    batch_labels = data.labels[data_ids].astype(np.int32)
-                    z_mean = self.sess.run(self.z_mean, feed_dict={
-                                            self.batch: batch_images,
-                                            self.dropout_rate: 1.,
-                                            self.is_training: False})
-                    MIG.append(self.compute_mig(z_mean,batch_labels))
+
+                    # # MIG score
+                    # batch_labels = data.labels[data_ids].astype(np.int32)
+                    # z_train, z_mean_train = self.sess.run(self.z_mean, feed_dict={
+                    #                         self.batch: batch_images,
+                    #                         self.dropout_rate: 1.,
+                    #                         self.is_training: False})
+                    # MIG.append(self.compute_mig(z_mean_train,batch_labels))
+
 
                     # loss_train_summary = tf.Summary(value=[tf.Summary.Value(tag="loss_train", simple_value=loss)])
                     # loss_rec_train_summary = tf.Summary(value=[tf.Summary.Value(tag="loss_rec_train", simple_value=loss_rec)])
@@ -261,7 +307,9 @@ class Run(object):
                     # writer.add_summary(tf.Summary(value=summary_vals_train), it + (epoch * batches_num))
 
                     # Test losses
-                    loss_test, loss_rec_test, mig_test = 0., 0., 0.
+                    loss_test, loss_rec_test = 0., 0.
+                    codes, codes_mean = np.zeros((batches_num_te*batch_size_te,opts['zdim'])), np.zeros((batches_num_te*batch_size_te,opts['zdim']))
+                    labels = np.zeros((batches_num_te*batch_size_te,len(data.factor_sizes)))
                     if type(divergences)==list:
                         divergences_test = np.zeros(len(divergences))
                     else:
@@ -277,19 +325,24 @@ class Run(object):
                                           self.obj_fn_coeffs: opts['obj_fn_coeffs'],
                                           self.dropout_rate: 1.,
                                           self.is_training: False}
-                        [loss, l_rec, divergences, z_mean] = self.sess.run([self.objective,
+                        [loss, l_rec, divergences, z, z_mean] = self.sess.run([self.objective,
                                                          self.loss_reconstruct,
                                                          self.divergences,
+                                                         self.z_samples,
                                                          self.z_mean],
                                                         feed_dict=test_feed_dict)
                         loss_test += loss / batches_num_te
                         loss_rec_test += l_rec / batches_num_te
                         divergences_test += np.array(divergences) / batches_num_te
-                        mig_test += self.compute_mig(z_mean, batch_labels_test) / batches_num_te
+                        codes[batch_size_te*it_:batch_size_te*(it_+1)] = z
+                        codes_mean[batch_size_te*it_:batch_size_te*(it_+1)] = z_mean
+                        labels[batch_size_te*it_:batch_size_te*(it_+1)] = batch_labels_test
                     Loss_test.append(loss_test)
                     Loss_rec_test.append(loss_rec_test)
                     Divergences_test.append(divergences_test.tolist())
-                    MIG_test.append(mig_test)
+                    MIG.append(self.compute_mig(codes_mean, labels))
+                    factorVAE.append(self.compute_factorVAE(self.sess, data, codes))
+                    # pdb.set_trace()
                     # Plot vizualizations
                     if (counter+1) % opts['plot_every'] == 0 or (counter+1) == 100:
                         # Auto-encoding test images & samples generated by the model
@@ -346,7 +399,7 @@ class Run(object):
                                   generations,                                          # model samples
                                   Loss, Loss_test,                                      # loss
                                   Loss_rec, Loss_rec_test,                              # rec loss
-                                  MIG, MIG_test,                                        # MIG
+                                  MIG, factorVAE,                                       # disentangle metrics
                                   Divergences, Divergences_test,                        # divergence terms
                                   exp_dir,                                              # working directory
                                   'res_e%04d_mb%05d.png' % (epoch, it))                 # filename
@@ -360,7 +413,7 @@ class Run(object):
                         logging.error(debug_str)
                         debug_str = 'TRAIN LOSS=%.3f, TEST LOSS=%.3f' % (Loss[-1],Loss_test[-1])
                         logging.error(debug_str)
-                        debug_str = 'TRAIN MIG=%.3f, TEST MIG=%.3f' % (MIG[-1],MIG_test[-1])
+                        debug_str = 'MIG=%.3f, factorVAE=%.3f' % (MIG[-1],factorVAE[-1])
                         logging.error(debug_str)
                         if opts['model'] == 'BetaVAE':
                             debug_str = 'REC=%.3f, TEST REC=%.3f, beta*KL=%10.3e, beta*TEST KL=%10.3e, \n '  % (
@@ -450,4 +503,4 @@ class Run(object):
                     loss=np.array(Loss), loss_test=np.array(Loss_test),
                     loss_rec=np.array(Loss_rec), loss_rec_test=np.array(Loss_rec_test),
                     divergences=np.array(Divergences), divergences_test=np.array(Divergences_test),
-                    mig_train=np.array(MIG), mig_test=np.array(MIG_test))
+                    mig_=np.array(MIG), factorVAE=np.array(factorVAE))

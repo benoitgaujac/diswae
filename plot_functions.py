@@ -20,7 +20,7 @@ def save_train(opts, data_train, data_test,
                      samples,
                      loss, loss_test,
                      loss_rec, loss_rec_test,
-                     mig, mig_test,
+                     mig, factorVAE,
                      loss_match, loss_match_test,
                      exp_dir,
                      filename):
@@ -131,7 +131,7 @@ def save_train(opts, data_train, data_test,
 
     ### The loss curves
     ax = plt.subplot(gs[1, 0])
-    size_filter = min(int(len(loss_test)/2),100)
+    size_filter = min(int(len(loss_test)/2),20)
     # Obj
     y = np.convolve(loss_test, np.ones((size_filter,))/size_filter, mode='valid')
     total_num = len(y)
@@ -235,15 +235,15 @@ def save_train(opts, data_train, data_test,
 
     ### The disentangle metrics curves
     ax = plt.subplot(gs[1, 2])
-    y = np.convolve(mig_test, np.ones((size_filter,))/size_filter, mode='valid')
-    # y = np.log(y[::x_step])
-    plt.plot(x, y[::x_step], linewidth=4, color='black', label='MIG test')
     y = np.convolve(mig, np.ones((size_filter,))/size_filter, mode='valid')
     # y = np.log(y[::x_step])
-    plt.plot(x, y[::x_step], linewidth=2, color='black', linestyle='--', label='MIG')
+    plt.plot(x, y[::x_step], linewidth=4, color='red', label='MIG')
+    y = np.convolve(factorVAE, np.ones((size_filter,))/size_filter, mode='valid')
+    # y = np.log(y[::x_step])
+    plt.plot(x, y[::x_step], linewidth=4, color='blue', label='factorVAE')
     plt.grid(axis='y')
     plt.legend(loc='upper right')
-    plt.text(0.47, 1., 'MIG curves', ha="center", va="bottom",
+    plt.text(0.47, 1., 'Disentanglement metrics', ha="center", va="bottom",
                                 size=20, transform=ax.transAxes)
 
 

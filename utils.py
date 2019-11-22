@@ -116,3 +116,18 @@ def gaussian_log_density(samples, mean, log_var):
   inv_sigma = tf.exp(-log_var)
   tmp = (samples - mean)
   return -0.5 * (tmp * tmp * inv_sigma + log_var + normalization)
+
+def sample_images(batch_size, data, factor_index):
+    factor_sizes = data.factor_sizes
+    factor_num = len(factor_sizes)
+    # sampling batch of factors
+    factors = np.zeros((batch_size,factor_num))
+    for i in range(factor_num):
+        factors[:,i] = np.random.randint(factor_sizes[i],size=batch_size)
+    # fixing the selected factor across batch
+    factors[:, factor_index] = factors[0, factor_index]
+    # generating images from factors
+    indices = np.dot(factors, data.factor_bases).astype(dtype=np.int32)
+    images = data.X[indices]
+
+    return images

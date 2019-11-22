@@ -346,40 +346,43 @@ class DataHandler(object):
 
         """
         logging.error('Loading dsprites')
+        # Loading data
         data_dir = _data_dir(opts)
         data_file = os.path.join(data_dir, 'dsprites_ndarray_co1sh3sc6or40x32y32_64x64.npz')
         X = np.load(data_file, allow_pickle=True)['imgs']
         X = X[:, :, :, None]
         Y = np.load(data_file, allow_pickle=True)['latents_classes'][:,1:]
+        # keep original ordering
+        self.X = X
+        self.Y = Y
         # shuffling data
         seed = 123
+        shuffling_mask = np.arange(len(X))
         np.random.seed(seed)
-        np.random.shuffle(X)
-        np.random.seed(seed)
-        np.random.shuffle(Y)
-        np.random.seed()
+        np.random.shuffle(shuffling_mask)
+        X = X[shuffling_mask]
+        Y = Y[shuffling_mask]
         # Set vizu data aside
         self.vizu_data = Data(opts, X[:opts['plot_num_pics']])
         self.vizu_labels = Data(opts, Y[:opts['plot_num_pics']])
         X = X[opts['plot_num_pics']:]
         Y = Y[opts['plot_num_pics']:]
-        # shuffling dataset train/test split
+        # shuffling split train/test
         self.data_shape = (64, 64, 1)
         test_size = 10000 - opts['plot_num_pics']
         train_prop = (len(X) - test_size) / len(X)
         training_mask = np.random.rand(len(X)) < train_prop
-
         self.data = Data(opts, X[training_mask])
         self.test_data = Data(opts, X[~training_mask])
-
         self.labels = Data(opts, Y[training_mask])
         self.test_labels = Data(opts, Y[~training_mask])
-
         self.num_points = len(self.data)
-
+        # labels informations
         self.factor_sizes = np.array(
             np.load(data_file, allow_pickle=True, encoding="latin1")['metadata'][()]["latents_sizes"],
-            dtype=np.int64)
+            dtype=np.int64)[1:]
+        self.factor_bases = np.prod(self.factor_sizes) / np.cumprod(
+            self.factor_sizes)
 
         logging.error('Loading Done.')
 
