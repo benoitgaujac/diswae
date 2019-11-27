@@ -503,4 +503,4 @@ class Run(object):
                     loss=np.array(Loss), loss_test=np.array(Loss_test),
                     loss_rec=np.array(Loss_rec), loss_rec_test=np.array(Loss_rec_test),
                     divergences=np.array(Divergences), divergences_test=np.array(Divergences_test),
-                    mig_=np.array(MIG), factorVAE=np.array(factorVAE))
+                    mig=np.array(MIG), factorVAE=np.array(factorVAE))

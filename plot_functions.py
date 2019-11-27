@@ -131,7 +131,7 @@ def save_train(opts, data_train, data_test,
 
     ### The loss curves
     ax = plt.subplot(gs[1, 0])
-    size_filter = min(int(len(loss_test)/2),20)
+    size_filter = min(int(len(loss_test)/2),5)
     # Obj
     y = np.convolve(loss_test, np.ones((size_filter,))/size_filter, mode='valid')
     total_num = len(y)

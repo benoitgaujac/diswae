@@ -86,16 +86,19 @@ def main():
 
     # Experiemnts set up
     opts['epoch_num'] = FLAGS.enum
-    opts['plot_every'] = 568000
-    opts['evaluate_every'] = int(opts['plot_every'] / 100)
+    opts['plot_every'] = 568000/2
+    opts['evaluate_every'] = int(opts['plot_every'] / 10)
     opts['save_every'] = 1000000000
     opts['save_final'] = False
     opts['save_train_data'] = True
     opts['vizu_encSigma'] = False
 
+    # Opt set up
+    opts['lr'] = 0.001
+
     # Model set up
     opts['zdim'] = 10
-    opts['cost'] = 'l2sq' #l2, l2sq, l2sq_norm, l1, xentropy
+    opts['cost'] = 'xentropy' #l2, l2sq, l2sq_norm, l1, xentropy
 
     # Objective Function Coefficients
     if opts['model'] == 'BetaVAE':
@@ -109,8 +112,8 @@ def main():
         opts['obj_fn_coeffs'] = lmba[FLAGS.idx-1]
     elif opts['model'] == 'disWAE':
         # Penalty
-        lmba0 = [0, 1, 50, 100, 150, 200, 500, 1000, 1500, 2000]
-        lmba1 = [0, 1, 50, 100, 150, 200, 500, 1000, 1500, 2000]
+        lmba0 = [1, 50, 100, 250, 400, 500, 750, 1000, 1500, 2000]
+        lmba1 = [1, 50, 100, 250, 400, 500, 750, 1000, 1500, 2000]
         # lmba_ = list(zip(lmba0,lmba1))
         # lmba__ = list(zip(lmba1,lmba0))
         # lmba = lmba_ + lmba__

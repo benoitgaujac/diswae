@@ -6,9 +6,9 @@
 
 #$ -l gpu=1
 #$ -l tmem=4G
-#$ -l h_rt=24:00:00
+#$ -l h_rt=48:00:00
 
-#$ -t 1-16
+#$ -t 1-100
 
 #$ -N disWAE_mlp_dsprites
 
@@ -16,4 +16,4 @@ source /share/apps/examples/source_files/python/python-3.6.4.source
 source /share/apps/examples/source_files/cuda/cuda-9.0.source
 
 # python3 run.py --out_dir dsprites  --exp dsprites --enum 100 --lmba0 1 --lmba1 1
-python3 run_array.py --exp_dir dsprites_mlp --exp dsprites --enum 100 --net_archi mlp --idx $SGE_TASK_ID --model disWAE
+python3 run_array.py --exp_dir dsprites --exp dsprites --enum 105 --net_archi mlp --idx $SGE_TASK_ID --model disWAE --out_dir code_outputs_v1 --sigma_pen True
