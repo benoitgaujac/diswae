@@ -94,7 +94,7 @@ def main():
     opts['vizu_encSigma'] = False
 
     # Opt set up
-    opts['lr'] = 0.001
+    opts['lr'] = 0.0005
 
     # Model set up
     opts['zdim'] = 10
@@ -114,6 +114,8 @@ def main():
         # Penalty
         lmba0 = [1, 50, 100, 250, 400, 500, 750, 1000, 1500, 2000]
         lmba1 = [1, 50, 100, 250, 400, 500, 750, 1000, 1500, 2000]
+        lmba0 = [10, 20, 300, 450, 600, 900, 1250, 1750]
+        lmba1 = [10, 20, 300, 450, 600, 900, 1250, 1750]
         # lmba_ = list(zip(lmba0,lmba1))
         # lmba__ = list(zip(lmba1,lmba0))
         # lmba = lmba_ + lmba__
