@@ -86,8 +86,8 @@ def main():
 
     # Experiemnts set up
     opts['epoch_num'] = FLAGS.enum
-    opts['plot_every'] = 568000/2
-    opts['evaluate_every'] = int(opts['plot_every'] / 10)
+    opts['plot_every'] = 7274*50
+    opts['evaluate_every'] = int(opts['plot_every'] / 5)
     opts['save_every'] = 1000000000
     opts['save_final'] = False
     opts['save_train_data'] = True
@@ -112,10 +112,8 @@ def main():
         opts['obj_fn_coeffs'] = lmba[FLAGS.idx-1]
     elif opts['model'] == 'disWAE':
         # Penalty
-        lmba0 = [1, 50, 100, 250, 400, 500, 750, 1000, 1500, 2000]
-        lmba1 = [1, 50, 100, 250, 400, 500, 750, 1000, 1500, 2000]
-        lmba0 = [10, 20, 300, 450, 600, 900, 1250, 1750]
-        lmba1 = [10, 20, 300, 450, 600, 900, 1250, 1750]
+        lmba0 = [1, 10, 20, 50, 100, 250, 400, 500, 750, 1000, 1500]
+        lmba1 = [1, 10, 20, 50, 100, 250, 400, 500, 750, 1000, 1500]
         # lmba_ = list(zip(lmba0,lmba1))
         # lmba__ = list(zip(lmba1,lmba0))
         # lmba = lmba_ + lmba__
