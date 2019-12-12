@@ -61,6 +61,8 @@ def main():
         opts = configs.config_dsprites
     elif FLAGS.exp == 'smallNORB':
         opts = configs.config_smallNORB
+    elif FLAGS.exp == '3dshapes':
+        opts = configs.config_3dshapes
     elif FLAGS.exp == '3Dchairs':
         opts = configs.config_3Dchairs
     elif FLAGS.exp == 'celebA':
