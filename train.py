@@ -122,7 +122,8 @@ class Run(object):
     def generate_training_sample(self, sess, data, global_variances, active_dims):
         opts = self.opts
         # sample factor idx
-        factor_index = np.random.randint(len(data.factor_sizes))
+        factor_index = np.random.randint(len(data.factor_indices))
+        factor_index = data.factor_indices[factor_index]
         # sample batch of images with fix selected factor
         batch_size = 64
         batch_images = utils.sample_images(batch_size, data, factor_index)
@@ -145,7 +146,7 @@ class Run(object):
         active_dims = np.sqrt(global_variances)>=threshold
         # Generate classifier training set and build classifier
         training_size = 10000
-        # training_size = 100
+        # training_size = 20
         votes = np.zeros((len(data.factor_sizes), opts['zdim']),dtype=np.int32)
         for i in range(training_size):
             factor, vote = self.generate_training_sample(sess,
@@ -158,7 +159,7 @@ class Run(object):
         other_index = np.arange(votes.shape[1])
         # Generate classifier eval set and get eval accuracy
         eval_size = 5000
-        # eval_size = 50
+        # eval_size = 5
         votes = np.zeros((len(data.factor_sizes), opts['zdim']),dtype=np.int32)
         for i in range(eval_size):
             factor, vote = self.generate_training_sample(sess,
@@ -262,8 +263,8 @@ class Run(object):
                 ##### TESTING LOOP #####
                 if (counter+1)%opts['evaluate_every'] == 0 or (counter < 20 and (counter+1)%10 == 0):
                     print("Epoch {}, Iteration {}".format(epoch, it+1))
-                    # batch_size_te = 64
-                    batch_size_te = 200
+                    batch_size_te = 64
+                    # batch_size_te = 200
                     test_size = np.shape(data.test_data)[0]
                     batches_num_te = int(test_size/batch_size_te)
                     # Train losses
@@ -312,7 +313,7 @@ class Run(object):
                     # Test losses
                     loss_test, loss_rec_test = 0., 0.
                     codes, codes_mean = np.zeros((batches_num_te*batch_size_te,opts['zdim'])), np.zeros((batches_num_te*batch_size_te,opts['zdim']))
-                    labels = np.zeros((batches_num_te*batch_size_te,len(data.factor_sizes)))
+                    labels = np.zeros((batches_num_te*batch_size_te,len(data.factor_indices)))
                     if type(divergences)==list:
                         divergences_test = np.zeros(len(divergences))
                     else:
@@ -322,7 +323,7 @@ class Run(object):
                         data_ids = np.random.choice(test_size, batch_size_te, replace=True)
                         batch_images_test = data.test_data[data_ids].astype(np.float32)
                         batch_pz_samples_test = sample_pz(opts, self.pz_params, batch_size_te)
-                        batch_labels_test = data.test_labels[data_ids]
+                        batch_labels_test = data.test_labels[data_ids][:,data.factor_indices]
                         test_feed_dict = {self.batch: batch_images_test,
                                           self.samples_pz: batch_pz_samples_test,
                                           self.obj_fn_coeffs: opts['obj_fn_coeffs'],

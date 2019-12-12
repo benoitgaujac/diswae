@@ -14,21 +14,21 @@ import pdb
 
 parser = argparse.ArgumentParser()
 # Args for experiment
-parser.add_argument("--model", default='WAE',
+parser.add_argument("--model", default='disWAE',
                     help='model to train [WAE/BetaVAE/...]')
 parser.add_argument("--mode", default='train',
                     help='mode to run [train/vizu/fid/test]')
-parser.add_argument("--exp", default='mnist',
+parser.add_argument("--exp", default='dsprites',
                     help='dataset [mnist/cifar10/].'\
                     ' celebA/dsprites Not implemented yet')
 parser.add_argument("--data_dir", type=str, default='../data',
                     help='directory in which data is stored')
 parser.add_argument("--out_dir", type=str, default='code_outputs',
                     help='root_directory in which outputs are saved')
-parser.add_argument("--exp_dir", type=str, default='results',
+parser.add_argument("--exp_dir", type=str, default='res',
                     help='directory in which exp. outputs are saved')
-parser.add_argument("--enum", type=int, default=100,
-                    help='epoch number')
+parser.add_argument("--num_it", type=int, default=300000,
+                    help='iteration number')
 parser.add_argument("--net_archi", default='mlp',
                     help='networks architecture [mlp/conv_locatello]')
 parser.add_argument("--idx", type=int, default=0,
@@ -84,20 +84,12 @@ def main():
     else:
         opts['fid'] = False
 
-    # Experiemnts set up
-    opts['epoch_num'] = FLAGS.enum
-    opts['plot_every'] = 7274*50
-    opts['evaluate_every'] = int(opts['plot_every'] / 5)
-    opts['save_every'] = 1000000000
-    opts['save_final'] = False
-    opts['save_train_data'] = True
-    opts['vizu_encSigma'] = False
-
     # Opt set up
     opts['lr'] = 0.0005
 
     # Model set up
     opts['zdim'] = 10
+    opts['batch_size'] = 100
     opts['cost'] = 'xentropy' #l2, l2sq, l2sq_norm, l1, xentropy
 
     # Objective Function Coefficients
@@ -112,8 +104,8 @@ def main():
         opts['obj_fn_coeffs'] = lmba[FLAGS.idx-1]
     elif opts['model'] == 'disWAE':
         # Penalty
-        lmba0 = [1, 10, 20, 50, 100, 250, 400, 500, 750, 1000, 1500]
-        lmba1 = [1, 10, 20, 50, 100, 250, 400, 500, 750, 1000, 1500]
+        lmba0 = [1, 100, 250, 500, 750, 1000, 1500, 1750, 2000]
+        lmba1 = [1, 2, 5, 10, 20, 50, 100, 250, 500]
         # lmba_ = list(zip(lmba0,lmba1))
         # lmba__ = list(zip(lmba1,lmba0))
         # lmba = lmba_ + lmba__
@@ -160,6 +152,16 @@ def main():
     # Loading the dataset
     data = DataHandler(opts)
     assert data.num_points >= opts['batch_size'], 'Training set too small'
+
+    # Experiemnts set up
+    opts['epoch_num'] = int(FLAGS.num_it / int(data.num_points/opts['batch_size']))
+    opts['plot_every'] = int(FLAGS.num_it / 2.)
+    opts['evaluate_every'] = int(opts['plot_every'] / 2)
+    opts['save_every'] = 1000000000
+    opts['save_final'] = False
+    opts['save_train_data'] = True
+    opts['vizu_encSigma'] = False
+
 
     #Reset tf graph
     tf.reset_default_graph()

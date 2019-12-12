@@ -25,7 +25,7 @@ config_dsprites['DSprites_data_source_url'] = 'https://github.com/deepmind/dspri
 config_dsprites['input_normalize_sym'] = False
 # Experiment set up
 config_dsprites['train_dataset_size'] = -1
-config_dsprites['batch_size'] = 128
+config_dsprites['batch_size'] = 100
 config_dsprites['epoch_num'] = 101
 config_dsprites['model'] = 'WAE' #WAE, BetaVAE
 config_dsprites['use_trained'] = False #train from pre-trained model
@@ -58,6 +58,63 @@ config_dsprites['init_std'] = 0.099999
 config_dsprites['init_bias'] = 0.0
 config_dsprites['mlp_init'] = 'glorot_uniform' #normal, he, glorot, glorot_he, glorot_uniform, ('uniform', range)
 config_dsprites['conv_init'] = 'normilized_glorot' #he, glorot, normilized_glorot, truncated_norm
+
+### 3dshapes config
+config_3dshapes = {}
+# Outputs set up
+config_3dshapes['verbose'] = False
+config_3dshapes['save_every'] = 10000
+config_3dshapes['save_final'] = True
+config_3dshapes['save_train_data'] = True
+config_3dshapes['evaluate_every'] = 100
+config_3dshapes['plot_every'] = 100
+config_3dshapes['vizu_embedded'] = False
+config_3dshapes['embedding'] = 'umap' #vizualisation method of the embeddings: pca, umap
+config_3dshapes['vizu_encSigma'] = True
+config_3dshapes['vizu_interpolation'] = True
+config_3dshapes['fid'] = False
+config_3dshapes['out_dir'] = 'results_3dshapes'
+config_3dshapes['plot_num_pics'] = 100
+config_3dshapes['plot_num_cols'] = 10
+# Data set up
+config_3dshapes['dataset'] = '3dshapes'
+config_3dshapes['3dshapes_data_source_url'] = 'https://storage.cloud.google.com/3d-shapes/3dshapes.h5'
+config_3dshapes['input_normalize_sym'] = False
+# Experiment set up
+config_3dshapes['train_dataset_size'] = -1
+config_3dshapes['batch_size'] = 128
+config_3dshapes['epoch_num'] = 101
+config_3dshapes['model'] = 'WAE' #WAE, BetaVAE
+config_3dshapes['use_trained'] = False #train from pre-trained model
+# Opt set up
+config_3dshapes['optimizer'] = 'adam' # adam, sgd
+config_3dshapes['adam_beta1'] = 0.9
+config_3dshapes['adam_beta2'] = 0.999
+config_3dshapes['lr'] = 0.0004
+config_3dshapes['lr_adv'] = 1e-08
+config_3dshapes['normalization'] = 'none' #batchnorm, layernorm, none
+config_3dshapes['batch_norm_eps'] = 1e-05
+config_3dshapes['batch_norm_momentum'] = 0.99
+config_3dshapes['dropout_rate'] = 1.
+# Objective set up
+config_3dshapes['cost'] = 'l2sq' #l2, l2sq, l2sq_norm, l1, xentropy
+config_3dshapes['mmd_kernel'] = 'IMQ' # RBF, IMQ
+config_3dshapes['pen_enc_sigma'] = True
+config_3dshapes['lambda_pen_enc_sigma'] = 0.001
+# Model set up
+config_3dshapes['zdim'] = 10
+config_3dshapes['pz_scale'] = 1.
+config_3dshapes['prior'] = 'gaussian' # dirichlet, gaussian
+config_3dshapes['encoder'] = 'gauss' # deterministic, gaussian
+config_3dshapes['decoder'] = 'det' # deterministic, gaussian
+# lambda set up
+config_3dshapes['lambda'] = [10,10]
+config_3dshapes['lambda_schedule'] = 'constant' # adaptive, constant
+# NN set up
+config_3dshapes['init_std'] = 0.099999
+config_3dshapes['init_bias'] = 0.0
+config_3dshapes['mlp_init'] = 'glorot_uniform' #normal, he, glorot, glorot_he, glorot_uniform, ('uniform', range)
+config_3dshapes['conv_init'] = 'normilized_glorot' #he, glorot, normilized_glorot, truncated_norm
 
 
 ### smallNORB config

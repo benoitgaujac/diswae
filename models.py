@@ -54,7 +54,6 @@ class Model(object):
         return sample_x         #, sample_mean, sample_Sigma
 
 
-
 class BetaVAE(Model):
 
     def kl_penalty(self, pz_mean, pz_sigma, encoded_mean, encoded_sigma): # To check implementation
@@ -282,6 +281,63 @@ class disWAE(WAE):
     def __init__(self, opts):
         super().__init__(opts)
 
+    def individual_square_dist(self, sample_x, sample_y):
+        """
+        Wrapper to compute per-component (individual) square distance
+        sample_x:   [batch,zdim]
+        out:        [batch,zdim,batch], out[k,j,l]=||sample_x[k,j]-sample_y[l,j]||_2^2
+        """
+        norms_x = tf.square(sample_x)
+        norms_y = tf.square(sample_y)
+
+        sample_x = tf.expand_dims(sample_x,-1)
+        sample_y = tf.expand_dims(sample_y,-1)
+        squared_dist = tf.expand_dims(norms_x,-1) + tf.transpose(norms_y) \
+                        - 2. * sample_x * tf.transpose(sample_y)
+        return tf.nn.relu(squared_dist)
+
+    def dhsic_penalty(self, opts, samples):
+        """
+        Compute dHSIC V-statistic estimator (Alg.1 of Pfister & Al.)
+        """
+
+        sigma2_p = opts['pz_scale'] ** 2
+        kernel = opts['mmd_kernel']
+        n = utils.get_batch_size(samples)
+        n = tf.cast(n, tf.int32)
+        nf = tf.cast(n, tf.float32)
+        half_size = tf.cast((n * n - n) / 2,tf.int32)
+
+        distances = self.individual_square_dist(samples, samples)
+
+        # Generating gram matrix of 1d kernel
+        if opts['mmd_kernel'] == 'RBF':
+            # Median heuristic for the sigma^2 of Gaussian kernel
+            sigma2_k = tf.nn.top_k(
+                tf.reshape(distances, [-1]), half_size).values[half_size - 1]
+            # Maximal heuristic for the sigma^2 of Gaussian kernel
+            # sigma2_k = tf.nn.top_k(tf.reshape(distances_qz, [-1]), 1).values[0]
+            # sigma2_k += tf.nn.top_k(tf.reshape(distances, [-1]), 1).values[0]
+            # sigma2_k = opts['latent_space_dim'] * sigma2_p
+            if opts['verbose']:
+                sigma2_k = tf.Print(sigma2_k, [sigma2_k], 'Kernel width:')
+            K = tf.exp( - distances / 2. / sigma2_k)
+        elif opts['mmd_kernel'] == 'IMQ':
+            Cbase = 2 * opts['zdim'] * sigma2_p
+            K = tf.zeros([n,opts['zdim'],n])
+            for scale in [.1, .2, .5, 1., 2., 5., 10.]:
+                C = Cbase * scale
+                K += C / (C + distances)
+        elif opts['mmd_kernel'] == 'RQ':
+            K = tf.zeros([n,opts['zdim'],n])
+            for scale in [.1, .2, .5, 1., 2., 5., 10.]:
+                K += (1. + distances / scale / 2.) ** (-scale)
+        # dHSIC V-estimator
+        res1 = tf.reduce_sum(tf.reduce_prod(K,axis=1)) / nf*nf
+        res2 = tf.reduce_prod(tf.reduce_sum(K,axis=[1,2]) / (nf*nf))
+        res3 = tf.reduce_sum(tf.reduce_prod(tf.reduce_sum(K, axis=1) / nf, axis=0) / nf)
+
+        return res1 + res2 - 2. * res3
 
     def loss(self, inputs, samples, loss_coeffs, is_training, dropout_rate):
 
@@ -303,11 +359,13 @@ class disWAE(WAE):
         # - Dimension-wise latent reg
         dimension_wise_match_penalty = self.mmd_penalty(self.opts, shuffled_encoded, samples)
         # - Multidim. HSIC
-        hsic_match_penalty = self.mmd_penalty(self.opts, enc_z, shuffled_encoded)
+        dhsic_match_penalty = self.mmd_penalty(self.opts, enc_z, shuffled_encoded)
+        # dhsic_match_penalty = self.dhsic_penalty(self.opts, enc_z)
+        # self.dhsic_mmd_penalty = lmbd1*self.mmd_penalty(self.opts, enc_z, shuffled_encoded)
         # - WAE latent reg
         wae_match_penalty = self.mmd_penalty(self.opts, enc_z, samples)
-        matching_penalty = lmbd1*hsic_match_penalty + lmbd2*dimension_wise_match_penalty
-        divergences = (lmbd1*hsic_match_penalty, lmbd2*dimension_wise_match_penalty, wae_match_penalty)
+        matching_penalty = lmbd1*dhsic_match_penalty + lmbd2*dimension_wise_match_penalty
+        divergences = (lmbd1*dhsic_match_penalty, lmbd2*dimension_wise_match_penalty, wae_match_penalty)
         objective = loss_reconstruct + matching_penalty
 
         # - Pen Encoded Sigma

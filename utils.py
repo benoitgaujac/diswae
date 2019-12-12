@@ -128,6 +128,6 @@ def sample_images(batch_size, data, factor_index):
     factors[:, factor_index] = factors[0, factor_index]
     # generating images from factors
     indices = np.dot(factors, data.factor_bases).astype(dtype=np.int32)
-    images = data.X[indices]
+    images = data.ordered_data[indices]
 
     return images
