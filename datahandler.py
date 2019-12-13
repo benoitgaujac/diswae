@@ -356,38 +356,35 @@ class DataHandler(object):
         """Load data from dsprites dataset
 
         """
+
         logging.error('Loading dsprites...')
-        # Downloading data
+        # Loading data
         data_dir = _data_dir(opts)
-        self.data_path = os.path.join(data_dir, 'dsprites_ndarray_co1sh3sc6or40x32y32_64x64.npz')
+        data_path = os.path.join(data_dir, 'dsprites_ndarray_co1sh3sc6or40x32y32_64x64.npz')
+        X = np.load(data_path, allow_pickle=True)['imgs'][:,:,:,None].astype(np.float32)
+        Y = np.load(data_path, allow_pickle=True)['latents_classes'][:,1:]
         # labels informations
         self.factor_indices = list(range(5))
-        self.factor_sizes = np.array(np.load(self.data_path, allow_pickle=True, encoding="latin1")['metadata'][()]["latents_sizes"],dtype=np.int64)[1:]
+        self.factor_sizes = np.array(np.load(data_path, allow_pickle=True, encoding="latin1")['metadata'][()]["latents_sizes"],dtype=np.int64)[1:]
         self.factor_bases = np.prod(self.factor_sizes) / np.cumprod(
             self.factor_sizes)
-        datasize = np.prod(self.factor_sizes)
         # Creating shuffling mask
         seed = 123
-        shuffling_mask = np.arange(datasize)
+        shuffling_mask = np.arange(len(X))
         np.random.seed(seed)
         np.random.shuffle(shuffling_mask)
         np.random.seed()
+        np.random.shuffle(shuffling_mask[opts['plot_num_pics']:])
+        self.data_order_idx = np.argsort(shuffling_mask)
         # Set vizu data aside
-        vizu_indices = shuffling_mask[:opts['plot_num_pics']]
-        self.vizu_data = Data(opts, self._sample_from_index(opts, vizu_indices)[0])
-        self.vizu_labels = Data(opts, self._sample_from_index(opts, vizu_indices)[1])
+        self.vizu_data = Data(opts, X[shuffling_mask[:opts['plot_num_pics']]])
+        self.vizu_labels = Data(opts, Y[shuffling_mask[:opts['plot_num_pics']]])
         # Load training/testing set
-        shuffling_mask = shuffling_mask[opts['plot_num_pics']:]
-        train_size = datasize - 10000
         test_size = 10000 - opts['plot_num_pics']
-        train_prop = (train_size - test_size) / train_size
-        training_mask = np.random.rand(len(shuffling_mask)) < train_prop
-        training_indices = shuffling_mask[training_mask]
-        self.data = Data(opts, self._sample_from_index(opts, training_indices)[0])
-        self.labels = Data(opts, self._sample_from_index(opts, training_indices)[1])
-        testing_indices = shuffling_mask[~training_mask]
-        self.test_data = Data(opts, self._sample_from_index(opts, testing_indices)[0])
-        self.test_labels = Data(opts, self._sample_from_index(opts, testing_indices)[1])
+        self.data = Data(opts, X[shuffling_mask[opts['plot_num_pics']:-test_size]])
+        self.labels = Data(opts, Y[shuffling_mask[opts['plot_num_pics']:-test_size]])
+        self.test_data = Data(opts, X[shuffling_mask[-test_size:]])
+        self.test_labels = Data(opts, Y[shuffling_mask[-test_size:]])
         # data informations
         self.data_shape = datashapes[opts['dataset']]
         self.num_points = len(self.data)
@@ -412,35 +409,32 @@ class DataHandler(object):
         logging.error('Loading 3Dshapes...')
         # Loading data
         data_dir = _data_dir(opts)
-        self.data_path = os.path.join(data_dir, '3dshapes.h5')
+        data_path = os.path.join(data_dir, '3dshapes.h5')
+        dataset = h5py.File(data_path, 'r')
+        X = np.array(dataset['images']).astype(np.float32) / 255.
+        Y = np.array(dataset['labels'])
         # labels informations
         self.factor_indices = list(range(6))
         self.factor_sizes = np.array([10,10,10,8,4,15])
         self.factor_bases = np.prod(self.factor_sizes) / np.cumprod(
             self.factor_sizes)
-        datasize = np.prod(self.factor_sizes)
         # Creating shuffling mask
         seed = 123
-        shuffling_mask = np.arange(datasize)
+        shuffling_mask = np.arange(len(X))
         np.random.seed(seed)
         np.random.shuffle(shuffling_mask)
         np.random.seed()
+        np.random.shuffle(shuffling_mask[opts['plot_num_pics']:])
+        self.data_order_idx = np.argsort(shuffling_mask)
         # Set vizu data aside
-        vizu_indices = shuffling_mask[:opts['plot_num_pics']]
-        self.vizu_data = Data(opts, self._sample_from_index(opts, vizu_indices)[0])
-        self.vizu_labels = Data(opts, get_factors_from_labels(self._sample_from_index(opts, vizu_indices)[1]))
+        self.vizu_data = Data(opts, X[shuffling_mask[:opts['plot_num_pics']]])
+        self.vizu_labels = Data(opts, Y[shuffling_mask[:opts['plot_num_pics']]])
         # Load training/testing set
-        shuffling_mask = shuffling_mask[opts['plot_num_pics']:]
-        train_size = datasize - 10000
         test_size = 10000 - opts['plot_num_pics']
-        train_prop = (train_size - test_size) / train_size
-        training_mask = np.random.rand(len(shuffling_mask)) < train_prop
-        training_indices = shuffling_mask[training_mask]
-        self.data = Data(opts, self._sample_from_index(opts, training_indices)[0])
-        self.labels = Data(opts, get_factors_from_labels(self._sample_from_index(opts, training_indices)[1]))
-        testing_indices = shuffling_mask[~training_mask]
-        self.test_data = Data(opts, self._sample_from_index(opts, testing_indices)[0])
-        self.test_labels = Data(opts, get_factors_from_labels(self._sample_from_index(opts, testing_indices)[1]))
+        self.data = Data(opts, X[shuffling_mask[opts['plot_num_pics']:-test_size]])
+        self.labels = Data(opts, Y[shuffling_mask[opts['plot_num_pics']:-test_size]])
+        self.test_data = Data(opts, X[shuffling_mask[-test_size:]])
+        self.test_labels = Data(opts, Y[shuffling_mask[-test_size:]])
         # data informations
         self.data_shape = datashapes[opts['dataset']]
         self.num_points = len(self.data)
@@ -451,37 +445,77 @@ class DataHandler(object):
         """Load data from smallNORB dataset
 
         """
+
         logging.error('Loading smallNORB...')
+        # Loading data
         data_dir = _data_dir(opts)
-        self.data_path = data_dir
+        SMALLNORB_CHUNKS = ['smallnorb-5x46789x9x18x6x2x96x96-training-{0}.mat.gz',
+                            'smallnorb-5x01235x9x18x6x2x96x96-testing-{0}.mat.gz']
+        list_of_images = []
+        list_of_labels = []
+        list_of_infos = []
+        for chunk_name in SMALLNORB_CHUNKS:
+            # Loading data
+            file_path = os.path.join(data_dir, chunk_name.format('dat'))
+            with gzip.open(file_path, mode='rb') as f:
+                header = _parse_smallNORB_header(f)
+                num_examples, channels, height, width = header['dimensions']
+                images = np.zeros(shape=(num_examples, 2, height, width), dtype=np.uint8)
+                for i in range(num_examples):
+                    # Read raw image data and restore shape as appropriate
+                    image = struct.unpack('<' + height * width * 'B', f.read(height * width))
+                    image = np.uint8(np.reshape(image, newshape=(height, width)))
+                    images[i] = image
+            list_of_images.append(_resize_images(images[:, 0]))
+            # Loading category
+            file_path = os.path.join(data_dir, chunk_name.format('cat'))
+            with gzip.open(file_path, mode='rb') as f:
+                header = _parse_smallNORB_header(f)
+                num_examples, = header['dimensions']
+                struct.unpack('<BBBB', f.read(4))  # ignore this integer
+                struct.unpack('<BBBB', f.read(4))  # ignore this integer
+                categories = np.zeros(shape=num_examples, dtype=np.int32)
+                for i in tqdm(range(num_examples), disable=True, desc='Loading categories...'):
+                    category, = struct.unpack('<i', f.read(4))
+                    categories[i] = category
+            # Loading infos
+            file_path = os.path.join(data_dir, chunk_name.format('info'))
+            with gzip.open(file_path, mode='rb') as f:
+                header = _parse_smallNORB_header(f)
+                struct.unpack('<BBBB', f.read(4))  # ignore this integer
+                num_examples, num_info = header['dimensions']
+                infos = np.zeros(shape=(num_examples, num_info), dtype=np.int32)
+                for r in tqdm(range(num_examples), disable=True, desc='Loading info...'):
+                    for c in range(num_info):
+                        info, = struct.unpack('<i', f.read(4))
+                        infos[r, c] = info
+            list_of_labels.append((np.column_stack((categories, infos))))
+        X = np.concatenate(list_of_images, axis=0)
+        Y = np.concatenate(list_of_labels, axis=0)
+        X = np.expand_dims(X,axis=-1)
+        Y[:, 3] = Y[:, 3] / 2  # azimuth values are 0, 2, 4, ..., 24
         # labels informations
         self.factor_indices = [0, 2, 3, 4]
         self.factor_sizes = np.array([5, 10, 9, 18, 6])
         self.factor_bases = np.prod(self.factor_sizes) / np.cumprod(
             self.factor_sizes)
-        datasize = np.prod(self.factor_sizes)
         # Creating shuffling mask
         seed = 123
-        shuffling_mask = np.arange(datasize)
+        shuffling_mask = np.arange(len(X))
         np.random.seed(seed)
         np.random.shuffle(shuffling_mask)
         np.random.seed()
+        np.random.shuffle(shuffling_mask[opts['plot_num_pics']:])
+        self.data_order_idx = np.argsort(shuffling_mask)
         # Set vizu data aside
-        vizu_indices = shuffling_mask[:opts['plot_num_pics']]
-        self.vizu_data = Data(opts, self._sample_from_index(opts, vizu_indices)[0])
-        self.vizu_labels = Data(opts, self._sample_from_index(opts, vizu_indices)[1])
+        self.vizu_data = Data(opts, X[shuffling_mask[:opts['plot_num_pics']]])
+        self.vizu_labels = Data(opts, Y[shuffling_mask[:opts['plot_num_pics']]])
         # Load training/testing set
-        shuffling_mask = shuffling_mask[opts['plot_num_pics']:]
-        train_size = datasize - 10000
         test_size = 10000 - opts['plot_num_pics']
-        train_prop = (train_size - test_size) / train_size
-        training_mask = np.random.rand(len(shuffling_mask)) < train_prop
-        training_indices = shuffling_mask[training_mask]
-        self.data = Data(opts, self._sample_from_index(opts, training_indices)[0])
-        self.labels = Data(opts, self._sample_from_index(opts, training_indices)[1])
-        testing_indices = shuffling_mask[~training_mask]
-        self.test_data = Data(opts, self._sample_from_index(opts, testing_indices)[0])
-        self.test_labels = Data(opts, self._sample_from_index(opts, testing_indices)[1])
+        self.data = Data(opts, X[shuffling_mask[opts['plot_num_pics']:-test_size]])
+        self.labels = Data(opts, Y[shuffling_mask[opts['plot_num_pics']:-test_size]])
+        self.test_data = Data(opts, X[shuffling_mask[-test_size:]])
+        self.test_labels = Data(opts, Y[shuffling_mask[-test_size:]])
         # data informations
         self.data_shape = datashapes[opts['dataset']]
         self.num_points = len(self.data)
@@ -719,88 +753,6 @@ class DataHandler(object):
         self.num_points = len(self.data)
 
         logging.error('Loading Done: Train size: %d, Test size: %d' % (self.num_points,len(self.test_data)))
-
-    def _sample_from_index(self, opts, indices=None):
-        """Load images,labels from disk corresponding to factor indices.
-
-        """
-        if opts['dataset'] == 'dsprites':
-            if indices is not None:
-                X = np.load(self.data_path, allow_pickle=True)['imgs'][indices,:,:,None].astype(np.float32)
-                Y = np.load(self.data_path, allow_pickle=True)['latents_classes'][indices,1:]
-            else:
-                X = np.load(self.data_path, allow_pickle=True)['imgs'][:,:,:,None].astype(np.float32)
-                Y = np.load(self.data_path, allow_pickle=True)['latents_classes'][:,1:]
-        elif opts['dataset'] == '3dshapes':
-            dataset = h5py.File(self.data_path, 'r')
-            if indices is not None:
-                X = np.array(dataset['images'])[indices].astype(np.float32) / 255.
-                Y = np.array(dataset['labels'])[indices]
-            else:
-                X = np.array(dataset['images']).astype(np.float32) / 255.
-                Y = np.array(dataset['labels'])
-        elif opts['dataset'] == 'smallNORB':
-            SMALLNORB_CHUNKS = ['smallnorb-5x46789x9x18x6x2x96x96-training-{0}.mat.gz',
-                                'smallnorb-5x01235x9x18x6x2x96x96-testing-{0}.mat.gz']
-            list_of_images = []
-            list_of_labels = []
-            list_of_infos = []
-            for chunk_name in SMALLNORB_CHUNKS:
-                # Loading data
-                file_path = os.path.join(self.data_path, chunk_name.format('dat'))
-                with gzip.open(file_path, mode='rb') as f:
-                    header = _parse_smallNORB_header(f)
-                    num_examples, channels, height, width = header['dimensions']
-                    images = np.zeros(shape=(num_examples, 2, height, width), dtype=np.uint8)
-                    for i in range(num_examples):
-                        # Read raw image data and restore shape as appropriate
-                        image = struct.unpack('<' + height * width * 'B', f.read(height * width))
-                        image = np.uint8(np.reshape(image, newshape=(height, width)))
-                        images[i] = image
-                list_of_images.append(_resize_images(images[:, 0]))
-                # Loading category
-                file_path = os.path.join(self.data_path, chunk_name.format('cat'))
-                with gzip.open(file_path, mode='rb') as f:
-                    header = _parse_smallNORB_header(f)
-                    num_examples, = header['dimensions']
-                    struct.unpack('<BBBB', f.read(4))  # ignore this integer
-                    struct.unpack('<BBBB', f.read(4))  # ignore this integer
-                    categories = np.zeros(shape=num_examples, dtype=np.int32)
-                    for i in tqdm(range(num_examples), disable=True, desc='Loading categories...'):
-                        category, = struct.unpack('<i', f.read(4))
-                        categories[i] = category
-                # Loading infos
-                file_path = os.path.join(self.data_path, chunk_name.format('info'))
-                with gzip.open(file_path, mode='rb') as f:
-                    header = _parse_smallNORB_header(f)
-                    struct.unpack('<BBBB', f.read(4))  # ignore this integer
-                    num_examples, num_info = header['dimensions']
-                    infos = np.zeros(shape=(num_examples, num_info), dtype=np.int32)
-                    for r in tqdm(range(num_examples), disable=True, desc='Loading info...'):
-                        for c in range(num_info):
-                            info, = struct.unpack('<i', f.read(4))
-                            infos[r, c] = info
-                list_of_labels.append((np.column_stack((categories, infos))))
-            if indices is not None:
-                X = np.concatenate(list_of_images, axis=0)[indices]
-                Y = np.concatenate(list_of_labels, axis=0)[indices]
-            else:
-                X = np.concatenate(list_of_images, axis=0)
-                Y = np.concatenate(list_of_labels, axis=0)
-            X = np.expand_dims(X,axis=-1)
-            Y[:, 3] = Y[:, 3] / 2  # azimuth values are 0, 2, 4, ..., 24
-        elif opts['dataset'] == '3Dchairs':
-            assert False, 'To implement'
-        elif opts['dataset'] == 'celebA':
-            assert False, 'To implement'
-        elif opts['dataset'] == 'mnist':
-            assert False, 'To implement'
-        elif opts['dataset'] == 'svhn':
-            assert False, 'To implement'
-        else:
-            raise ValueError('Unknown %s' % opts['dataset'])
-
-        return X, Y
 
 
 def matrix_type_from_magic(magic_number):
