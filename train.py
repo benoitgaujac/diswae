@@ -126,7 +126,7 @@ class Run(object):
         factor_index = data.factor_indices[factor_index]
         # sample batch of images with fix selected factor
         batch_size = 64
-        batch_images = utils.sample_images(batch_size, data, factor_index)
+        batch_images = utils.sample_images(opts, batch_size, data, factor_index)
         # encode images
         z = sess.run(self.z_samples, feed_dict={self.batch: batch_images,
                                                 self.dropout_rate: 1.,
@@ -182,7 +182,7 @@ class Run(object):
         if opts['optimizer'] == 'sgd':
             return tf.train.GradientDescentOptimizer(lr)
         elif opts['optimizer'] == 'adam':
-            return tf.train.AdamOptimizer(lr, beta1=opts['adam_beta1'])
+            return tf.train.AdamOptimizer(lr, beta1=opts['adam_beta1'], beta2=opts['adam_beta2'])
         else:
             assert False, 'Unknown optimizer.'
 

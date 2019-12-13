@@ -5,15 +5,15 @@
 #$ -wd /home/bgaujac/diswae
 
 #$ -l gpu=true
-#$ -l tmem=12G
+#$ -l tmem=15G
 #$ -l h_rt=15:00:00
 
 #$ -t 1-81
 
-#$ -N disWAE_smallnorb
+#$ -N disWAE_dsprites
 
 source /share/apps/examples/source_files/python/python-3.6.4.source
 source /share/apps/examples/source_files/cuda/cuda-9.0.source
 
 # python3 run.py --out_dir dsprites  --exp dsprites --enum 100 --lmba0 1 --lmba1 1
-python3 run_array.py --num_it 600000 --net_archi conv_locatello --idx $SGE_TASK_ID --model disWAE --exp smallNORB --out_dir smallNORB --sigma_pen True
+python3 run_array.py --num_it 600000 --net_archi conv_locatello --idx $SGE_TASK_ID --model disWAE --exp dSprites --out_dir dSprites --sigma_pen True

@@ -236,10 +236,8 @@ def save_train(opts, data_train, data_test,
     ### The disentangle metrics curves
     ax = plt.subplot(gs[1, 2])
     y = np.convolve(mig, np.ones((size_filter,))/size_filter, mode='valid')
-    # y = np.log(y[::x_step])
     plt.plot(x, y[::x_step], linewidth=4, color='red', label='MIG')
     y = np.convolve(factorVAE, np.ones((size_filter,))/size_filter, mode='valid')
-    # y = np.log(y[::x_step])
     plt.plot(x, y[::x_step], linewidth=4, color='blue', label='factorVAE')
     plt.grid(axis='y')
     plt.legend(loc='upper right')
@@ -309,7 +307,6 @@ def plot_embedded(opts, encoded, decoded, labels, exp_dir, filename):
         ax = plt.subplot(gs[0, i])
         plt.scatter(embeds[i][:num_pics, 0], embeds[i][:num_pics, 1], alpha=0.7,
                     c=labels, s=40, label='Qz test',cmap=discrete_cmap(10, base_cmap='tab10'))
-                    # c=labels, s=40, label='Qz test',edgecolors='none',cmap=discrete_cmap(10, base_cmap='Vega10'))
         if i==len(embeds)-1:
             plt.colorbar()
         plt.scatter(embeds[i][num_pics:, 0], embeds[i][num_pics:, 1],
@@ -333,8 +330,6 @@ def plot_embedded(opts, encoded, decoded, labels, exp_dir, filename):
         # Removing ticks
         ax.axes.get_xaxis().set_ticks([])
         ax.axes.get_yaxis().set_ticks([])
-        # ax.axes.set_xlim([0, width_pic])
-        # ax.axes.set_ylim([height_pic, 0])
         ax.axes.set_aspect(1)
     ### Saving plot
     plots_dir = 'train_plots'
@@ -378,8 +373,6 @@ def plot_interpolation(opts, interpolations, exp_dir, filename):
                             interpolation='none', vmin=0., vmax=1.)
         else:
             plt.imshow(img, interpolation='none', vmin=0., vmax=1.)
-        # plt.text(0.47, 1., title,
-        #          ha="center", va="bottom", size=20, transform=ax.transAxes)
         # Removing ticks
         ax.axes.get_xaxis().set_ticks([])
         ax.axes.get_yaxis().set_ticks([])
@@ -421,9 +414,6 @@ def save_latent_interpolation(opts, data_test, label_test, # data, labels
     # --- full reconstruction plots
     num_rows = len(full_reconstructed)
     num_cols = np.shape(full_reconstructed[0])[0]
-    # padding inut image
-    # npad = 1
-    # pad = ((0,npad),(0,0),(0,0))
     npad = 1
     pad_0 = ((npad,0),(0,0),(0,0))
     pad_1 = ((0,npad),(0,0),(0,0))
@@ -459,7 +449,6 @@ def save_latent_interpolation(opts, data_test, label_test, # data, labels
     num_cols = 14
     num_pics = num_cols**2
     # Arrange pics and reconstructions in a proper way
-    # sample, recon = (data_test[:int(num_pics/2)],reconstructed[:int(num_pics/2)])
     pics = []
     for n in range(int(num_pics)):
         if n%2==0:
@@ -495,12 +484,6 @@ def save_latent_interpolation(opts, data_test, label_test, # data, labels
     images.append(image)
 
     # --- Save plots
-    # img1, img2 = images
-    # to_plot_list = zip([img1, img2],
-    #                      ['Full Reconstructions',
-    #                      'Samples'],
-    #                      ['full_recon',
-    #                      'prior_samples'])
     img1, img2, img3, img4 = images
     to_plot_list = zip([img1, img2, img3, img4],
                          ['Full Reconstructions',
@@ -678,9 +661,6 @@ def save_latent_interpolation(opts, data_test, label_test, # data, labels
         # plt.legend(loc='best')
         plt.text(0.47, 1., r'Latent space $\mathcal{Z}_{%d}$' % (i+1), ha="center", va="bottom",
                                                 size=45, transform=ax.transAxes)
-        # # colorbar
-        # if i==len(embeds)-1:
-        #     plt.colorbar()
         # Removing ticks
         ax.axes.get_xaxis().set_ticks([])
         ax.axes.get_yaxis().set_ticks([])
@@ -692,8 +672,6 @@ def save_latent_interpolation(opts, data_test, label_test, # data, labels
     cax = plt.axes([0.91, 0.165, 0.01, 0.7])
     cbar = plt.colorbar(cax=cax)
     cbar.ax.tick_params(labelsize=35)
-    # plt.tight_layout()
-    # plt.subplots_adjust(left=0., right=0., top=0., bottom=0.)
     # Saving
     filename = 'embeddings.png'
     plt.savefig(utils.o_gfile((save_path, filename), 'wb'),
