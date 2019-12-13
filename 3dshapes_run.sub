@@ -10,7 +10,7 @@
 
 #$ -t 1-81
 
-#$ -N 3dshapes_dsprites
+#$ -N disWAE_3dshapes
 
 source /share/apps/examples/source_files/python/python-3.6.4.source
 source /share/apps/examples/source_files/cuda/cuda-9.0.source
