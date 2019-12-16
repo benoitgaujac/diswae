@@ -489,6 +489,7 @@ class Run(object):
 
                 counter += 1
 
+        logging.error('Training done.')
         # - Save the final model
         if opts['save_final'] and epoch > 0:
             self.saver.save(self.sess, os.path.join(exp_dir,
