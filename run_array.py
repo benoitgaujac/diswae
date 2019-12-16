@@ -107,7 +107,7 @@ def main():
     elif opts['model'] == 'disWAE':
         # Penalty
         lmba0 = [1, 100, 250, 500, 750, 1000, 1500, 1750, 2000]
-        lmba1 = [1, 5, 10, 20, 50, 100, 250, 500, 1000]
+        lmba1 = [0.1, 1, 5, 10, 20, 50, 100, 250, 500]
         # lmba_ = list(zip(lmba0,lmba1))
         # lmba__ = list(zip(lmba1,lmba0))
         # lmba = lmba_ + lmba__
@@ -157,7 +157,7 @@ def main():
 
     # Experiemnts set up
     opts['epoch_num'] = int(FLAGS.num_it / int(data.num_points/opts['batch_size']))
-    opts['plot_every'] = int(FLAGS.num_it / 2.)-1
+    opts['plot_every'] = int(opts['epoch_num'] / 3.)-1
     opts['evaluate_every'] = int(opts['plot_every'] / 2)
     opts['save_every'] = 1000000000
     opts['save_final'] = False
