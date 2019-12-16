@@ -489,7 +489,6 @@ class Run(object):
 
                 counter += 1
 
-        logging.error('Training done.')
         # - Save the final model
         if opts['save_final'] and epoch > 0:
             self.saver.save(self.sess, os.path.join(exp_dir,
@@ -507,3 +506,5 @@ class Run(object):
                     loss_rec=np.array(Loss_rec), loss_rec_test=np.array(Loss_rec_test),
                     divergences=np.array(Divergences), divergences_test=np.array(Divergences_test),
                     mig=np.array(MIG), factorVAE=np.array(factorVAE))
+
+        logging.error('Training done.')
