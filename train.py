@@ -261,10 +261,10 @@ class Run(object):
                                                 feed_dict=feed_dict)
 
                 ##### TESTING LOOP #####
-                if (counter+1)%opts['evaluate_every'] == 0 or (counter < 20 and (counter+1)%10 == 0):
+                if (counter+1)%opts['evaluate_every'] == 0:
                     print("Epoch {}, Iteration {}".format(epoch, it+1))
                     # batch_size_te = 64
-                    batch_size_te = 500
+                    batch_size_te = 1000
                     test_size = np.shape(data.test_data)[0]
                     batches_num_te = int(test_size/batch_size_te)
                     # Train losses
