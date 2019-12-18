@@ -489,7 +489,7 @@ class Run(object):
 
                 # logging
                 if (counter+1)%10000 ==0 :
-                    logging.error('Train  it.: {d}/{d}'.format(counter+1,opts['epoch_num']*batches_num))
+                    logging.error('Train  it.: {}/{}'.format(counter+1,opts['epoch_num']*batches_num))
 
                 counter += 1
 
