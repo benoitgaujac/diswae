@@ -487,6 +487,10 @@ class Run(object):
                         else:
                             wait_lambda += 1
 
+                # logging
+                if (counter+1)%10000 ==0 :
+                    logging.error('Train  it.: {d}/{d}'.format(counter+1,opts['epoch_num']*batches_num))
+
                 counter += 1
 
         # - Save the final model
