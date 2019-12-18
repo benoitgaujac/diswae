@@ -133,13 +133,15 @@ def save_train(opts, data_train, data_test,
     ax = plt.subplot(gs[1, 0])
     size_filter = min(int(len(loss_test)/2),5)
     # Obj
-    y = np.convolve(loss_test, np.ones((size_filter,))/size_filter, mode='valid')
+    # y = np.convolve(loss_test, np.ones((size_filter,))/size_filter, mode='valid')
+    y = loss_test
     total_num = len(y)
     x_step = max(int(total_num / 200), 1)
     x = np.arange(1, len(y) + 1, x_step)
     y = np.log(y[::x_step])
     plt.plot(x, y, linewidth=4, color='black', label='loss test')
-    y = np.convolve(loss, np.ones((size_filter,))/size_filter, mode='valid')
+    # y = np.convolve(loss, np.ones((size_filter,))/size_filter, mode='valid')
+    y = loss
     y = np.log(y[::x_step])
     plt.plot(x, y, linewidth=2, color='black', linestyle='--',label='loss')
     plt.grid(axis='y')
@@ -153,53 +155,63 @@ def save_train(opts, data_train, data_test,
     ax = plt.subplot(gs[1, 1])
     losses, losses_test = [], []
     # Test
-    y = np.convolve(loss_rec_test, np.ones((size_filter,))/size_filter, mode='valid')
+    # y = np.convolve(loss_rec_test, np.ones((size_filter,))/size_filter, mode='valid')
+    y = loss_rec_test
     y = np.log(y[::x_step])
     losses_test.append(list(y))
     if opts['model'] == 'BetaVAE':
-        y = np.convolve(loss_match_test, np.ones((size_filter,))/size_filter, mode='valid')
+        # y = np.convolve(loss_match_test, np.ones((size_filter,))/size_filter, mode='valid')
+        y = loss_match_test
         y = np.log(y[::x_step])
         losses_test.append(list(y))
         labels = ['rec',r'$\beta$KL']
     elif opts['model'] == 'BetaTCVAE':
         for l in zip(*loss_match_test):
-            y = np.convolve(l, np.ones((size_filter,))/size_filter, mode='valid')
+            # y = np.convolve(l, np.ones((size_filter,))/size_filter, mode='valid')
+            y = l
             y = np.log(y[::x_step])
             losses_test.append(list(y))
         labels = ['rec',r'$\beta$TC', 'KL']
     elif opts['model'] == 'WAE':
-        y = np.convolve(loss_match_test, np.ones((size_filter,))/size_filter, mode='valid')
+        # y = np.convolve(loss_match_test, np.ones((size_filter,))/size_filter, mode='valid')
+        y = loss_match_test
         y = np.log(y[::x_step])
         losses_test.append(list(y))
         labels = ['rec',r'$\lambda$|mmd|']
     elif opts['model'] == 'disWAE':
         for l in zip(*loss_match_test):
-            y = np.convolve(l, np.ones((size_filter,))/size_filter, mode='valid')
+            # y = np.convolve(l, np.ones((size_filter,))/size_filter, mode='valid')
+            y = l
             y = np.log(y[::x_step])
             losses_test.append(list(y))
         labels = ['rec', r"$\lambda_1$|hsci|",r"$\lambda_2$|dimwise|",'|wae|']
     else:
         raise NotImplementedError('Model type not recognised')
     # Train
-    y = np.convolve(loss_rec, np.ones((size_filter,))/size_filter, mode='valid')
+    # y = np.convolve(loss_rec, np.ones((size_filter,))/size_filter, mode='valid')
+    y = loss_rec
     y = np.log(y[::x_step])
     losses.append(list(y))
     if opts['model'] == 'BetaVAE':
-        y = np.convolve(loss_match, np.ones((size_filter,))/size_filter, mode='valid')
+        # y = np.convolve(loss_match, np.ones((size_filter,))/size_filter, mode='valid')
+        y = loss_match
         y = np.log(np.abs(y[::x_step]))
         losses.append(list(y))
     elif opts['model'] == 'BetaTCVAE':
         for l in zip(*loss_match):
-            y = np.convolve(l, np.ones((size_filter,))/size_filter, mode='valid')
+            # y = np.convolve(l, np.ones((size_filter,))/size_filter, mode='valid')
+            y = l
             y = np.log(y[::x_step])
             losses.append(list(y))
     elif opts['model'] == 'WAE':
-        y = np.convolve(loss_match, np.ones((size_filter,))/size_filter, mode='valid')
+        # y = np.convolve(loss_match, np.ones((size_filter,))/size_filter, mode='valid')
+        y = loss_match
         y = np.log(np.abs(y[::x_step]))
         losses.append(list(y))
     elif opts['model'] == 'disWAE':
         for l in zip(*loss_match):
-            y = np.convolve(l, np.ones((size_filter,))/size_filter, mode='valid')
+            # y = np.convolve(l, np.ones((size_filter,))/size_filter, mode='valid')
+            y = l
             y = np.log(np.abs(y[::x_step]))
             losses.append(list(y))
     else:
@@ -235,9 +247,11 @@ def save_train(opts, data_train, data_test,
 
     ### The disentangle metrics curves
     ax = plt.subplot(gs[1, 2])
-    y = np.convolve(mig, np.ones((size_filter,))/size_filter, mode='valid')
+    # y = np.convolve(mig, np.ones((size_filter,))/size_filter, mode='valid')
+    y = mig
     plt.plot(x, y[::x_step], linewidth=4, color='red', label='MIG')
-    y = np.convolve(factorVAE, np.ones((size_filter,))/size_filter, mode='valid')
+    # y = np.convolve(factorVAE, np.ones((size_filter,))/size_filter, mode='valid')
+    y = factorVAE
     plt.plot(x, y[::x_step], linewidth=4, color='blue', label='factorVAE')
     plt.grid(axis='y')
     plt.legend(loc='upper right')
