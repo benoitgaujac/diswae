@@ -26,8 +26,8 @@ parser.add_argument("--out_dir", type=str, default='code_outputs',
                     help='root_directory in which outputs are saved')
 parser.add_argument("--exp_dir", type=str, default='results',
                     help='directory in which exp. outputs are saved')
-parser.add_argument("--enum", type=int, default=100,
-                    help='epoch number')
+parser.add_argument("--num_it", type=int, default=300000,
+                    help='iteration number')
 parser.add_argument("--net_archi", default='mlp',
                     help='networks architecture [mlp/conv_locatello]')
 parser.add_argument("--lmba0", type=float, default=10.,
@@ -36,6 +36,8 @@ parser.add_argument("--lmba1", type=float, default=10.,
                     help='lambda hsic for WAE')
 parser.add_argument("--beta", type=float, default=10.,
                     help='beta coeff for BetaVAE model')
+parser.add_argument("--sigma_pen", default='False',
+                    help='penalization of Sigma_q')
 parser.add_argument("--weights_file")
 parser.add_argument('--gpu_id', default='cpu',
                     help='gpu id for DGX box. Default is cpu')
@@ -60,6 +62,8 @@ def main():
     # Select dataset to use
     if FLAGS.exp == 'dsprites':
         opts = configs.config_dsprites
+    elif FLAGS.exp == '3dshapes':
+        opts = configs.config_3dshapes
     elif FLAGS.exp == 'smallNORB':
         opts = configs.config_smallNORB
     elif FLAGS.exp == '3Dchairs':
@@ -85,25 +89,29 @@ def main():
     else:
         opts['fid'] = False
 
-    # Experiemnts set up
-    opts['epoch_num'] = FLAGS.enum
-    opts['print_every'] = 200 #30000
-    opts['save_every_epoch'] = 1000000
-    opts['save_final'] = False
-    opts['save_train_data'] = False
+    # Opt set up
+    opts['lr'] = 0.001
 
     # Model set up
     opts['zdim'] = 10
+    opts['batch_size'] = 64
+    opts['cost'] = 'xentropy' #l2, l2sq, l2sq_norm, l1, xentropy
+    opts['mmd_kernel'] = 'IMQ' # RBF, IMQ
+
 
     # Objective Function Coefficients
     if opts['model'] == 'WAE':
         opts['obj_fn_coeffs'] = FLAGS.lmba0
-    if opts['model'] == 'disWAE':
+    elif opts['model'] == 'disWAE':
         opts['obj_fn_coeffs'] = [FLAGS.lmba0, FLAGS.lmba1]
     elif opts['model'] == 'BetaVAE':
         opts['obj_fn_coeffs'] = FLAGS.beta
-    opts['pen_enc_sigma'] = True
-    opts['lambda_pen_enc_sigma'] = 0.5
+    elif opts['model'] == 'BetaTCVAE':
+        opts['obj_fn_coeffs'] = FLAGS.beta
+    else:
+        assert False, 'unknown model {}'.format(opts['model'])
+    opts['pen_enc_sigma'] = FLAGS.sigma_pen=='True'
+    opts['lambda_pen_enc_sigma'] = 2.
 
     # NN set up
     opts['network'] = net_configs[FLAGS.net_archi]
@@ -113,9 +121,20 @@ def main():
         opts['out_dir'] = FLAGS.out_dir
     if FLAGS.exp_dir:
         opts['exp_dir'] = FLAGS.exp_dir
-    exp_dir = os.path.join(opts['out_dir'],
-                           opts['model'],
-                           '{}_{:%Y_%m_%d_%H_%M}'.format(opts['exp_dir'],datetime.now()), )
+    if opts['model'] == 'disWAE':
+        exp_dir = os.path.join(opts['out_dir'],
+                               opts['model'],
+                               '{}_{}_{}_{:%Y_%m_%d_%H_%M}'.format(
+                                    opts['exp_dir'],
+                                    opts['obj_fn_coeffs'][0],
+                                    opts['obj_fn_coeffs'][1],datetime.now()), )
+    else :
+        exp_dir = os.path.join(opts['out_dir'],
+                               opts['model'],
+                               '{}_{}_{:%Y_%m_%d_%H_%M}'.format(
+                                    opts['exp_dir'],
+                                    opts['obj_fn_coeffs'],
+                                    datetime.now()), )
     opts['exp_dir'] = exp_dir
     if not tf.gfile.IsDirectory(exp_dir):
         utils.create_dir(exp_dir)
@@ -128,6 +147,15 @@ def main():
     # Loading the dataset
     data = DataHandler(opts)
     assert data.num_points >= opts['batch_size'], 'Training set too small'
+
+    # Experiemnts set up
+    opts['epoch_num'] = int(FLAGS.num_it / int(data.num_points/opts['batch_size']))
+    opts['plot_every'] = int(opts['epoch_num'] / 3.) * int(data.num_points/opts['batch_size'])-1
+    opts['evaluate_every'] = int(opts['plot_every'] / 2)
+    opts['save_every'] = 1000000000
+    opts['save_final'] = False
+    opts['save_train_data'] = True
+    opts['vizu_encSigma'] = False
 
     #Reset tf graph
     tf.reset_default_graph()
