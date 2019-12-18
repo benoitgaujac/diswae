@@ -145,8 +145,8 @@ class Run(object):
         global_variances = np.var(codes, axis=0, ddof=1)
         active_dims = np.sqrt(global_variances)>=threshold
         # Generate classifier training set and build classifier
-        training_size = 10000
-        # training_size = 20
+        # training_size = 10000
+        training_size = 5000
         votes = np.zeros((len(data.factor_sizes), opts['zdim']),dtype=np.int32)
         for i in range(training_size):
             factor, vote = self.generate_training_sample(sess,
@@ -158,8 +158,8 @@ class Run(object):
         classifier = np.argmax(votes, axis=0)
         other_index = np.arange(votes.shape[1])
         # Generate classifier eval set and get eval accuracy
-        eval_size = 5000
-        # eval_size = 5
+        # eval_size = 5000
+        eval_size = 2500
         votes = np.zeros((len(data.factor_sizes), opts['zdim']),dtype=np.int32)
         for i in range(eval_size):
             factor, vote = self.generate_training_sample(sess,
