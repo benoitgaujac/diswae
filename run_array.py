@@ -87,7 +87,7 @@ def main():
         opts['fid'] = False
 
     # Opt set up
-    opts['lr'] = 0.0001
+    opts['lr'] = 0.0004
 
     # Model set up
     opts['zdim'] = 10
