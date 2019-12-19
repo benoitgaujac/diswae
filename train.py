@@ -216,7 +216,7 @@ class Run(object):
         # - Set up for training
         train_size = data.num_points
         batches_num = int(train_size/opts['batch_size'])
-        logging.error('Batch num.: {}'.format(batches_num)
+        logging.error('Batch num.: {}'.format(batches_num))
         npics = opts['plot_num_pics']
         im_shape = datashapes[opts['dataset']]
         fixed_noise = sample_pz(opts, self.pz_params, npics)
