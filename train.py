@@ -146,7 +146,7 @@ class Run(object):
         active_dims = np.sqrt(global_variances)>=threshold
         # Generate classifier training set and build classifier
         # training_size = 100
-        training_size = 5000
+        training_size = 10000
         votes = np.zeros((len(data.factor_sizes), opts['zdim']),dtype=np.int32)
         for i in range(training_size):
             factor, vote = self.generate_training_sample(sess,
@@ -159,7 +159,7 @@ class Run(object):
         other_index = np.arange(votes.shape[1])
         # Generate classifier eval set and get eval accuracy
         # eval_size = 50
-        eval_size = 2500
+        eval_size = 5000
         votes = np.zeros((len(data.factor_sizes), opts['zdim']),dtype=np.int32)
         for i in range(eval_size):
             factor, vote = self.generate_training_sample(sess,
@@ -489,7 +489,7 @@ class Run(object):
                             wait_lambda += 1
 
                 # logging
-                if (counter+1)%10000 ==0 :
+                if (counter+1)%50000 ==0 :
                     logging.error('Train it.: {}/{}'.format(counter+1,opts['epoch_num']*batches_num))
 
                 counter += 1
