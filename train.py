@@ -146,7 +146,7 @@ class Run(object):
         active_dims = np.sqrt(global_variances)>=threshold
         # Generate classifier training set and build classifier
         # training_size = 100
-        training_size = 2000
+        training_size = 5000
         votes = np.zeros((len(data.factor_sizes), opts['zdim']),dtype=np.int32)
         for i in range(training_size):
             factor, vote = self.generate_training_sample(sess,
@@ -159,7 +159,7 @@ class Run(object):
         other_index = np.arange(votes.shape[1])
         # Generate classifier eval set and get eval accuracy
         # eval_size = 50
-        eval_size = 1000
+        eval_size = 2500
         votes = np.zeros((len(data.factor_sizes), opts['zdim']),dtype=np.int32)
         for i in range(eval_size):
             factor, vote = self.generate_training_sample(sess,
@@ -216,7 +216,7 @@ class Run(object):
         # - Set up for training
         train_size = data.num_points
         batches_num = int(train_size/opts['batch_size'])
-        # logging.error('Batch num.: {}'.format(batches_num))
+        logging.error('Train size: {}, Batch num.: {}, Epoch num: {}'.format(train+size, batches_num, opts['epoch_num']))
         npics = opts['plot_num_pics']
         im_shape = datashapes[opts['dataset']]
         fixed_noise = sample_pz(opts, self.pz_params, npics)
@@ -263,7 +263,7 @@ class Run(object):
 
                 ##### TESTING LOOP #####
                 if (counter+1)%opts['evaluate_every'] == 0:
-                    print("Epoch {}, Iteration {}".format(epoch, it+1), flush=True)
+                    print("Epoch {}, Iteration {}".format(epoch, it+1))
                     # batch_size_te = 64
                     test_size = np.shape(data.test_data)[0]
                     batch_size_te = min(test_size,1000)
@@ -484,13 +484,13 @@ class Run(object):
                             opts['lambda'][-1] = 2*opts['lambda'][-1]
                             wae_lambda = opts['lambda']
                             logging.error('Lambda updated to %s\n' % wae_lambda)
-                            print('', flush=True)
+                            print('')
                             wait_lambda = 0
                         else:
                             wait_lambda += 1
 
                 # logging
-                if (counter+1)%50000 ==0 :
+                if (counter+1)%10000 ==0 :
                     logging.error('Train it.: {}/{}'.format(counter+1,opts['epoch_num']*batches_num))
 
                 counter += 1
