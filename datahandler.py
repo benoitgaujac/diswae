@@ -376,15 +376,16 @@ class DataHandler(object):
         np.random.seed()
         np.random.shuffle(shuffling_mask[opts['plot_num_pics']:])
         self.data_order_idx = np.argsort(shuffling_mask)
-        # Set vizu data aside
-        self.vizu_data = Data(opts, X[shuffling_mask[:opts['plot_num_pics']]])
-        self.vizu_labels = Data(opts, Y[shuffling_mask[:opts['plot_num_pics']]])
-        # Load training/testing set
-        test_size = 10000 - opts['plot_num_pics']
-        self.data = Data(opts, X[shuffling_mask[opts['plot_num_pics']:-test_size]])
-        self.labels = Data(opts, Y[shuffling_mask[opts['plot_num_pics']:-test_size]])
-        self.test_data = Data(opts, X[shuffling_mask[-test_size:]])
-        self.test_labels = Data(opts, Y[shuffling_mask[-test_size:]])
+        # training set
+        self.data = Data(opts, X[shuffling_mask[:-10000]])
+        self.labels = Data(opts, Y[shuffling_mask[:-10000]])
+        # testing set
+        # test_size = 10000 - opts['plot_num_pics']
+        self.test_data = Data(opts, X[shuffling_mask[-10000:-opts['plot_num_pics']]])
+        self.test_labels = Data(opts, Y[shuffling_mask[-10000:-opts['plot_num_pics']]])
+        # vizu set
+        self.vizu_data = Data(opts, X[shuffling_mask[-opts['plot_num_pics']:]])
+        self.vizu_labels = Data(opts, Y[shuffling_mask[-opts['plot_num_pics']:]])
         # data informations
         self.data_shape = datashapes[opts['dataset']]
         self.num_points = len(self.data)
@@ -426,15 +427,16 @@ class DataHandler(object):
         np.random.seed()
         np.random.shuffle(shuffling_mask[opts['plot_num_pics']:])
         self.data_order_idx = np.argsort(shuffling_mask)
-        # Set vizu data aside
-        self.vizu_data = Data(opts, X[shuffling_mask[:opts['plot_num_pics']]])
-        self.vizu_labels = Data(opts, Y[shuffling_mask[:opts['plot_num_pics']]])
-        # Load training/testing set
-        test_size = 10000 - opts['plot_num_pics']
-        self.data = Data(opts, X[shuffling_mask[opts['plot_num_pics']:-test_size]])
-        self.labels = Data(opts, Y[shuffling_mask[opts['plot_num_pics']:-test_size]])
-        self.test_data = Data(opts, X[shuffling_mask[-test_size:]])
-        self.test_labels = Data(opts, Y[shuffling_mask[-test_size:]])
+        # training set
+        self.data = Data(opts, X[shuffling_mask[:-10000]])
+        self.labels = Data(opts, Y[shuffling_mask[:-10000]])
+        # testing set
+        # test_size = 10000 - opts['plot_num_pics']
+        self.test_data = Data(opts, X[shuffling_mask[-10000:-opts['plot_num_pics']]])
+        self.test_labels = Data(opts, Y[shuffling_mask[-10000:-opts['plot_num_pics']]])
+        # vizu set
+        self.vizu_data = Data(opts, X[shuffling_mask[-opts['plot_num_pics']:]])
+        self.vizu_labels = Data(opts, Y[shuffling_mask[-opts['plot_num_pics']:]])
         # data informations
         self.data_shape = datashapes[opts['dataset']]
         self.num_points = len(self.data)
@@ -491,9 +493,9 @@ class DataHandler(object):
                         infos[r, c] = info
             list_of_labels.append((np.column_stack((categories, infos))))
         X = np.concatenate(list_of_images, axis=0)
-        Y = np.concatenate(list_of_labels, axis=0)
+        self.Y = np.concatenate(list_of_labels, axis=0)
         X = np.expand_dims(X,axis=-1)
-        Y[:, 3] = Y[:, 3] / 2  # azimuth values are 0, 2, 4, ..., 24
+        self.Y[:, 3] = self.Y[:, 3] / 2  # azimuth values are 0, 2, 4, ..., 24
         # labels informations
         self.factor_indices = [0, 2, 3, 4]
         self.factor_sizes = np.array([5, 10, 9, 18, 6])
@@ -507,15 +509,16 @@ class DataHandler(object):
         np.random.seed()
         np.random.shuffle(shuffling_mask[opts['plot_num_pics']:])
         self.data_order_idx = np.argsort(shuffling_mask)
-        # Set vizu data aside
-        self.vizu_data = Data(opts, X[shuffling_mask[:opts['plot_num_pics']]])
-        self.vizu_labels = Data(opts, Y[shuffling_mask[:opts['plot_num_pics']]])
-        # Load training/testing set
-        test_size = 10000 - opts['plot_num_pics']
-        self.data = Data(opts, X[shuffling_mask[opts['plot_num_pics']:-test_size]])
-        self.labels = Data(opts, Y[shuffling_mask[opts['plot_num_pics']:-test_size]])
-        self.test_data = Data(opts, X[shuffling_mask[-test_size:]])
-        self.test_labels = Data(opts, Y[shuffling_mask[-test_size:]])
+        # training set
+        self.data = Data(opts, X[shuffling_mask[:-10000]])
+        self.labels = Data(opts, self.Y[shuffling_mask[:-10000]])
+        # testing set
+        # test_size = 10000 - opts['plot_num_pics']
+        self.test_data = Data(opts, X[shuffling_mask[-10000:-opts['plot_num_pics']]])
+        self.test_labels = Data(opts, self.Y[shuffling_mask[-10000:-opts['plot_num_pics']]])
+        # vizu set
+        self.vizu_data = Data(opts, X[shuffling_mask[-opts['plot_num_pics']:]])
+        self.vizu_labels = Data(opts, self.Y[shuffling_mask[-opts['plot_num_pics']:]])
         # data informations
         self.data_shape = datashapes[opts['dataset']]
         self.num_points = len(self.data)
@@ -753,6 +756,57 @@ class DataHandler(object):
         self.num_points = len(self.data)
 
         logging.error('Loading Done: Train size: %d, Test size: %d' % (self.num_points,len(self.test_data)))
+
+    def sample_observations_from_factors(self, dataset, factors):
+        if dataset == 'dsprites':
+            indices = np.dot(factors, self.factor_bases).astype(dtype=np.int32)
+            images, labels = self.sample_from_factor_indices(indices)
+        elif dataset == '3dshapes':
+            assert False, 'to do'
+        elif dataset == 'smallNORB':
+            feature_state_space_index = np.array(np.dot(self.Y, self.factor_bases), dtype=np.int32)
+            num_total_atoms = np.prod(self.factor_sizes)
+            state_space_to_save_space_index = np.zeros(num_total_atoms, dtype=np.int32)
+            state_space_to_save_space_index[feature_state_space_index] = np.arange(num_total_atoms)
+            state_space_index = np.dot(factors, self.factor_bases).astype(dtype=np.int32)
+            indices = state_space_to_save_space_index[state_space_index]
+            images, labels = self.sample_from_factor_indices(indices)
+        elif dataset == '3Dchairs':
+            assert False, 'to do'
+        elif dataset == 'celebA':
+            assert False, 'to do'
+        elif dataset == 'mnist':
+            assert False, 'to do'
+        elif dataset == 'svhn':
+            assert False, 'to do'
+        else:
+            raise ValueError('Unknown %s' % opts['dataset'])
+
+        return images, labels
+
+    def sample_from_factor_indices(self, indices):
+        indices_to_order = self.data_order_idx[indices]
+        images = np.zeros([len(indices)]+self.data_shape)
+        labels = np.zeros([len(indices),len(self.factor_sizes)])
+        for i, idx in enumerate(list(indices_to_order)):
+            if idx<self.num_points:
+                images[i] = self.data[idx]
+                labels[i] = self.labels[idx]
+            elif idx>=self.num_points and idx<(self.num_points+len(self.test_data)):
+                images[i] = self.test_data[idx-self.num_points]
+                labels[i] = self.test_labels[idx-self.num_points]
+            else:
+                images[i] = self.vizu_data[idx-(self.num_points+len(self.test_data))]
+                labels[i] = self.vizu_labels[idx-(self.num_points+len(self.test_data))]
+
+        return images, labels
+        # im_train_idx = np.extract(indices_to_order<data.num_points,indices_to_order)
+        # im_train = data.data[im_train_idx]
+        # im_test_idx = np.extract((data.num_points<=indices_to_order) and (indices_to_order<(data.num_points+len(data.test_data))),indices_to_order)
+        # im_test = data.test_data[im_test_idx-data.num_points]
+        # im_vizu_idx = np.extract(indices_to_order>=(data.num_points+len(data.test_data)),indices_to_order)
+        # im_vizu = data.vizu_data
+        # return np.vstack((data.vizu_data,data.data,data.test_data))[indices_to_order]
 
 
 def matrix_type_from_magic(magic_number):

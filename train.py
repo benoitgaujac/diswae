@@ -126,7 +126,7 @@ class Run(object):
         factor_index = data.factor_indices[factor_index]
         # sample batch of images with fix selected factor
         batch_size = 64
-        batch_images = utils.sample_images(opts, batch_size, data, factor_index)
+        batch_images = utils.sample_images(opts, batch_size, opts['dataset'], data, factor_index)
         # encode images
         z = sess.run(self.z_samples, feed_dict={self.batch: batch_images,
                                                 self.dropout_rate: 1.,
@@ -145,8 +145,8 @@ class Run(object):
         global_variances = np.var(codes, axis=0, ddof=1)
         active_dims = np.sqrt(global_variances)>=threshold
         # Generate classifier training set and build classifier
-        # training_size = 10000
-        training_size = 1000
+        # training_size = 100
+        training_size = 2000
         votes = np.zeros((len(data.factor_sizes), opts['zdim']),dtype=np.int32)
         for i in range(training_size):
             factor, vote = self.generate_training_sample(sess,
@@ -158,8 +158,8 @@ class Run(object):
         classifier = np.argmax(votes, axis=0)
         other_index = np.arange(votes.shape[1])
         # Generate classifier eval set and get eval accuracy
-        # eval_size = 5000
-        eval_size = 500
+        # eval_size = 50
+        eval_size = 1000
         votes = np.zeros((len(data.factor_sizes), opts['zdim']),dtype=np.int32)
         for i in range(eval_size):
             factor, vote = self.generate_training_sample(sess,
@@ -265,9 +265,10 @@ class Run(object):
                 if (counter+1)%opts['evaluate_every'] == 0:
                     print("Epoch {}, Iteration {}".format(epoch, it+1), flush=True)
                     # batch_size_te = 64
-                    batch_size_te = 1000
                     test_size = np.shape(data.test_data)[0]
-                    batches_num_te = int(test_size/batch_size_te)
+                    batch_size_te = min(test_size,1000)
+                    batches_num_te = int(test_size/batch_size_te)+1
+                    # print('test size: {}, batch size: {}, batch num: {}'.format(test_size,batch_size_te,batches_num_te))
                     # Train losses
                     Loss.append(loss)
                     Loss_rec.append(loss_rec)
@@ -489,8 +490,8 @@ class Run(object):
                             wait_lambda += 1
 
                 # logging
-                if (counter+1)%10000 ==0 :
-                    logging.error('Train  it.: {}/{}'.format(counter+1,opts['epoch_num']*batches_num))
+                if (counter+1)%50000 ==0 :
+                    logging.error('Train it.: {}/{}'.format(counter+1,opts['epoch_num']*batches_num))
 
                 counter += 1
 

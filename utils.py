@@ -117,7 +117,7 @@ def gaussian_log_density(samples, mean, log_var):
   tmp = (samples - mean)
   return -0.5 * (tmp * tmp * inv_sigma + log_var + normalization)
 
-def sample_images(opts, batch_size, data, factor_index):
+def sample_images(opts, batch_size, dataset, data, factor_index):
     factor_sizes = data.factor_sizes
     factor_num = len(factor_sizes)
     # sampling batch of factors
@@ -127,10 +127,31 @@ def sample_images(opts, batch_size, data, factor_index):
     # fixing the selected factor across batch
     factors[:, factor_index] = factors[0, factor_index]
     # generating images from factors
-    indices = np.dot(factors, data.factor_bases).astype(dtype=np.int32)
-    images = sample_from_factor_indices(data, indices)
+    images, labels = data.sample_observations_from_factors(dataset, factors)
+    # indices = np.dot(factors, data.factor_bases).astype(dtype=np.int32)
+    # images, labels = sample_from_factor_indices(data, indices)
     return images
 
-def sample_from_factor_indices(data, indices):
-    indices_to_order = data.data_order_idx[indices]
-    return np.vstack((data.vizu_data,data.data,data.test_data))[indices_to_order]
+# def sample_from_factor_indices(data, indices):
+#     indices_to_order = data.data_order_idx[indices]
+#     images = np.zeros([len(indices)]+data.data_shape)
+#     labels = np.zeros([len(indices),len(data.factor_sizes)])
+#     for i, idx in enumerate(list(indices_to_order)):
+#         if idx<data.num_points:
+#             images[i] = data.data[idx]
+#             labels[i] = data.labels[idx]
+#         elif idx>=data.num_points and idx<(data.num_points+len(data.test_data)):
+#             images[i] = data.test_data[idx-data.num_points]
+#             labels[i] = data.test_labels[idx-data.num_points]
+#         else:
+#             images[i] = data.vizu_data[idx-(data.num_points+len(data.test_data))]
+#             labels[i] = data.vizu_labels[idx-(data.num_points+len(data.test_data))]
+#
+#     return images, labels
+    # im_train_idx = np.extract(indices_to_order<data.num_points,indices_to_order)
+    # im_train = data.data[im_train_idx]
+    # im_test_idx = np.extract((data.num_points<=indices_to_order) and (indices_to_order<(data.num_points+len(data.test_data))),indices_to_order)
+    # im_test = data.test_data[im_test_idx-data.num_points]
+    # im_vizu_idx = np.extract(indices_to_order>=(data.num_points+len(data.test_data)),indices_to_order)
+    # im_vizu = data.vizu_data
+    # return np.vstack((data.vizu_data,data.data,data.test_data))[indices_to_order]
