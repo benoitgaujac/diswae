@@ -47,11 +47,11 @@ def Conv2d(opts, input, input_dim, output_dim, filter_size, stride=1, padding='S
                 'filter', initializer=filter_values)
         elif init=='truncated_norm':
             w = tf.get_variable(
-                'filter', [filter_size, filter_size, shape[-1], output_dim],
+                'filter', [filter_size, filter_size, input_dim, output_dim],
                 initializer=tf.truncated_normal_initializer(stddev=opts['init_std']))
         elif init=='glorot_uniform':
             w = tf.get_variable(
-                'filter', [filter_size, filter_size, shape[-1], output_dim],
+                'filter', [filter_size, filter_size, input_dim, output_dim],
                 initializer=tf.glorot_uniform_initializer(seed=None, dtype=tf.float32))
         else:
             raise Exception('Invalid %s conv initialization!' % opts['conv_init'])
