@@ -76,17 +76,25 @@ def maybe_download(opts):
         if not tf.gfile.Exists(file_path):
             download_file(file_path,filename,opts['3Dchairs_data_source_url'])
     elif opts['dataset']=='celebA':
-        filename = 'img_align_celeba.zip'
+        file_name = 'img_align_celeba'
+        # data_path = os.path.join(data_path,'file_name')
         file_path = os.path.join(data_path, filename)
         if not tf.gfile.Exists(file_path):
-            download_file_from_google_drive(file_path,filename,opts['celebA_data_source_url'])
-        # Unzipping
-        zip_dir = ''
-        with zipfile.ZipFile(file_path) as zf:
-            zip_dir = zf.namelist()[0]
-            zf.extractall()
-        os.remove(file_path)
-        os.rename(os.path.join(data_path, zip_dir), os.path.join(data_path, 'img_align_celeba'))
+            filename = 'img_align_celeba.zip'
+            file_path = os.path.join(data_path, filename)
+            if not tf.gfile.Exists(file_path):
+                assert False, '{} dataset does not exist'.format(opts['dataset'])
+                download_file_from_google_drive(file_path,filename,opts['celebA_data_source_url'])
+            # Unzipping
+            print('Unzipping celebA...')
+            zip_dir = ''
+            with zipfile.ZipFile(file_path) as zf:
+                zip_dir = zf.namelist()[0]
+                zf.extractall()
+            print('Unzipping done.')
+            os.remove(file_path)
+            os.rename(os.path.join(data_path, zip_dir), os.path.join(data_path, 'img_align_celeba'))
+        data_path = os.path.join(data_path,'img_align_celeba')
     elif opts['dataset']=='mnist':
         download_file(data_path,'train-images-idx3-ubyte.gz',opts['MNIST_data_source_url'])
         download_file(data_path,'train-labels-idx1-ubyte.gz',opts['MNIST_data_source_url'])
@@ -575,24 +583,23 @@ class DataHandler(object):
 
         num_samples = 202599
 
-        datapoint_ids = list(range(1, num_samples + 1))
-        paths = ['%.6d.jpg' % i for i in range(1, num_samples + 1)]
+        paths = np.array(['%.6d.jpg' % i for i in range(1, num_samples + 1)])
+        # Creating shuffling mask
         seed = 123
-        random.seed(seed)
-        random.shuffle(paths)
-        random.shuffle(datapoint_ids)
-        random.seed()
-
-        saver = utils.ArraySaver('disk', workdir=opts['out_dir'])
-        saver.save('shuffled_training_ids', datapoint_ids)
-
-        self.data_shape = (64, 64, 3)
-        test_size = 512
-        self.data = Data(opts, None, paths[:-test_size])
-        self.test_data = Data(opts, None, paths[-test_size:])
-        self.num_points = num_samples - test_size
-        self.labels = np.array(self.num_points * [0])
-        self.test_labels = np.array(test_size * [0])
+        shuffling_mask = np.arange(num_samples)
+        np.random.seed(seed)
+        np.random.shuffle(shuffling_mask)
+        np.random.seed()
+        np.random.shuffle(shuffling_mask[opts['plot_num_pics']:])
+        # training set
+        self.data = Data(opts, None, paths[shuffling_mask[:-10000]])
+        # testing set
+        self.test_data = Data(opts, None, paths[shuffling_mask[-10000:-opts['plot_num_pics']]])
+        # vizu set
+        self.vizu_data = Data(opts, None, paths[shuffling_mask[-opts['plot_num_pics']:]])
+        # data informations
+        self.data_shape = datashapes[opts['dataset']]
+        self.num_points = len(self.data)
 
         logging.error('Loading Done.')
 
@@ -762,7 +769,8 @@ class DataHandler(object):
             indices = np.dot(factors, self.factor_bases).astype(dtype=np.int32)
             images, labels = self.sample_from_factor_indices(indices)
         elif dataset == '3dshapes':
-            assert False, 'to do'
+            indices = np.dot(factors, self.factor_bases).astype(dtype=np.int32)
+            images, labels = self.sample_from_factor_indices(indices)
         elif dataset == 'smallNORB':
             feature_state_space_index = np.array(np.dot(self.Y, self.factor_bases), dtype=np.int32)
             num_total_atoms = np.prod(self.factor_sizes)
@@ -800,13 +808,6 @@ class DataHandler(object):
                 labels[i] = self.vizu_labels[idx-(self.num_points+len(self.test_data))]
 
         return images, labels
-        # im_train_idx = np.extract(indices_to_order<data.num_points,indices_to_order)
-        # im_train = data.data[im_train_idx]
-        # im_test_idx = np.extract((data.num_points<=indices_to_order) and (indices_to_order<(data.num_points+len(data.test_data))),indices_to_order)
-        # im_test = data.test_data[im_test_idx-data.num_points]
-        # im_vizu_idx = np.extract(indices_to_order>=(data.num_points+len(data.test_data)),indices_to_order)
-        # im_vizu = data.vizu_data
-        # return np.vstack((data.vizu_data,data.data,data.test_data))[indices_to_order]
 
 
 def matrix_type_from_magic(magic_number):
