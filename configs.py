@@ -57,7 +57,7 @@ config_dsprites['lambda_schedule'] = 'constant' # adaptive, constant
 config_dsprites['init_std'] = 0.099999
 config_dsprites['init_bias'] = 0.0
 config_dsprites['mlp_init'] = 'glorot_uniform' #normal, he, glorot, glorot_he, glorot_uniform, ('uniform', range)
-config_dsprites['conv_init'] = 'normilized_glorot' #he, glorot, normilized_glorot, truncated_norm
+config_dsprites['conv_init'] = 'glorot_uniform' #he, glorot, normilized_glorot, truncated_norm
 
 ### 3dshapes config
 config_3dshapes = {}
@@ -114,7 +114,7 @@ config_3dshapes['lambda_schedule'] = 'constant' # adaptive, constant
 config_3dshapes['init_std'] = 0.099999
 config_3dshapes['init_bias'] = 0.0
 config_3dshapes['mlp_init'] = 'glorot_uniform' #normal, he, glorot, glorot_he, glorot_uniform, ('uniform', range)
-config_3dshapes['conv_init'] = 'normilized_glorot' #he, glorot, normilized_glorot, truncated_norm
+config_3dshapes['conv_init'] = 'glorot_uniform' #he, glorot, normilized_glorot, truncated_norm
 
 
 ### smallNORB config
@@ -171,7 +171,7 @@ config_smallNORB['lambda_schedule'] = 'constant' # adaptive, constant
 config_smallNORB['init_std'] = 0.099999
 config_smallNORB['init_bias'] = 0.0
 config_smallNORB['mlp_init'] = 'glorot_uniform' #normal, he, glorot, glorot_he, glorot_uniform, ('uniform', range)
-config_smallNORB['conv_init'] = 'normilized_glorot' #he, glorot, normilized_glorot, truncated_norm
+config_smallNORB['conv_init'] = 'glorot_uniform' #he, glorot, normilized_glorot, truncated_norm
 
 
 ### 3Dchairs config
@@ -228,7 +228,7 @@ config_3Dchairs['lambda_schedule'] = 'constant' # adaptive, constant
 config_3Dchairs['init_std'] = 0.099999
 config_3Dchairs['init_bias'] = 0.0
 config_3Dchairs['mlp_init'] = 'glorot_uniform' #normal, he, glorot, glorot_he, glorot_uniform, ('uniform', range)
-config_3Dchairs['conv_init'] = 'normilized_glorot' #he, glorot, normilized_glorot, truncated_norm
+config_3Dchairs['conv_init'] = 'glorot_uniform' #he, glorot_uniform, normilized_glorot, truncated_norm
 
 
 ### celebA config
@@ -286,7 +286,7 @@ config_celebA['lambda_schedule'] = 'constant' # adaptive, constant
 config_celebA['init_std'] = 0.099999
 config_celebA['init_bias'] = 0.0
 config_celebA['mlp_init'] = 'glorot_uniform' #normal, he, glorot, glorot_he, glorot_uniform, ('uniform', range)
-config_celebA['conv_init'] = 'normilized_glorot' #he, glorot, normilized_glorot, truncated_norm
+config_celebA['conv_init'] = 'glorot_uniform' #he, glorot, normilized_glorot, truncated_norm
 
 
 ### MNIST config
@@ -342,7 +342,7 @@ config_mnist['lambda_schedule'] = 'constant' # adaptive, constant
 config_mnist['init_std'] = 0.099999
 config_mnist['init_bias'] = 0.0
 config_mnist['mlp_init'] = 'glorot_uniform' #normal, he, glorot, glorot_he, glorot_uniform, ('uniform', range)
-config_mnist['conv_init'] = 'he' #he, glorot, normilized_glorot, truncated_norm
+config_mnist['conv_init'] = 'glorot_uniform' #he, glorot, normilized_glorot, truncated_norm
 
 
 ### CIFAR 10 config
@@ -401,5 +401,5 @@ config_svhn['lambda_schedule'] = 'constant' # adaptive, constant
 config_svhn['init_std'] = 0.099999
 config_svhn['init_bias'] = 0.0
 config_svhn['mlp_init'] = 'glorot_he' #normal, he, glorot, glorot_he, glorot_uniform, ('uniform', range)
-config_svhn['conv_init'] = 'he' #he, glorot, normilized_glorot, truncated_norm
+config_svhn['conv_init'] = 'glorot_uniform' #he, glorot, normilized_glorot, truncated_norm
 config_svhn['e_nlatents'] = config_svhn['nlatents'] #config_mnist['nlatents']
