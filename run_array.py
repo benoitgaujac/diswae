@@ -115,6 +115,9 @@ def main():
         else :
             lmba0 = [1, 50, 100, 250, 500, 750, 1000, 1500, 2000]
             lmba1 = [1, 2, 5, 10, 20, 50, 100, 250, 500, 1000]
+        lmba = list(itertools.product(lmba0,lmba1))
+        opts['obj_fn_coeffs'] = list(lmba[FLAGS.idx-1])
+            
     else:
         assert False, 'unknown model {}'.format(opts['model'])
     # Penalty Sigma_q
