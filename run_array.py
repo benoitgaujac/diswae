@@ -106,14 +106,15 @@ def main():
         opts['obj_fn_coeffs'] = lmba[FLAGS.idx-1]
     elif opts['model'] == 'disWAE':
         # Penalty
-        lmba0 = [1, 50, 100, 250, 500, 750, 1000, 1500, 2000]
-        lmba1 = [1, 5, 10, 20, 50, 100, 250, 500, 1000]
-        # lmba_ = list(zip(lmba0,lmba1))
-        # lmba__ = list(zip(lmba1,lmba0))
-        # lmba = lmba_ + lmba__
-        lmba = list(itertools.product(lmba0,lmba1))
-        # lmba = [[50,50],[25,75],[75,25],[50,100],[100,50]]
-        opts['obj_fn_coeffs'] = list(lmba[FLAGS.idx-1])
+        if FLAGS.exp == 'dsprites':
+            lmba0 = [50, 100, 200, 300, 400, 600, 800, 900, 1200]
+            lmba1 = [1, 5, 10, 20, 40, 100, 200, 400, 600]
+        elif FLAGS.exp == 'smallNORB':
+            lmba0 = [1, 5, 10, 20, 50, 100, 250, 750, 1000]
+            lmba1 = [1, 50, 75, 100, 200, 400, 600, 800, 1000]
+        else FLAGS.exp == '3dshapes':
+            lmba0 = [1, 50, 100, 250, 500, 750, 1000, 1500, 2000]
+            lmba1 = [1, 2, 5, 10, 20, 50, 100, 250, 500, 1000]
     else:
         assert False, 'unknown model {}'.format(opts['model'])
     # Penalty Sigma_q
