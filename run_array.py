@@ -117,7 +117,7 @@ def main():
             lmba1 = [1, 2, 5, 10, 20, 50, 100, 250, 500, 1000]
         lmba = list(itertools.product(lmba0,lmba1))
         opts['obj_fn_coeffs'] = list(lmba[FLAGS.idx-1])
-            
+
     else:
         assert False, 'unknown model {}'.format(opts['model'])
     # Penalty Sigma_q
@@ -161,8 +161,8 @@ def main():
 
     # Experiemnts set up
     opts['epoch_num'] = int(FLAGS.num_it / int(data.num_points/opts['batch_size']))
-    opts['evaluate_every'] = int(opts['epoch_num'] / 10.) * int(data.num_points/opts['batch_size'])-1
-    opts['print_every'] = int(opts['evaluate_every'] / 5) + 1
+    opts['print_every'] = int(opts['epoch_num'] / 3.) * int(data.num_points/opts['batch_size'])-1
+    opts['evaluate_every'] = int(opts['evaluate_every'] / 3.) + 1
     opts['save_every'] = 1000000000
     opts['save_final'] = False
     opts['save_train_data'] = True
