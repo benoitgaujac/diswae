@@ -162,7 +162,7 @@ def main():
     # Experiemnts set up
     opts['epoch_num'] = int(FLAGS.num_it / int(data.num_points/opts['batch_size']))
     opts['print_every'] = int(opts['epoch_num'] / 3.) * int(data.num_points/opts['batch_size'])-1
-    opts['evaluate_every'] = int(opts['evaluate_every'] / 3.) + 1
+    opts['evaluate_every'] = int(opts['print_every'] / 5.) + 1
     opts['save_every'] = 1000000000
     opts['save_final'] = False
     opts['save_train_data'] = True
