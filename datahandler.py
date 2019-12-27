@@ -269,6 +269,8 @@ class Data(object):
             res = []
             new_keys = []
             new_points = []
+            # if len(keys)>64:
+            #     pdb.set_trace()
             for key in keys:
                 if key in self.dict_loaded:
                     idx = self.dict_loaded[key]

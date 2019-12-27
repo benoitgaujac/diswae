@@ -23,6 +23,7 @@ config_dsprites['plot_num_cols'] = 10
 config_dsprites['dataset'] = 'dsprites'
 config_dsprites['DSprites_data_source_url'] = 'https://github.com/deepmind/dsprites-dataset/blob/master/'
 config_dsprites['input_normalize_sym'] = False
+config_dsprites['true_gen_model'] = True #If synthetic data with true gen. model known: True, False
 # Experiment set up
 config_dsprites['train_dataset_size'] = -1
 config_dsprites['batch_size'] = 100
@@ -80,6 +81,7 @@ config_3dshapes['plot_num_cols'] = 10
 config_3dshapes['dataset'] = '3dshapes'
 config_3dshapes['3dshapes_data_source_url'] = 'https://storage.cloud.google.com/3d-shapes/3dshapes.h5'
 config_3dshapes['input_normalize_sym'] = False
+config_3dshapes['true_gen_model'] = True #If synthetic data with true gen. model known: True, False
 # Experiment set up
 config_3dshapes['train_dataset_size'] = -1
 config_3dshapes['batch_size'] = 128
@@ -137,6 +139,7 @@ config_smallNORB['plot_num_cols'] = 10
 config_smallNORB['dataset'] = 'smallNORB'
 config_smallNORB['smallNORB_data_source_url'] = 'https://cs.nyu.edu/~ylclab/data/norb-v1.0-small/'
 config_smallNORB['input_normalize_sym'] = False
+config_smallNORB['true_gen_model'] = True #If synthetic data with true gen. model known: True, False
 # Experiment set up
 config_smallNORB['train_dataset_size'] = -1
 config_smallNORB['batch_size'] = 128
@@ -194,6 +197,7 @@ config_3Dchairs['plot_num_cols'] = 10
 config_3Dchairs['dataset'] = '3Dchairs'
 config_3Dchairs['3Dchairs_data_source_url'] = 'https://www.di.ens.fr/willow/research/seeing3Dchairs/data/'
 config_3Dchairs['input_normalize_sym'] = False
+config_3Dchairs['true_gen_model'] = False #If synthetic data with true gen. model known: True, False
 # Experiment set up
 config_3Dchairs['train_dataset_size'] = -1
 config_3Dchairs['batch_size'] = 128
@@ -252,6 +256,7 @@ config_celebA['dataset'] = 'celebA'
 config_celebA['celebA_data_source_url'] = 'https://docs.google.com/uc?export=download'
 config_celebA['celebA_crop'] = 'closecrop' # closecrop, resizecrop
 config_celebA['input_normalize_sym'] = True
+config_celebA['true_gen_model'] = False #If synthetic data with true gen. model known: True, False
 # Experiment set up
 config_celebA['train_dataset_size'] = -1
 config_celebA['batch_size'] = 128

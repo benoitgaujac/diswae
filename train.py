@@ -6,6 +6,7 @@ import logging
 
 import numpy as np
 import tensorflow as tf
+from sklearn import linear_model
 
 import utils
 from sampling_functions import sample_pz, linespace
@@ -119,14 +120,18 @@ class Run(object):
 
         return np.mean(mig)
 
-    def generate_training_sample(self, sess, data, global_variances, active_dims):
+    def generate_factorVAE_training_sample(self, sess, data, global_variances, active_dims):
         opts = self.opts
+        batch_size = 64
+        # sample batch of factors
+        factors = utils.sample_factors(opts, batch_size, data)
         # sample factor idx
         factor_index = np.random.randint(len(data.factor_indices))
         factor_index = data.factor_indices[factor_index]
+        # fixing the selected factor across batch
+        factors[:, factor_index] = factors[0, factor_index]
         # sample batch of images with fix selected factor
-        batch_size = 64
-        batch_images = utils.sample_images(opts, batch_size, opts['dataset'], data, factor_index)
+        batch_images = utils.sample_images(opts, opts['dataset'], data, factors)
         # encode images
         z = sess.run(self.z_samples, feed_dict={self.batch: batch_images,
                                                 self.dropout_rate: 1.,
@@ -145,11 +150,11 @@ class Run(object):
         global_variances = np.var(codes, axis=0, ddof=1)
         active_dims = np.sqrt(global_variances)>=threshold
         # Generate classifier training set and build classifier
-        # training_size = 100
-        training_size = 10000
+        training_size = 100
+        # training_size = 10000
         votes = np.zeros((len(data.factor_sizes), opts['zdim']),dtype=np.int32)
         for i in range(training_size):
-            factor, vote = self.generate_training_sample(sess,
+            factor, vote = self.generate_factorVAE_training_sample(sess,
                                                     data,
                                                     global_variances,
                                                     active_dims)
@@ -158,17 +163,67 @@ class Run(object):
         classifier = np.argmax(votes, axis=0)
         other_index = np.arange(votes.shape[1])
         # Generate classifier eval set and get eval accuracy
-        # eval_size = 50
-        eval_size = 5000
+        eval_size = 50
+        # eval_size = 5000
         votes = np.zeros((len(data.factor_sizes), opts['zdim']),dtype=np.int32)
         for i in range(eval_size):
-            factor, vote = self.generate_training_sample(sess,
+            factor, vote = self.generate_factorVAE_training_sample(sess,
                                                     data,
                                                     global_variances,
                                                     active_dims)
             votes[factor, vote] += 1
             # print('{} eval points generated'.format(i+1))
         acc = np.sum(votes[classifier, other_index]) * 1. / np.sum(votes)
+
+        return acc
+
+    def generate_betaVAE_training_sample(self, sess, data):
+        opts = self.opts
+        batch_size = 64
+        # sample 2 batches of factors
+        factors_1 = utils.sample_factors(opts, batch_size, data)
+        factors_2 = utils.sample_factors(opts, batch_size, data)
+        # sample factor idx
+        factor_index = np.random.randint(len(data.factor_indices))
+        factor_index = data.factor_indices[factor_index]
+        # fixing the selected factor across batch
+        factors_1[:, factor_index] = factors_2[:, factor_index]
+        # sample images with fix selected factor
+        images_1 = utils.sample_images(opts, opts['dataset'], data, factors_1)
+        images_2 = utils.sample_images(opts, opts['dataset'], data, factors_2)
+        # encode images
+        z_1 = sess.run(self.z_samples, feed_dict={self.batch: images_1,
+                                                self.dropout_rate: 1.,
+                                                self.is_training: False})
+        z_2 = sess.run(self.z_samples, feed_dict={self.batch: images_2,
+                                                self.dropout_rate: 1.,
+                                                self.is_training: False})
+        # Compute the feature vector based on differences in representation.
+        feature_vector = np.mean(np.abs(z_1 - z_2), axis=0)
+
+        return feature_vector, factor_index
+
+    def compute_betaVAE(self, sess, data):
+        """Compute betaVAE metric"""
+        opts = self.opts
+        # Generate classifier training set and build classifier
+        training_size = 100
+        # training_size = 10000
+        x_train = np.zeros((training_size,opts['zdim']))
+        y_train = np.zeros((training_size,))
+        for i in range(training_size):
+            x_train[i], y_train[i] = self.generate_betaVAE_training_sample(sess, data)
+        # logging.info("Training sklearn model.")
+        model = linear_model.LogisticRegression()
+        model.fit(x_train, y_train)
+        # Generate classifier eval set and get eval accuracy
+        eval_size = 50
+        # eval_size = 5000
+        x_eval = np.zeros((eval_size,opts['zdim']))
+        y_eval = np.zeros((eval_size,))
+        for i in range(eval_size):
+            x_eval[i], y_eval[i] = self.generate_betaVAE_training_sample(sess, data)
+        acc = model.score(x_eval, y_eval)
 
         return acc
 
@@ -226,7 +281,7 @@ class Run(object):
         # - Init all monitoring variables
         Loss, Loss_test, Loss_rec, Loss_rec_test = [], [], [], []
         Divergences, Divergences_test = [], []
-        MIG, factorVAE = [], []
+        betaVAE, MIG, factorVAE = [], [], []
         if opts['vizu_encSigma']:
             enc_Sigmas = []
 
@@ -274,15 +329,6 @@ class Run(object):
                     Loss_rec.append(loss_rec)
                     Divergences.append(divergences)
 
-                    # # MIG score
-                    # batch_labels = data.labels[data_ids].astype(np.int32)
-                    # z_train, z_mean_train = self.sess.run(self.z_mean, feed_dict={
-                    #                         self.batch: batch_images,
-                    #                         self.dropout_rate: 1.,
-                    #                         self.is_training: False})
-                    # MIG.append(self.compute_mig(z_mean_train,batch_labels))
-
-
                     # loss_train_summary = tf.Summary(value=[tf.Summary.Value(tag="loss_train", simple_value=loss)])
                     # loss_rec_train_summary = tf.Summary(value=[tf.Summary.Value(tag="loss_rec_train", simple_value=loss_rec)])
                     # writer.add_summary(loss_train_summary, it)
@@ -314,8 +360,9 @@ class Run(object):
 
                     # Test losses
                     loss_test, loss_rec_test = 0., 0.
-                    codes, codes_mean = np.zeros((batches_num_te*batch_size_te,opts['zdim'])), np.zeros((batches_num_te*batch_size_te,opts['zdim']))
-                    labels = np.zeros((batches_num_te*batch_size_te,len(data.factor_indices)))
+                    if opts['true_gen_model']:
+                        codes, codes_mean = np.zeros((batches_num_te*batch_size_te,opts['zdim'])), np.zeros((batches_num_te*batch_size_te,opts['zdim']))
+                        labels = np.zeros((batches_num_te*batch_size_te,len(data.factor_indices)))
                     if type(divergences)==list:
                         divergences_test = np.zeros(len(divergences))
                     else:
@@ -325,7 +372,6 @@ class Run(object):
                         data_ids = np.random.choice(test_size, batch_size_te, replace=True)
                         batch_images_test = data.test_data[data_ids].astype(np.float32)
                         batch_pz_samples_test = sample_pz(opts, self.pz_params, batch_size_te)
-                        batch_labels_test = data.test_labels[data_ids][:,data.factor_indices]
                         test_feed_dict = {self.batch: batch_images_test,
                                           self.samples_pz: batch_pz_samples_test,
                                           self.obj_fn_coeffs: opts['obj_fn_coeffs'],
@@ -340,14 +386,18 @@ class Run(object):
                         loss_test += loss / batches_num_te
                         loss_rec_test += l_rec / batches_num_te
                         divergences_test += np.array(divergences) / batches_num_te
-                        codes[batch_size_te*it_:batch_size_te*(it_+1)] = z
-                        codes_mean[batch_size_te*it_:batch_size_te*(it_+1)] = z_mean
-                        labels[batch_size_te*it_:batch_size_te*(it_+1)] = batch_labels_test
+                        if opts['true_gen_model']:
+                            codes[batch_size_te*it_:batch_size_te*(it_+1)] = z
+                            codes_mean[batch_size_te*it_:batch_size_te*(it_+1)] = z_mean
+                            batch_labels_test = data.test_labels[data_ids][:,data.factor_indices]
+                            labels[batch_size_te*it_:batch_size_te*(it_+1)] = data.test_labels[data_ids][:,data.factor_indices]
                     Loss_test.append(loss_test)
                     Loss_rec_test.append(loss_rec_test)
                     Divergences_test.append(divergences_test.tolist())
-                    MIG.append(self.compute_mig(codes_mean, labels))
-                    factorVAE.append(self.compute_factorVAE(self.sess, data, codes))
+                    if opts['true_gen_model']:
+                        betaVAE.append(self.compute_betaVAE(self.sess, data))
+                        MIG.append(self.compute_mig(codes_mean, labels))
+                        factorVAE.append(self.compute_factorVAE(self.sess, data, codes))
 
                 if (counter+1)%opts['print_every'] == 0 or (counter+1) == 100:
                     # Plot vizualizations
@@ -356,7 +406,7 @@ class Run(object):
                                                 [self.recon_x,
                                                  self.enc_z,
                                                  self.generated_x],
-                                                feed_dict={self.batch: data.vizu_data,       # TODO what is this?
+                                                feed_dict={self.batch: data.vizu_data[0:opts['plot_num_pics']],       # TODO what is this?
                                                            self.samples_pz: fixed_noise,
                                                            self.dropout_rate: 1.,
                                                            self.is_training: False})
@@ -404,7 +454,7 @@ class Run(object):
                               generations,                                          # model samples
                               Loss, Loss_test,                                      # loss
                               Loss_rec, Loss_rec_test,                              # rec loss
-                              MIG, factorVAE,                                       # disentangle metrics
+                              betaVAE, MIG, factorVAE,                              # disentangle metrics
                               Divergences, Divergences_test,                        # divergence terms
                               exp_dir,                                              # working directory
                               'res_e%04d_mb%05d.png' % (epoch, it))                 # filename
@@ -418,8 +468,9 @@ class Run(object):
                     logging.error(debug_str)
                     debug_str = 'TRAIN LOSS=%.3f, TEST LOSS=%.3f' % (Loss[-1],Loss_test[-1])
                     logging.error(debug_str)
-                    debug_str = 'MIG=%.3f, factorVAE=%.3f' % (MIG[-1],factorVAE[-1])
-                    logging.error(debug_str)
+                    if opts['true_gen_model']:
+                        debug_str = 'betaVAE=%.3f, MIG=%.3f, factorVAE=%.3f' % (betaVAE[-1],MIG[-1],factorVAE[-1])
+                        logging.error(debug_str)
                     if opts['model'] == 'BetaVAE':
                         debug_str = 'REC=%.3f, TEST REC=%.3f, beta*KL=%10.3e, beta*TEST KL=%10.3e, \n '  % (
                                                     Loss_rec[-1],

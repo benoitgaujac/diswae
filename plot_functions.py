@@ -20,7 +20,7 @@ def save_train(opts, data_train, data_test,
                      samples,
                      loss, loss_test,
                      loss_rec, loss_rec_test,
-                     mig, factorVAE,
+                     betaVAE, mig, factorVAE,
                      loss_match, loss_match_test,
                      exp_dir,
                      filename):
@@ -149,7 +149,7 @@ def save_train(opts, data_train, data_test,
     plt.text(0.47, 1., 'Log Loss curves', ha="center", va="bottom",
                                 size=20, transform=ax.transAxes)
 
-    ### The split loss curves
+    ### The loss curves
     base = plt.cm.get_cmap('tab10')
     color_list = base(np.linspace(0, 1, 6))
     ax = plt.subplot(gs[1, 1])
@@ -246,17 +246,20 @@ def save_train(opts, data_train, data_test,
     #                                 size=20, transform=ax.transAxes)
 
     ### The disentangle metrics curves
-    ax = plt.subplot(gs[1, 2])
-    # y = np.convolve(mig, np.ones((size_filter,))/size_filter, mode='valid')
-    y = mig
-    plt.plot(x, y[::x_step], linewidth=4, color='red', label='MIG')
-    # y = np.convolve(factorVAE, np.ones((size_filter,))/size_filter, mode='valid')
-    y = factorVAE
-    plt.plot(x, y[::x_step], linewidth=4, color='blue', label='factorVAE')
-    plt.grid(axis='y')
-    plt.legend(loc='upper right')
-    plt.text(0.47, 1., 'Disentanglement metrics', ha="center", va="bottom",
-                                size=20, transform=ax.transAxes)
+    if len(mig)>0:
+        ax = plt.subplot(gs[1, 2])
+        # y = np.convolve(mig, np.ones((size_filter,))/size_filter, mode='valid')
+        y = betaVAE
+        plt.plot(x, y[::x_step], linewidth=4, color='green', label='betaVAE')
+        y = mig
+        plt.plot(x, y[::x_step], linewidth=4, color='red', label='MIG')
+        # y = np.convolve(factorVAE, np.ones((size_filter,))/size_filter, mode='valid')
+        y = factorVAE
+        plt.plot(x, y[::x_step], linewidth=4, color='blue', label='factorVAE')
+        plt.grid(axis='y')
+        plt.legend(loc='upper right')
+        plt.text(0.47, 1., 'Disentanglement metrics', ha="center", va="bottom",
+                                    size=20, transform=ax.transAxes)
 
 
     ### Saving plots and data
