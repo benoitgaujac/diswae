@@ -66,7 +66,6 @@ def main():
     elif FLAGS.exp == '3Dchairs':
         opts = configs.config_3Dchairs
     elif FLAGS.exp == 'celebA':
-        assert False, 'CelebA dataset not implemented yet.'
         opts = configs.config_celebA
     elif FLAGS.exp == 'mnist':
         opts = configs.config_mnist
@@ -93,7 +92,8 @@ def main():
     opts['zdim'] = 10
     opts['batch_size'] = 64
     opts['cost'] = 'xentropy' #l2, l2sq, l2sq_norm, l1, xentropy
-
+    if FLAGS.exp == 'celebA':
+        opts['cost'] = 'l2sq'
     # Objective Function Coefficients
     if opts['model'] == 'BetaVAE':
         beta = [1, 2, 4, 6, 8, 10, 16, 20, 50]
@@ -113,7 +113,7 @@ def main():
             lmba0 = [1, 5, 10, 20, 50, 75, 100, 250, 500, 750, 1000]
             lmba1 = [1, 10, 50, 75, 100, 150, 200, 400, 600, 800, 1000]
         else :
-            lmba0 = [1, 50, 100, 250, 500, 750, 1000, 1500]
+            lmba0 = [1, 10, 50, 100, 250, 500, 750, 1000]
             lmba1 = [1, 10, 50, 100, 250, 500, 750, 1000]
         lmba = list(itertools.product(lmba0,lmba1))
         opts['obj_fn_coeffs'] = list(lmba[FLAGS.idx-1])

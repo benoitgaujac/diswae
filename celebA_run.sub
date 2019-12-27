@@ -4,16 +4,16 @@
 
 #$ -wd /home/bgaujac/diswae
 
-#$ -l gpu=1
-#$ -l tmem=4G
-#$ -l h_rt=1:00:00
+#$ -l gpu=True
+#$ -l tmem=5G
+#$ -l h_rt=24:00:00
 
-#$ -t 1-1
+#$ -t 1-64
 
-#$ -N chairs3d
+#$ -N disWAE_celebA
 
 source /share/apps/examples/source_files/python/python-3.6.4.source
 source /share/apps/examples/source_files/cuda/cuda-9.0.source
 
-python3 run.py --out_dir celeba_test  --exp celebA --enum 1000 --lmba0 50 --lmba1 10
-# python3 run_array.py --out_dir dsprites/ --exp dsprites --enum 100 --idx_lmba $SGE_TASK_ID
+# python3 run.py --out_dir dsprites  --exp dsprites --enum 100 --lmba0 1 --lmba1 1
+python3 run_array.py --num_it 600000 --net_archi conv_locatello --idx $SGE_TASK_ID --exp celebA --out_dir celebA --sigma_pen True --model disWAE
