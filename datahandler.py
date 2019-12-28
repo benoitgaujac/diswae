@@ -76,15 +76,15 @@ def maybe_download(opts):
         if not tf.gfile.Exists(file_path):
             download_file(file_path,filename,opts['3Dchairs_data_source_url'])
     elif opts['dataset']=='celebA':
-        file_name = 'img_align_celeba'
+        filename = 'img_align_celeba'
         # data_path = os.path.join(data_path,'file_name')
-        file_path = os.path.join(data_path, file_name)
+        file_path = os.path.join(data_path, filename)
         if not tf.gfile.Exists(file_path):
             filename = 'img_align_celeba.zip'
-            file_path = os.path.join(data_path, file_name)
+            file_path = os.path.join(data_path, filename)
             if not tf.gfile.Exists(file_path):
                 assert False, '{} dataset does not exist'.format(opts['dataset'])
-                download_file_from_google_drive(file_path,file_name,opts['celebA_data_source_url'])
+                download_file_from_google_drive(file_path,filename,opts['celebA_data_source_url'])
             # Unzipping
             print('Unzipping celebA...')
             zip_dir = ''
