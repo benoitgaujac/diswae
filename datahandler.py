@@ -77,7 +77,6 @@ def maybe_download(opts):
             download_file(file_path,filename,opts['3Dchairs_data_source_url'])
     elif opts['dataset']=='celebA':
         filename = 'img_align_celeba'
-        # data_path = os.path.join(data_path,'file_name')
         file_path = os.path.join(data_path, filename)
         if not tf.gfile.Exists(file_path):
             filename = 'img_align_celeba.zip'
@@ -92,7 +91,7 @@ def maybe_download(opts):
                 zip_dir = zf.namelist()[0]
                 zf.extractall()
             print('Unzipping done.')
-            os.remove(file_path)
+            # os.remove(file_path)
             os.rename(os.path.join(data_path, zip_dir), os.path.join(data_path, 'img_align_celeba'))
         data_path = os.path.join(data_path,'img_align_celeba')
     elif opts['dataset']=='mnist':
@@ -269,8 +268,6 @@ class Data(object):
             res = []
             new_keys = []
             new_points = []
-            # if len(keys)>64:
-            #     pdb.set_trace()
             for key in keys:
                 if key in self.dict_loaded:
                     idx = self.dict_loaded[key]
