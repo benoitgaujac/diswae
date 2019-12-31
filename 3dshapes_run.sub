@@ -8,7 +8,7 @@
 #$ -l tmem=60G
 #$ -l h_rt=20:00:00
 
-#$ -t 1-121
+#$ -t 1-100
 
 #$ -N disWAE_3dshapes
 
