@@ -8,7 +8,7 @@
 #$ -l tmem=25G
 #$ -l h_rt=20:00:00
 
-#$ -t 1-81
+#$ -t 1-100
 
 #$ -N disWAE_dsprites
 

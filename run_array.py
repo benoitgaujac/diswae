@@ -101,14 +101,19 @@ def main():
     elif opts['model'] == 'BetaTCVAE':
         beta = [1, 2, 4, 6, 8, 10, 16, 20, 50]
         opts['obj_fn_coeffs'] = beta[FLAGS.idx-1]
+    elif opts['model'] == 'FactorVAE':
+        beta = [1,]
+        gamma = [10, 20, 30, 40, 50, 100]
+        lmba = list(itertools.product(beta,gamma))
+        opts['obj_fn_coeffs'] = list(lmba[FLAGS.idx-1])
     elif opts['model'] == 'WAE':
         lmba = [1, 50, 75, 100, 125, 150, 175, 200, 400, 800, 1000]
         opts['obj_fn_coeffs'] = lmba[FLAGS.idx-1]
     elif opts['model'] == 'disWAE':
         # Penalty
         if FLAGS.exp == 'dsprites':
-            lmba0 = [50, 100, 200, 300, 400, 600, 800, 900, 1200]
-            lmba1 = [1, 5, 10, 20, 40, 100, 200, 400, 600]
+            lmba0 = [1, 50, 100, 200, 300, 400, 600, 800, 900, 1000]
+            lmba1 = [1, 5, 10, 20, 40, 100, 200, 400, 600, 1000]
         elif FLAGS.exp == 'smallNORB':
             lmba0 = [1, 5, 10, 20, 50, 75, 100, 250, 500, 1000]
             lmba1 = [1, 10, 50, 75, 100, 150, 200, 400, 600, 1000]
