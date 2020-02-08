@@ -14,7 +14,7 @@ import pdb
 
 parser = argparse.ArgumentParser()
 # Args for experiment
-parser.add_argument("--model", default='disWAE',
+parser.add_argument("--model", default='TCWAE',
                     help='model to train [WAE/BetaVAE/...]')
 parser.add_argument("--mode", default='train',
                     help='mode to run [train/vizu/fid/test]')
@@ -109,6 +109,12 @@ def main():
     elif opts['model'] == 'WAE':
         lmba = [1, 50, 75, 100, 125, 150, 175, 200, 400, 800, 1000]
         opts['obj_fn_coeffs'] = lmba[FLAGS.idx-1]
+    elif opts['model'] == 'TCWAE':
+        # Penalty
+        lmba0 = [1, 2, 4, 6, 8, 10, 20]
+        lmba1 = [1, 2, 4, 6, 8, 10, 20]
+        lmba = list(itertools.product(lmba0,lmba1))
+        opts['obj_fn_coeffs'] = list(lmba[FLAGS.idx-1])
     elif opts['model'] == 'disWAE':
         # Penalty
         if FLAGS.exp == 'dsprites':
@@ -140,7 +146,7 @@ def main():
         opts['out_dir'] = FLAGS.out_dir
     if FLAGS.exp_dir:
         opts['exp_dir'] = FLAGS.exp_dir
-    if opts['model'] == 'disWAE':
+    if opts['model'] == 'disWAE' or opts['model'] == 'TCWAE':
         exp_dir = os.path.join(opts['out_dir'],
                                opts['model'],
                                '{}_{}_{}_{:%Y_%m_%d_%H_%M}'.format(

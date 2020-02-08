@@ -47,9 +47,15 @@ class Run(object):
         elif opts['model'] == 'BetaTCVAE':
             self.model = models.BetaTCVAE(opts)
             self.obj_fn_coeffs = self.beta
+        elif opts['model'] == 'FactorVAE':
+            self.model = models.FactorVAE(opts)
+            self.obj_fn_coeffs = (self.lmbd1, self.lmbd2)
         elif opts['model'] == 'WAE':
             self.model = models.WAE(opts)
             self.obj_fn_coeffs = self.lmbd
+        elif opts['model'] == 'TCWAE':
+            self.model = models.TCWAE(opts)
+            self.obj_fn_coeffs = (self.lmbd1, self.lmbd2)
         elif opts['model'] == 'disWAE':
             self.model = models.disWAE(opts)
             self.obj_fn_coeffs = (self.lmbd1, self.lmbd2)
@@ -95,7 +101,7 @@ class Run(object):
             self.beta = tf.placeholder(tf.float32, name='beta_ph')
         elif self.opts['model']=='WAE':
             self.lmbd = tf.placeholder(tf.float32, name='lambda_ph')
-        elif self.opts['model']=='disWAE':
+        elif self.opts['model']=='disWAE' or self.opts['model']=='TCWAE' or self.opts['model']=='FactorVAE':
             self.lmbd1 = tf.placeholder(tf.float32, name='lambda1_ph')
             self.lmbd2 = tf.placeholder(tf.float32, name='lambda2_ph')
         else:
@@ -241,14 +247,29 @@ class Run(object):
         else:
             assert False, 'Unknown optimizer.'
 
+    def discr_optimizer(self):
+        return tf.train.AdamOptimizer(0.0001, beta1=0.5, beta2=0.9,)
+
     def add_optimizers(self):
         opts = self.opts
         lr = opts['lr']
         opt = self.optimizer(lr, self.lr_decay)
-        vars = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES)
+        encoder_vars = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES,
+                                                scope='encoder')
+        decoder_vars = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES,
+                                                scope='decoder')
         update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
-        with tf.control_dependencies(update_ops):
-            self.opt = opt.minimize(loss=self.objective, var_list=vars)
+
+        if self.opts['model']=='FactorVAE':
+            discr_opt = self.discr_optimizer()
+            discr_vars = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES,
+                                                    scope='discriminator')
+            vae_opt = opt.minimize(loss=self.objective,var_list=encoder_vars + decoder_vars)
+            discriminator_opt = discr_opt.minimize(loss=-self.model.discr_loss,var_list=discr_vars)
+            self.opt = tf.group(vae_opt, discriminator_opt, update_ops)
+        else:
+            with tf.control_dependencies(update_ops):
+                self.opt = opt.minimize(loss=self.objective,var_list=encoder_vars + decoder_vars)
 
     def train(self, data, WEIGHTS_FILE):
         """
@@ -487,6 +508,15 @@ class Run(object):
                                                     Divergences[-1][1],
                                                     Divergences_test[-1][1])
                         logging.error(debug_str)
+                    elif opts['model'] == 'FactorVAE':
+                        debug_str = 'REC=%.3f, TEST REC=%.3f, b*KL=%10.3e, TEST b*KL=%10.3e, g*TC=%10.3e, TEST g*TC=%10.3e, \n '  % (
+                                                    Loss_rec[-1],
+                                                    Loss_rec_test[-1],
+                                                    Divergences[-1][0],
+                                                    Divergences_test[-1][0],
+                                                    Divergences[-1][1],
+                                                    Divergences_test[-1][1])
+                        logging.error(debug_str)
                     elif opts['model'] == 'WAE':
                         debug_str = 'REC=%.3f, TEST REC=%.3f, l*MMD=%10.3e, l*TEST MMD=%10.3e \n ' % (
                                                     Loss_rec[-1],
@@ -502,6 +532,19 @@ class Run(object):
                                                     Divergences[-1][2])
                         logging.error(debug_str)
                         debug_str = 'TEST : REC=%.3f, l1*HSIC=%10.3e, l2*DIMWISE=%10.3e, WAE=%10.3e \n ' % (
+                                                    Loss_rec_test[-1],
+                                                    Divergences_test[-1][0],
+                                                    Divergences_test[-1][1],
+                                                    Divergences_test[-1][2])
+                        logging.error(debug_str)
+                    elif opts['model'] == 'TCWAE':
+                        debug_str = 'TRAIN: REC=%.3f,l1*TC=%10.3e, l2*DIMWISE=%10.3e, WAE=%10.3e' % (
+                                                    Loss_rec[-1],
+                                                    Divergences[-1][0],
+                                                    Divergences[-1][1],
+                                                    Divergences[-1][2])
+                        logging.error(debug_str)
+                        debug_str = 'TEST : REC=%.3f, l1*TC=%10.3e, l2*DIMWISE=%10.3e, WAE=%10.3e \n ' % (
                                                     Loss_rec_test[-1],
                                                     Divergences_test[-1][0],
                                                     Divergences_test[-1][1],
