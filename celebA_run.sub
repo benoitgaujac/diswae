@@ -8,7 +8,7 @@
 #$ -l tmem=5G
 #$ -l h_rt=24:00:00
 
-#$ -t 64-81
+#$ -t 1-49
 
 #$ -N disWAE_celebA
 
