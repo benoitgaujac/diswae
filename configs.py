@@ -365,7 +365,7 @@ config_svhn['vizu_encSigma'] = False
 config_svhn['fid'] = False
 config_svhn['out_dir'] = 'results_svhn'
 config_svhn['plot_num_pics'] = 100
-config_svhn['plot_num_cols'] = 15
+config_svhn['plot_num_cols'] = 10
 # Data set up
 config_svhn['dataset'] = 'svhn'
 config_svhn['SVHN_data_source_url'] = 'http://ufldl.stanford.edu/housenumbers/'
