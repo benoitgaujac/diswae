@@ -4,7 +4,6 @@ from math import pi
 
 from networks import encoder, decoder, discriminator
 from datahandler import datashapes
-from sampling_functions import sample_gaussian
 from loss_functions import l2_cost, l2sq_cost, l2sq_norm_cost, l1_cost, xentropy_cost
 import utils
 
@@ -392,11 +391,11 @@ class TCWAE(WAE):
         loss_reconstruct = self.reconstruction_loss(inputs, recon_x, dec_mean)
 
         # --- Latent regularization
-        d1, d2, d3 = self.total_correlation(enc_z, enc_mean, enc_Sigma)
+        log_qz, log_qz_product, log_pz_product = self.total_correlation(enc_z, enc_mean, enc_Sigma)
         # - WAE latent reg
+        matching_penalty = lmbd1*log_qz + (lmbd2-lmbd1)*log_qz_product + lmbd2*log_pz_product
         wae_match_penalty = self.mmd_penalty(enc_z, samples)
-        matching_penalty = lmbd1*d1 + (lmbd2-lmbd1)*d2 + lmbd2*d3
-        divergences = (lmbd1*(d1-d2), lmbd2*(d2-d3), wae_match_penalty)
+        divergences = (lmbd1*(log_qz-log_qz_product), lmbd2*(log_qz_product-log_pz_product), wae_match_penalty)
 
         # -- Obj
         objective = loss_reconstruct + matching_penalty

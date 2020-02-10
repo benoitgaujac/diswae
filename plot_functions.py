@@ -182,21 +182,21 @@ def save_train(opts, data_train, data_test,
     elif opts['model'] == 'WAE':
         # y = np.convolve(loss_match_test, np.ones((size_filter,))/size_filter, mode='valid')
         y = loss_match_test
-        y = np.log(y[::x_step])
+        y = np.log(np.abs(y[::x_step]))
         losses_test.append(list(y))
         labels = ['rec',r'$\lambda$|mmd|']
     elif opts['model'] == 'disWAE':
         for l in zip(*loss_match_test):
             # y = np.convolve(l, np.ones((size_filter,))/size_filter, mode='valid')
             y = l
-            y = np.log(y[::x_step])
+            y = np.log(np.abs(y[::x_step]))
             losses_test.append(list(y))
         labels = ['rec', r"$\lambda_1$|hsci|",r"$\lambda_2$|dimwise|",'|wae|']
     elif opts['model'] == 'TCWAE':
         for l in zip(*loss_match_test):
             # y = np.convolve(l, np.ones((size_filter,))/size_filter, mode='valid')
             y = l
-            y = np.log(y[::x_step])
+            y = np.log(np.abs(y[::x_step]))
             losses_test.append(list(y))
         labels = ['rec', r"$\lambda_1$|TC|",r"$\lambda_2$|dimwise|",'|wae|']
     else:
