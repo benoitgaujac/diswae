@@ -96,10 +96,10 @@ def main():
         opts['cost'] = 'l2sq'
     # Objective Function Coefficients
     if opts['model'] == 'BetaVAE':
-        beta = [1, 2, 4, 6, 8, 10, 16, 20, 50]
+        beta = [1, 2, 4, 6, 8, 10, 20]
         opts['obj_fn_coeffs'] = beta[FLAGS.idx-1]
     elif opts['model'] == 'BetaTCVAE':
-        beta = [1, 2, 4, 6, 8, 10, 16, 20, 50]
+        beta = [1, 2, 4, 6, 8, 10, 20]
         opts['obj_fn_coeffs'] = beta[FLAGS.idx-1]
     elif opts['model'] == 'FactorVAE':
         beta = [1,]
@@ -107,7 +107,7 @@ def main():
         lmba = list(itertools.product(beta,gamma))
         opts['obj_fn_coeffs'] = list(lmba[FLAGS.idx-1])
     elif opts['model'] == 'WAE':
-        lmba = [1, 50, 75, 100, 125, 150, 175, 200, 400, 800, 1000]
+        lmba = [1, 50, 100, 150, 200, 500, 1000]
         opts['obj_fn_coeffs'] = lmba[FLAGS.idx-1]
     elif opts['model'] == 'TCWAE':
         # Penalty
