@@ -297,7 +297,7 @@ class Run(object):
         im_shape = datashapes[opts['dataset']]
         fixed_noise = sample_pz(opts, self.pz_params, npics)
         # anchors_ids = np.random.choice(npics, 5, replace=True)
-        anchors_ids = [10, 11, 12, 13, 14]
+        anchors_ids = [0, 4, 6, 12, 39]
 
         # - Init all monitoring variables
         Loss, Loss_test, Loss_rec, Loss_rec_test = [], [], [], []
