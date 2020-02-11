@@ -81,7 +81,7 @@ def linespace(opts, n, anchors, std=1.0):
         for j in range(nanchors):
             int_m = np.linspace(start[j],anchors,int(n/2.),endpoint=False)
             int_p = np.linspace(anchors,stop[j],int(n/2.)+1,endpoint=True)
-            inter.append(np.concatenate((int_m,int_p),axis=0)
+            inter.append(np.concatenate((int_m,int_p),axis=0))
         linespce.append(np.array(inter))
     linespce = np.stack(linespce,axis=1)
 
