@@ -110,9 +110,15 @@ def main():
         lmba = [1, 50, 100, 150, 200, 500, 1000]
         opts['obj_fn_coeffs'] = lmba[FLAGS.idx-1]
     elif opts['model'] == 'TCWAE':
-        # Penalty
-        lmba0 = [1, 2, 4, 6, 8, 10, 20]
-        lmba1 = [1, 2, 4, 6, 8, 10, 20]
+        if FLAGS.exp == 'dsprites':
+            lmba0 = [1, 2, 4, 6, 8, 10, 20]
+            lmba1 = [5, 10, 25, 50, 75, 100]
+        elif FLAGS.exp == 'smallNORB':
+            lmba0 = [5, 10, 25, 50, 75, 100]
+            lmba1 = [5, 10, 25, 50, 75, 100]
+        else :
+            lmba0 = [1, 2, 4, 6, 8, 10, 20]
+            lmba1 = [1, 2, 4, 6, 8, 10, 20]
         lmba = list(itertools.product(lmba0,lmba1))
         opts['obj_fn_coeffs'] = list(lmba[FLAGS.idx-1])
     elif opts['model'] == 'disWAE':

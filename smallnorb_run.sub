@@ -16,4 +16,4 @@ source /share/apps/examples/source_files/python/python-3.6.4.source
 source /share/apps/examples/source_files/cuda/cuda-9.0.source
 
 # python3 run.py --out_dir dsprites  --exp dsprites --enum 100 --lmba0 1 --lmba1 1
-python3 run_array.py --num_it 600000 --net_archi conv_locatello --idx $SGE_TASK_ID --exp smallNORB --out_dir smallNORB --sigma_pen False --model TCWAE
+python3 run_array.py --num_it 600000 --net_archi conv_locatello --idx $SGE_TASK_ID --exp smallNORB --out_dir smallNORB_v2 --sigma_pen False --model TCWAE
