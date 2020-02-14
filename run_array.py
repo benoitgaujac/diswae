@@ -114,8 +114,8 @@ def main():
             lmba0 = [1, 2, 4, 6, 8, 10, 20]
             lmba1 = [5, 10, 25, 50, 75, 100]
         elif FLAGS.exp == 'smallNORB':
-            lmba0 = [5, 10, 25, 50, 75, 100]
-            lmba1 = [5, 10, 25, 50, 75, 100]
+            lmba0 = [5, 10, 20, 25, 50, 75, 80]
+            lmba1 = [5, 10, 20, 25, 50, 75, 100]
         else :
             lmba0 = [1, 2, 4, 6, 8, 10, 20]
             lmba1 = [1, 2, 4, 6, 8, 10, 20]
@@ -142,7 +142,7 @@ def main():
         assert False, 'unknown model {}'.format(opts['model'])
     # Penalty Sigma_q
     opts['pen_enc_sigma'] = FLAGS.sigma_pen=='True'
-    opts['lambda_pen_enc_sigma'] = 2.
+    opts['lambda_pen_enc_sigma'] = 1.
 
     # NN set up
     opts['network'] = net_configs[FLAGS.net_archi]
