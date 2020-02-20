@@ -149,7 +149,7 @@ def main():
     elif FLAGS.exp == '3dshapes':
         opts['lambda_pen_enc_sigma'] = 1.
     else:
-
+        opts['lambda_pen_enc_sigma'] = 1.
 
     # NN set up
     opts['network'] = net_configs[FLAGS.net_archi]
