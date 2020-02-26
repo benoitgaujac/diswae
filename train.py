@@ -53,8 +53,11 @@ class Run(object):
         elif opts['model'] == 'WAE':
             self.model = models.WAE(opts)
             self.obj_fn_coeffs = self.lmbd
-        elif opts['model'] == 'TCWAE':
-            self.model = models.TCWAE(opts)
+        elif opts['model'] == 'TCWAE_MWS':
+            self.model = models.TCWAE_MWS(opts)
+            self.obj_fn_coeffs = (self.lmbd1, self.lmbd2)
+        elif opts['model'] == 'TCWAE_GAN':
+            self.model = models.TCWAE_GAN(opts)
             self.obj_fn_coeffs = (self.lmbd1, self.lmbd2)
         elif opts['model'] == 'disWAE':
             self.model = models.disWAE(opts)
@@ -101,11 +104,9 @@ class Run(object):
             self.beta = tf.placeholder(tf.float32, name='beta_ph')
         elif self.opts['model']=='WAE':
             self.lmbd = tf.placeholder(tf.float32, name='lambda_ph')
-        elif self.opts['model']=='disWAE' or self.opts['model']=='TCWAE' or self.opts['model']=='FactorVAE':
+        else:
             self.lmbd1 = tf.placeholder(tf.float32, name='lambda1_ph')
             self.lmbd2 = tf.placeholder(tf.float32, name='lambda2_ph')
-        else:
-            raise NotImplementedError()
 
     def compute_mig(self,z_mean,labels):
         """MIG metric.
@@ -259,8 +260,8 @@ class Run(object):
         decoder_vars = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES,
                                                 scope='decoder')
         update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
-
-        if self.opts['model']=='FactorVAE':
+        # discriminator opt if needed
+        if self.opts['model']=='FactorVAE' or self.opts['model']=='TCWAE_GAN':
             discr_opt = self.discr_optimizer()
             discr_vars = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES,
                                                     scope='discriminator')
@@ -537,7 +538,7 @@ class Run(object):
                                                     Divergences_test[-1][1],
                                                     Divergences_test[-1][2])
                         logging.error(debug_str)
-                    elif opts['model'] == 'TCWAE':
+                    elif opts['model'] == 'TCWAE_MWS' or opts['model'] == 'TCWAE_GAN':
                         debug_str = 'TRAIN: REC=%.3f,l1*TC=%10.3e, l2*DIMWISE=%10.3e, WAE=%10.3e' % (
                                                     Loss_rec[-1],
                                                     Divergences[-1][0],

@@ -340,7 +340,7 @@ class WAE(Model):
         return objective, loss_reconstruct, divergences, recon_x, enc_z, encSigmas_stats
 
 
-class TCWAE(WAE):
+class TCWAE_MWS(WAE):
 
     def __init__(self, opts):
         super().__init__(opts)
@@ -399,6 +399,135 @@ class TCWAE(WAE):
 
         # -- Obj
         objective = loss_reconstruct + matching_penalty
+
+        # - Pen Encoded Sigma
+        if self.opts['pen_enc_sigma'] and self.opts['encoder'] == 'gauss':
+            pen_enc_sigma = self.opts['lambda_pen_enc_sigma'] * tf.reduce_mean(
+                tf.reduce_sum(tf.abs(tf.log(enc_Sigma)), axis=-1))
+            objective += pen_enc_sigma
+        # - Enc Sigma stats
+        Sigma_tr = tf.reduce_mean(enc_Sigma, axis=-1)
+        Smean, Svar = tf.nn.moments(Sigma_tr, axes=[0])
+        encSigmas_stats = tf.stack([Smean, Svar], axis=-1)
+
+        return objective, loss_reconstruct, divergences, recon_x, enc_z, encSigmas_stats
+
+
+class TCWAE_GAN(WAE):
+
+    def __init__(self, opts):
+        super().__init__(opts)
+
+    def get_discr_pred(self, inputs, scope, reuse=False, is_training=False, dropout_rate=1.):
+      """Build and get Dsicriminator preds.
+      Based on ICML paper
+      """
+      with tf.variable_scope('discriminator/' + scope, reuse=reuse):
+          logits, probs = discriminator(self.opts, inputs, is_training, dropout_rate)
+          clipped = tf.clip_by_value(probs, 1e-6, 1 - 1e-6)
+
+      return logits, clipped
+
+
+    def loss(self, inputs, samples, loss_coeffs, is_training, dropout_rate):
+
+        (lmbd1, lmbd2) = loss_coeffs
+
+        # --- Encoding and reconstructing
+        enc_z, enc_mean, enc_Sigma, recon_x, dec_mean, _ = self.forward_pass(inputs=inputs,
+                                                                                is_training=is_training,
+                                                                                dropout_rate=dropout_rate)
+        loss_reconstruct = self.reconstruction_loss(inputs, recon_x, dec_mean)
+
+        # --- Latent regularization
+        # TC term
+        # - shuffling latent codes
+        enc_z_shuffle = []
+        seed = 456
+        for i in range(enc_z.get_shape()[1]):
+            enc_z_shuffle.append(tf.gather(enc_z[:, i], tf.random.shuffle(tf.range(tf.shape(enc_z[:, i])[0]))))
+        enc_z_shuffle = tf.stack(enc_z_shuffle, axis=-1, name="encoded_shuffled")
+        # - Get discriminator preds
+        logits_z, probs_z = self.get_discr_pred(
+                                inputs=enc_z,
+                                scope = 'TC',
+                                reuse = False,
+                                is_training=is_training,
+                                dropout_rate=dropout_rate)
+        _, probs_z_shuffle = self.get_discr_pred(
+                                inputs=enc_z_shuffle,
+                                scope = 'TC',
+                                reuse=True,
+                                is_training=is_training,
+                                dropout_rate=dropout_rate)
+        # - TC loss
+        tc = tf.reduce_mean(logits_z[:, 0] - logits_z[:, 1], axis=0)
+        # - Discr loss
+        discr_TC_loss = tf.add(
+                            0.5 * tf.reduce_mean(tf.log(probs_z[:, 0])),
+                            0.5 * tf.reduce_mean(tf.log(probs_z_shuffle[:, 1])))
+        # Dimwise term
+        # - shuffling latent codes
+        enc_z_shuffle = []
+        seed = 892
+        for d in range(enc_z.get_shape()[1]):
+            enc_z_shuffle.append(tf.gather(enc_z[:, d], tf.random.shuffle(tf.range(tf.shape(enc_z[:, d])[0]))))
+        enc_z_shuffle = tf.stack(enc_z_shuffle, axis=-1, name="encoded_shuffled")
+        # - Get discriminator preds
+        if True:
+            # estimate kl(prod_d q_Z(z_d), p(z)), no weight sharring
+            logits_z, probs_z_shuffle = self.get_discr_pred(
+                                    inputs=enc_z_shuffle,
+                                    scope = 'dimwise',
+                                    reuse = False,
+                                    is_training=is_training,
+                                    dropout_rate=dropout_rate)
+            _, probs_z_prior = self.get_discr_pred(
+                                    inputs=samples,
+                                    scope = 'dimwise',
+                                    reuse=True,
+                                    is_training=is_training,
+                                    dropout_rate=dropout_rate)
+            # - dimwise loss
+            dimwise = tf.reduce_mean(logits_z[:, 0] - logits_z[:, 1], axis=0)
+            # - Discr loss
+            discr_dimwise_loss = tf.add(
+                                0.5 * tf.reduce_mean(tf.log(probs_z_shuffle[:, 0])),
+                                0.5 * tf.reduce_mean(tf.log(probs_z_prior[:, 1])))
+        else:
+            # estimate kl(prod_d q_Z(z_d), p(Z)) = sum_d kl(q_Z(z_d), p(z_d)), weight sharring
+            ldimwise, ldiscr_dimwise_loss = [], []
+            reuse = False
+            for d in range(enc_z.get_shape()[1]):
+                logits_z, probs_z_shuffle = self.get_discr_pred(
+                                        inputs=tf.expand_dims(enc_z_shuffle[:,d],axis=-1),
+                                        scope = 'dimwise',
+                                        reuse = reuse,
+                                        is_training=is_training,
+                                        dropout_rate=dropout_rate)
+                reuse = True
+                _, probs_z_prior = self.get_discr_pred(
+                                        inputs=tf.expand_dims(samples[:,d],axis=-1),
+                                        scope = 'dimwise',
+                                        reuse=reuse,
+                                        is_training=is_training,
+                                        dropout_rate=dropout_rate)
+                # - dimwise loss
+                ldimwise.append(tf.reduce_mean(logits_z[:, 0] - logits_z[:, 1], axis=0))
+                # - Discr loss
+                ldiscr_dimwise_loss.append(tf.add(
+                                    0.5 * tf.reduce_mean(tf.log(probs_z_shuffle[:, 0])),
+                                    0.5 * tf.reduce_mean(tf.log(probs_z_prior[:, 1]))))
+            dimwise = tf.reduce_sum(tf.stack(ldimwise))
+            discr_dimwise_loss = tf.reduce_sum(tf.stack(ldiscr_dimwise_loss))
+        # - WAE latent reg
+        matching_penalty = lmbd1*tc + lmbd2*dimwise
+        wae_match_penalty = self.mmd_penalty(enc_z, samples)
+        divergences = (lmbd1*tc, lmbd2*dimwise, wae_match_penalty)
+
+        # -- Obj
+        objective = loss_reconstruct + matching_penalty
+        self.discr_loss = lmbd1*discr_TC_loss + lmbd2*discr_dimwise_loss
 
         # - Pen Encoded Sigma
         if self.opts['pen_enc_sigma'] and self.opts['encoder'] == 'gauss':

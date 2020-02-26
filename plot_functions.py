@@ -192,7 +192,7 @@ def save_train(opts, data_train, data_test,
             y = np.log(np.abs(y[::x_step]))
             losses_test.append(list(y))
         labels = ['rec', r"$\lambda_1$|hsci|",r"$\lambda_2$|dimwise|",'|wae|']
-    elif opts['model'] == 'TCWAE':
+    elif opts['model'] == 'TCWAE_MWS' or opts['model'] == 'TCWAE_GAN':
         for l in zip(*loss_match_test):
             # y = np.convolve(l, np.ones((size_filter,))/size_filter, mode='valid')
             y = l
@@ -229,14 +229,12 @@ def save_train(opts, data_train, data_test,
         y = loss_match
         y = np.log(np.abs(y[::x_step]))
         losses.append(list(y))
-    elif opts['model'] == 'disWAE' or opts['model'] == 'TCWAE':
+    else:
         for l in zip(*loss_match):
             # y = np.convolve(l, np.ones((size_filter,))/size_filter, mode='valid')
             y = l
             y = np.log(np.abs(y[::x_step]))
             losses.append(list(y))
-    else:
-        raise NotImplementedError('Model type not recognised')
     for i in range(len(labels)):
         plt.plot(x, losses_test[i], linewidth=4, color=color_list[i], label=labels[i]+r' test')
         plt.plot(x, losses[i], linewidth=2, color=color_list[i], linestyle='--', label=labels[i])

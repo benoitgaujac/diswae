@@ -14,7 +14,7 @@ import pdb
 
 parser = argparse.ArgumentParser()
 # Args for experiment
-parser.add_argument("--model", default='TCWAE',
+parser.add_argument("--model", default='TCWAE_MWS',
                     help='model to train [WAE/BetaVAE/...]')
 parser.add_argument("--mode", default='train',
                     help='mode to run [train/vizu/fid/test]')
@@ -109,7 +109,7 @@ def main():
     elif opts['model'] == 'WAE':
         lmba = [1, 50, 100, 150, 200, 500, 1000]
         opts['obj_fn_coeffs'] = lmba[FLAGS.idx-1]
-    elif opts['model'] == 'TCWAE':
+    elif opts['model'] == 'TCWAE_MWS' or opts['model'] == 'TCWAE_GAN':
         if FLAGS.exp == 'dsprites':
             lmba0 = [1, 2, 4, 6, 8, 10, 20]
             lmba1 = [5, 10, 25, 50, 75, 100]
@@ -143,9 +143,9 @@ def main():
     # Penalty Sigma_q
     opts['pen_enc_sigma'] = FLAGS.sigma_pen=='True'
     if FLAGS.exp == 'dsprites':
-        opts['lambda_pen_enc_sigma'] = .5
+        opts['lambda_pen_enc_sigma'] = 1.
     elif FLAGS.exp == 'smallNORB':
-        opts['lambda_pen_enc_sigma'] = 1.5
+        opts['lambda_pen_enc_sigma'] = .5
     elif FLAGS.exp == '3dshapes':
         opts['lambda_pen_enc_sigma'] = 1.
     else:
@@ -159,7 +159,7 @@ def main():
         opts['out_dir'] = FLAGS.out_dir
     if FLAGS.exp_dir:
         opts['exp_dir'] = FLAGS.exp_dir
-    if opts['model'] == 'disWAE' or opts['model'] == 'TCWAE':
+    if opts['model'] == 'disWAE' or opts['model'] == 'TCWAE_MWS' or opts['model'] == 'TCWAE_GAN':
         exp_dir = os.path.join(opts['out_dir'],
                                opts['model'],
                                '{}_{}_{}_{:%Y_%m_%d_%H_%M}'.format(
