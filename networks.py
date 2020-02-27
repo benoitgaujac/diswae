@@ -779,7 +779,7 @@ def discriminator(opts, input, is_training, dropout_rate=1.):
         # Note for mlp, batchnorm and layernorm are equivalent
         if opts['normalization']=='batchnorm':
             layer_x = ops.batchnorm.Batchnorm_layers(
-                opts, layer_x, 'hid%d/bn' % i, is_training, reuse)
+                opts, layer_x, 'hid%d/bn' % i, is_training)
         layer_x = ops._ops.non_linear(layer_x,'leaky_relu')
         layer_x = tf.nn.dropout(layer_x, keep_prob=dropout_rate)
     logits = ops.linear.Linear(opts, layer_x, np.prod(layer_x.get_shape().as_list()[1:]),
