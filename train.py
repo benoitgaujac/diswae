@@ -555,7 +555,8 @@ class Run(object):
                         raise NotImplementedError('Model type not recognised')
 
                 # - Update learning rate if necessary and counter
-                if counter >= batches_num * opts['epoch_num'] / 5 and counter % decay_steps == 0:
+                # if counter >= batches_num * opts['epoch_num'] / 5 and counter % decay_steps == 0:
+                if False:
                     decay = decay_rate ** (int(counter / decay_steps))
                     logging.error('Reduction in lr: %f\n' % decay)
                     """
