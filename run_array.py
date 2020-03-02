@@ -107,7 +107,12 @@ def main():
         lmba = list(itertools.product(beta,gamma))
         opts['obj_fn_coeffs'] = list(lmba[FLAGS.idx-1])
     elif opts['model'] == 'WAE':
-        lmba = [1, 50, 100, 150, 200, 500, 1000]
+        if FLAGS.exp == 'dsprites':
+            lmba = [1, 10, 20, 50, 100, 150, 200]
+        elif FLAGS.exp == 'smallNORB':
+            lmba = [1, 50, 100, 150, 200, 500, 1000]
+        else:
+            lmba = [1, 50, 100, 150, 200, 500, 1000]
         opts['obj_fn_coeffs'] = lmba[FLAGS.idx-1]
     elif opts['model'] == 'TCWAE_MWS' or opts['model'] == 'TCWAE_GAN':
         if FLAGS.exp == 'dsprites':
