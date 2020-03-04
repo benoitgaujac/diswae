@@ -20,7 +20,7 @@ def save_train(opts, data_train, data_test,
                      samples,
                      loss, loss_test,
                      loss_rec, loss_rec_test,
-                     betaVAE, mig, factorVAE,
+                     betaVAE, mig, factorVAE, SAP,
                      loss_match, loss_match_test,
                      exp_dir,
                      filename):
@@ -275,6 +275,8 @@ def save_train(opts, data_train, data_test,
         # y = np.convolve(factorVAE, np.ones((size_filter,))/size_filter, mode='valid')
         y = factorVAE
         plt.plot(x, y[::x_step], linewidth=4, color='blue', label='factorVAE')
+        y = SAP
+        plt.plot(x, y[::x_step], linewidth=4, color='purple', label='SAP')
         plt.grid(axis='y')
         plt.legend(loc='upper right')
         plt.text(0.47, 1., 'Disentanglement metrics', ha="center", va="bottom",

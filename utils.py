@@ -117,6 +117,27 @@ def gaussian_log_density(samples, mean, log_var):
   tmp = (samples - mean)
   return -0.5 * (tmp * tmp * inv_sigma + log_var + normalization)
 
+def compute_score_matrix(mus, ys, mus_test, ys_test):
+    """Compute score matrix as described in Kumar et al."""
+    mus = np.transpose(mus)
+    mus_test = np.transpose(mus_test)
+    ys = np.transpose(ys)
+    ys_test = np.transpose(ys_test)
+    num_latents = mus.shape[0]
+    num_factors = ys.shape[0]
+    score_matrix = np.zeros([num_latents, num_factors])
+    for i in range(num_latents):
+        for j in range(num_factors):
+            mu_i = mus[i, :]
+            y_j = ys[j, :]
+            mu_i_test = mus_test[i, :]
+            y_j_test = ys_test[j, :]
+            classifier = sklearn.svm.LinearSVC(C=0.01, class_weight="balanced")
+            classifier.fit(mu_i[:, np.newaxis], y_j)
+            pred = classifier.predict(mu_i_test[:, np.newaxis])
+            score_matrix[i, j] = np.mean(pred == y_j_test)
+    return score_matrix
+
 def sample_factors(opts, batch_size, data):
     # sampling factors
     factor_sizes = data.factor_sizes

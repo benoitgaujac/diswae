@@ -127,7 +127,7 @@ class Run(object):
 
         return np.mean(mig)
 
-    def generate_factorVAE_training_sample(self, sess, data, global_variances, active_dims):
+    def generate_factorVAE_minibatch(self, sess, data, global_variances, active_dims):
         opts = self.opts
         batch_size = 64
         # sample batch of factors
@@ -157,11 +157,11 @@ class Run(object):
         global_variances = np.var(codes, axis=0, ddof=1)
         active_dims = np.sqrt(global_variances)>=threshold
         # Generate classifier training set and build classifier
-        training_size = 100
-        # training_size = 10000
+        # training_size = 100
+        training_size = 10000
         votes = np.zeros((len(data.factor_sizes), opts['zdim']),dtype=np.int32)
         for i in range(training_size):
-            factor, vote = self.generate_factorVAE_training_sample(sess,
+            factor, vote = self.generate_factorVAE_minibatch(sess,
                                                     data,
                                                     global_variances,
                                                     active_dims)
@@ -170,11 +170,11 @@ class Run(object):
         classifier = np.argmax(votes, axis=0)
         other_index = np.arange(votes.shape[1])
         # Generate classifier eval set and get eval accuracy
-        eval_size = 50
-        # eval_size = 5000
+        # eval_size = 50
+        eval_size = 5000
         votes = np.zeros((len(data.factor_sizes), opts['zdim']),dtype=np.int32)
         for i in range(eval_size):
-            factor, vote = self.generate_factorVAE_training_sample(sess,
+            factor, vote = self.generate_factorVAE_minibatch(sess,
                                                     data,
                                                     global_variances,
                                                     active_dims)
@@ -184,7 +184,54 @@ class Run(object):
 
         return acc
 
-    def generate_betaVAE_training_sample(self, sess, data):
+    def generate_SAP_minibatch(self, sess, data, num_points):
+        opts = self.opts
+        batch_size = 500
+        # batch_size = 50
+        representations = None
+        factors = None
+        i = 0
+        while i < num_points:
+            num_points_iter = min(num_points - i, batch_size)
+            # sample batch of factors
+            current_factors = utils.sample_factors(opts, num_points_iter, data)
+            # sample batch of images from factors
+            batch_images = utils.sample_images(opts, opts['dataset'], data, current_factors)
+            # encode images
+            current_z = sess.run(self.z_samples, feed_dict={
+                                                self.batch: batch_images,
+                                                self.dropout_rate: 1.,
+                                                self.is_training: False})
+            if i == 0:
+                factors = current_factors
+                z = current_z
+            else:
+                factors = np.vstack((factors, current_factors))
+                z = np.vstack((z,current_z))
+            i += num_points_iter
+
+        return z, factors
+
+    def compute_SAP(self, sess, data):
+        """Compute SAP metric"""
+        opts = self.opts
+        # Generate training set
+        # training_size = 100
+        training_size = 10000
+        mus, ys = self.generate_SAP_minibatch(sess, data, training_size)
+        # Generate testing set
+        # testing_size = 50
+        testing_size = 5000
+        mus_test, ys_test = self.generate_SAP_minibatch(sess, data, testing_size)
+        # Computing score matrix
+        score_matrix = utils.compute_score_matrix(mus, ys, mus_test, ys_test)
+        # average diff top 2 predictive latent dim for each factor
+        sorted_score_matric = np.sort(score_matrix, axis=0)
+        sap = np.mean(sorted_score_matric[-1, :] - sorted_score_matric[-2, :])
+
+        return sap
+
+    def generate_betaVAE_minibatch(self, sess, data):
         opts = self.opts
         batch_size = 64
         # sample 2 batches of factors
@@ -214,22 +261,22 @@ class Run(object):
         """Compute betaVAE metric"""
         opts = self.opts
         # Generate classifier training set and build classifier
-        training_size = 100
-        # training_size = 10000
+        # training_size = 100
+        training_size = 10000
         x_train = np.zeros((training_size,opts['zdim']))
         y_train = np.zeros((training_size,))
         for i in range(training_size):
-            x_train[i], y_train[i] = self.generate_betaVAE_training_sample(sess, data)
+            x_train[i], y_train[i] = self.generate_betaVAE_minibatch(sess, data)
         # logging.info("Training sklearn model.")
         model = linear_model.LogisticRegression()
         model.fit(x_train, y_train)
         # Generate classifier eval set and get eval accuracy
-        eval_size = 50
-        # eval_size = 5000
+        # eval_size = 50
+        eval_size = 5000
         x_eval = np.zeros((eval_size,opts['zdim']))
         y_eval = np.zeros((eval_size,))
         for i in range(eval_size):
-            x_eval[i], y_eval[i] = self.generate_betaVAE_training_sample(sess, data)
+            x_eval[i], y_eval[i] = self.generate_betaVAE_minibatch(sess, data)
         acc = model.score(x_eval, y_eval)
 
         return acc
@@ -303,7 +350,7 @@ class Run(object):
         # - Init all monitoring variables
         Loss, Loss_test, Loss_rec, Loss_rec_test = [], [], [], []
         Divergences, Divergences_test = [], []
-        betaVAE, MIG, factorVAE = [], [], []
+        betaVAE, MIG, factorVAE, SAP = [], [], [], []
         if opts['vizu_encSigma']:
             enc_Sigmas = []
 
@@ -345,40 +392,14 @@ class Run(object):
                     test_size = np.shape(data.test_data)[0]
                     batch_size_te = min(test_size,1000)
                     batches_num_te = int(test_size/batch_size_te)+1
-                    # print('test size: {}, batch size: {}, batch num: {}'.format(test_size,batch_size_te,batches_num_te))
                     # Train losses
                     Loss.append(loss)
                     Loss_rec.append(loss_rec)
                     Divergences.append(divergences)
 
-                    # loss_train_summary = tf.Summary(value=[tf.Summary.Value(tag="loss_train", simple_value=loss)])
-                    # loss_rec_train_summary = tf.Summary(value=[tf.Summary.Value(tag="loss_rec_train", simple_value=loss_rec)])
-                    # writer.add_summary(loss_train_summary, it)
-                    # writer.add_summary(loss_rec_train_summary, it)
-
-                    # summary_vals_train = [tf.Summary.Value(tag="loss_train", simple_value=loss),
-                    #                       tf.Summary.Value(tag="loss_rec_train", simple_value=loss_rec)]
-                    #
-                    # if opts['model'] == 'BetaVAE':
-                    #     summary_vals_train.append(tf.Summary.Value(tag="kl_train", simple_value=divergences))
-                    # elif opts['model'] == 'WAE':
-                    #     summary_vals_train.append(tf.Summary.Value(tag="dim_wise_match_train", simple_value=divergences))
-                    # elif opts['model'] == 'disWAE':
-                    #     summary_vals_train.append(tf.Summary.Value(tag="dim_wise_match_train", simple_value=divergences[0]))
-                    #     summary_vals_train.append(tf.Summary.Value(tag="hsic_match_train", simple_value=divergences[1]))
-                    #     summary_vals_train.append(tf.Summary.Value(tag="wae_match_train", simple_value=divergences[2]))
-                    # else:
-                    #     raise NotImplementedError()
-
                     # Encoded Sigma
                     if opts['vizu_encSigma']:
                         enc_Sigmas.append(enc_sigmastats)
-                        # summary_vals_train.append(tf.Summary.Value(tag="enc_sigma_mean_train",
-                        #                                            simple_value=enc_sigmastats[0]))
-                        # summary_vals_train.append(tf.Summary.Value(tag="enc_sigma_var_train",
-                        #                                            simple_value=enc_sigmastats[1]))
-
-                    # writer.add_summary(tf.Summary(value=summary_vals_train), it + (epoch * batches_num))
 
                     # Test losses
                     loss_test, loss_rec_test = 0., 0.
@@ -420,6 +441,7 @@ class Run(object):
                         betaVAE.append(self.compute_betaVAE(self.sess, data))
                         MIG.append(self.compute_mig(codes_mean, labels))
                         factorVAE.append(self.compute_factorVAE(self.sess, data, codes))
+                        SAP.append(self.compute_SAP(self.sess, data))
 
                 if (counter+1)%opts['print_every'] == 0 or (counter+1) == 100:
                     # Plot vizualizations
@@ -476,7 +498,7 @@ class Run(object):
                               generations,                                          # model samples
                               Loss, Loss_test,                                      # loss
                               Loss_rec, Loss_rec_test,                              # rec loss
-                              betaVAE, MIG, factorVAE,                              # disentangle metrics
+                              betaVAE, MIG, factorVAE, SAP,                         # disentangle metrics
                               Divergences, Divergences_test,                        # divergence terms
                               exp_dir,                                              # working directory
                               'res_e%04d_mb%05d.png' % (epoch, it))                 # filename
@@ -491,7 +513,11 @@ class Run(object):
                     debug_str = 'TRAIN LOSS=%.3f, TEST LOSS=%.3f' % (Loss[-1],Loss_test[-1])
                     logging.error(debug_str)
                     if opts['true_gen_model']:
-                        debug_str = 'betaVAE=%.3f, MIG=%.3f, factorVAE=%.3f' % (betaVAE[-1],MIG[-1],factorVAE[-1])
+                        debug_str = 'betaVAE=%.3f, MIG=%.3f, factorVAE=%.3f, SAP=%.3f' % (
+                                                    betaVAE[-1],
+                                                    MIG[-1],
+                                                    factorVAE[-1],
+                                                    SAP[-1])
                         logging.error(debug_str)
                     if opts['model'] == 'BetaVAE':
                         debug_str = 'REC=%.3f, TEST REC=%.3f, beta*KL=%10.3e, beta*TEST KL=%10.3e, \n '  % (
@@ -608,6 +634,6 @@ class Run(object):
                     loss=np.array(Loss), loss_test=np.array(Loss_test),
                     loss_rec=np.array(Loss_rec), loss_rec_test=np.array(Loss_rec_test),
                     divergences=np.array(Divergences), divergences_test=np.array(Divergences_test),
-                    mig=np.array(MIG), factorVAE=np.array(factorVAE))
+                    mig=np.array(MIG), factorVAE=np.array(factorVAE), sap=np.array(SAP))
 
         logging.error('Training done.')
