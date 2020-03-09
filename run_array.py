@@ -167,7 +167,7 @@ def main():
         opts['out_dir'] = FLAGS.out_dir
     if FLAGS.exp_dir:
         opts['exp_dir'] = FLAGS.exp_dir
-    if opts['model'] == 'disWAE' or opts['model'] == 'TCWAE_MWS' or opts['model'] == 'TCWAE_GAN':
+    if opts['model'] == 'FactorVAE' or opts['model'] == 'disWAE' or opts['model'] == 'TCWAE_MWS' or opts['model'] == 'TCWAE_GAN':
         exp_dir = os.path.join(opts['out_dir'],
                                opts['model'],
                                '{}_{}_{}_{:%Y_%m_%d_%H_%M}'.format(
@@ -197,7 +197,7 @@ def main():
     # Experiemnts set up
     opts['epoch_num'] = int(FLAGS.num_it / int(data.num_points/opts['batch_size']))
     opts['print_every'] = int(opts['epoch_num'] / 3.) * int(data.num_points/opts['batch_size'])-1
-    opts['evaluate_every'] =  int(opts['print_every'] / 5.) + 1
+    opts['evaluate_every'] = int(opts['print_every'] / 5.) + 1
     opts['save_every'] = 1000000000
     opts['save_final'] = True
     opts['save_train_data'] = True
