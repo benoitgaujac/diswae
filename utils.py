@@ -53,7 +53,6 @@ def create_dir(d):
     if not tf.gfile.IsDirectory(d):
         tf.gfile.MakeDirs(d)
 
-
 class File(tf.gfile.GFile):
     """Wrapper on GFile extending seek, to support what python file supports."""
     def __init__(self, *args):

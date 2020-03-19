@@ -5,10 +5,10 @@
 #$ -wd /home/bgaujac/diswae
 
 #$ -l gpu=true
-#$ -l tmem=25G
-#$ -l h_rt=07:00:00
+#$ -l tmem=4G
+#$ -l h_rt=10:00:00
 
-#$ -t 1-7
+#$ -t 1-64
 
 #$ -N ganTCWAE_smallnorb
 
