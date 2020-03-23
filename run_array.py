@@ -103,7 +103,7 @@ def main():
         opts['obj_fn_coeffs'] = beta[FLAGS.idx-1]
     elif opts['model'] == 'FactorVAE':
         beta = [1,]
-        gamma = [10, 20, 30, 40, 50, 100]
+        gamma = [1, 10, 20, 30, 40, 50, 100]
         lmba = list(itertools.product(beta,gamma))
         opts['obj_fn_coeffs'] = list(lmba[FLAGS.idx-1])
     elif opts['model'] == 'WAE':
