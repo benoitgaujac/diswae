@@ -631,10 +631,10 @@ class Run(object):
             utils.create_dir(save_path)
             name = 'res_train_final'
             np.savez(os.path.join(save_path, name),
-                    loss=np.array(Loss), loss_test=np.array(Loss_test),
-                    loss_rec=np.array(Loss_rec), loss_rec_test=np.array(Loss_rec_test),
-                    divergences=np.array(Divergences), divergences_test=np.array(Divergences_test),
-                    mig=np.array(MIG), factorVAE=np.array(factorVAE), sap=np.array(SAP))
+                    loss=np.array(Loss[-1]), loss_test=np.array(Loss_test[-1]),
+                    loss_rec=np.array(Loss_rec[-1]), loss_rec_test=np.array(Loss_rec_test[-1]),
+                    divergences=np.array(Divergences[-1]), divergences_test=np.array(Divergences_test[-1]),
+                    mig=np.array(MIG[-1]), factorVAE=np.array(factorVAE[-1]), sap=np.array(SAP[-1]))
 
         logging.error('Training done.')
 
