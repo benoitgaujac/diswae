@@ -1,0 +1,18 @@
+#!/bin/bash
+
+#$ -S /bin/bash
+
+#$ -wd /home/bgaujac/diswae
+
+#$ -l gpu=true
+#$ -l tmem=4G
+#$ -l h_rt=10:00:00
+
+#$ -t 1-64
+
+#$ -N ganTCWAE_smallnorb
+
+source /share/apps/examples/source_files/python/python-3.6.4.source
+source /share/apps/examples/source_files/cuda/cuda-9.0.source
+
+python3 run_array.py --num_it 600000 --net_archi conv_locatello --idx $SGE_TASK_ID --exp smallNORB --out_dir smallNORB_l2 --sigma_pen True --cost l2sq --model TCWAE_GAN

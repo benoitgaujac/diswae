@@ -35,6 +35,8 @@ parser.add_argument("--idx", type=int, default=0,
                     help='idx latent reg weight setup')
 parser.add_argument("--sigma_pen", default='False',
                     help='penalization of Sigma_q')
+parser.add_argument("--cost", default='xentropy',
+                    help='ground cost [l2, l2sq, l2sq_norm, l1, xentropy]')
 parser.add_argument("--weights_file")
 parser.add_argument('--gpu_id', default='cpu',
                     help='gpu id for DGX box. Default is cpu')
@@ -89,11 +91,12 @@ def main():
     opts['lr'] = 0.0004
 
     # Model set up
-    opts['zdim'] = 10
-    opts['batch_size'] = 64
-    opts['cost'] = 'xentropy' #l2, l2sq, l2sq_norm, l1, xentropy
     if FLAGS.exp == 'celebA':
-        opts['cost'] = 'l2sq'
+        opts['zdim'] = 32
+    else:
+        opts['zdim'] = 10
+    opts['batch_size'] = 64
+    opts['cost'] = FLAGS.cost #l2, l2sq, l2sq_norm, l1, xentropy
     # Objective Function Coefficients
     if opts['model'] == 'BetaVAE':
         beta = [1, 2, 4, 6, 8, 10, 20]
@@ -107,24 +110,41 @@ def main():
         lmba = list(itertools.product(beta,gamma))
         opts['obj_fn_coeffs'] = list(lmba[FLAGS.idx-1])
     elif opts['model'] == 'WAE':
-        if FLAGS.exp == 'dsprites':
-            lmba = [1, 10, 20, 50, 100, 150, 200]
-        elif FLAGS.exp == 'smallNORB':
-            lmba = [1, 50, 100, 150, 200, 500, 1000]
+        if opts['cost'] == 'xentropy':
+            # toy experiment with xent
+            if FLAGS.exp == 'dsprites':
+                lmba = [1, 10, 20, 50, 100, 150, 200]
+            elif FLAGS.exp == 'smallNORB':
+                lmba = [1, 50, 100, 150, 200, 500, 1000]
+            else:
+                lmba = [1, 50, 100, 150, 200, 500, 1000]
         else:
-            lmba = [1, 50, 100, 150, 200, 500, 1000]
+            # real word experiment with l2^2
+            if FLAGS.exp == 'smallNORB':
+                lmba = [1, 50, 100, 150, 200, 500, 1000]
+            else:
+                lmba = [1, 50, 100, 150, 200, 500, 1000]
         opts['obj_fn_coeffs'] = lmba[FLAGS.idx-1]
     elif opts['model'] == 'TCWAE_MWS' or opts['model'] == 'TCWAE_GAN':
-        if FLAGS.exp == 'dsprites':
-            lmba0 = [1, 5, 10, 20, 50, 75, 100]
-            lmba1 = [1, 5, 10, 20, 50, 75, 100]
-            # lmba1 = [1,]
-        elif FLAGS.exp == 'smallNORB':
-            lmba0 = [1, 10, 20, 25, 50, 75, 100, 150]
-            lmba1 = [1, 10, 20, 25, 50, 75, 100, 150]
-        else :
-            lmba0 = [1, 5, 10, 20, 50, 75, 100]
-            lmba1 = [1, 5, 10, 20, 50, 75, 100]
+        if opts['cost'] == 'xentropy':
+            # toy experiment with xent
+            if FLAGS.exp == 'dsprites':
+                lmba0 = [1, 5, 10, 20, 50, 75, 100]
+                lmba1 = [1, 5, 10, 20, 50, 75, 100]
+            elif FLAGS.exp == 'smallNORB':
+                lmba0 = [1, 10, 20, 25, 50, 75, 100, 150]
+                lmba1 = [1, 10, 20, 25, 50, 75, 100, 150]
+            else :
+                lmba0 = [1, 5, 10, 20, 50, 75, 100]
+                lmba1 = [1, 5, 10, 20, 50, 75, 100]
+        else:
+            # real word experiment with l2^2
+            if FLAGS.exp == 'smallNORB':
+                lmba0 = [1, 10, 20, 25, 50, 75, 100, 150]
+                lmba1 = [1, 10, 20, 25, 50, 75, 100, 150]
+            else :
+                lmba0 = [1, 10, 20, 25, 50, 75, 100, 150]
+                lmba1 = [1, 10, 20, 25, 50, 75, 100, 150]
         lmba = list(itertools.product(lmba0,lmba1))
         opts['obj_fn_coeffs'] = list(lmba[FLAGS.idx-1])
     elif opts['model'] == 'disWAE':
@@ -143,7 +163,6 @@ def main():
             lmba1 = [1, 10, 50, 100, 250, 500, 750, 1000, 1500]
         lmba = list(itertools.product(lmba0,lmba1))
         opts['obj_fn_coeffs'] = list(lmba[FLAGS.idx-1])
-
     else:
         assert False, 'unknown model {}'.format(opts['model'])
     # Penalty Sigma_q
