@@ -143,8 +143,12 @@ def main():
                 lmba0 = [1, 10, 20, 25, 50, 75, 100, 150]
                 lmba1 = [1, 10, 20, 25, 50, 75, 100, 150]
             else :
-                lmba0 = [1, 10, 20, 25, 50, 75, 100, 150]
-                lmba1 = [1, 10, 20, 25, 50, 75, 100, 150]
+                if opts['model'] == 'TCWAE_GAN':
+                    lmba0 = [50, 100, 150, 200, 500, 1000]
+                    lmba1 = [50, 100, 150, 200, 500, 1000]
+                else:
+                    lmba0 = [1, 10, 20, 25, 50, 75, 100, 150]
+                    lmba1 = [1, 10, 20, 25, 50, 75, 100, 150]
         lmba = list(itertools.product(lmba0,lmba1))
         opts['obj_fn_coeffs'] = list(lmba[FLAGS.idx-1])
     elif opts['model'] == 'disWAE':
