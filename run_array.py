@@ -121,9 +121,9 @@ def main():
         else:
             # real word experiment with l2^2
             if FLAGS.exp == 'smallNORB':
-                lmba = [1, 50, 100, 150, 200, 500, 1000]
+                lmba = [1, 10, 50, 100, 150, 200, 500, 1000]
             else:
-                lmba = [1, 50, 100, 150, 200, 500, 1000]
+                lmba = [1, 10, 50, 100, 150, 200, 500, 1000]
         opts['obj_fn_coeffs'] = lmba[FLAGS.idx-1]
     elif opts['model'] == 'TCWAE_MWS' or opts['model'] == 'TCWAE_GAN':
         if opts['cost'] == 'xentropy':
