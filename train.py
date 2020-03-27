@@ -295,8 +295,8 @@ class Run(object):
         else:
             assert False, 'Unknown optimizer.'
 
-    def discr_optimizer(self):
-        return tf.train.AdamOptimizer(0.0001, beta1=0.5, beta2=0.9,)
+    def discr_optimizer(self, lr=0.0001):
+        return tf.train.AdamOptimizer(lr, beta1=0.5, beta2=0.9,)
 
     def add_optimizers(self):
         opts = self.opts
@@ -309,7 +309,10 @@ class Run(object):
         update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
         # discriminator opt if needed
         if self.opts['model']=='FactorVAE' or self.opts['model']=='TCWAE_GAN':
-            discr_opt = self.discr_optimizer()
+            if opts['dataset']=='celebA':
+                discr_opt = self.discr_optimizer(0.00001)
+            else:
+                discr_opt = self.discr_optimizer()                
             discr_vars = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES,
                                                     scope='discriminator')
             vae_opt = opt.minimize(loss=self.objective,var_list=encoder_vars + decoder_vars)
