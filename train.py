@@ -312,7 +312,7 @@ class Run(object):
             if opts['dataset']=='celebA':
                 discr_opt = self.discr_optimizer(0.00001)
             else:
-                discr_opt = self.discr_optimizer()                
+                discr_opt = self.discr_optimizer()
             discr_vars = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES,
                                                     scope='discriminator')
             vae_opt = opt.minimize(loss=self.objective,var_list=encoder_vars + decoder_vars)
@@ -378,7 +378,7 @@ class Run(object):
                              self.samples_pz: batch_pz_samples,
                              self.lr_decay: decay,
                              self.obj_fn_coeffs: opts['obj_fn_coeffs'],
-                             self.dropout_rate: opts['dropout_rate'],
+                             self.dropout_rate: 1.,
                              self.is_training: True}
                 [_, loss, loss_rec, divergences, enc_sigmastats] = self.sess.run([
                                                 self.opt,

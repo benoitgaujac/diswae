@@ -54,7 +54,8 @@ def non_linear(inputs,type):
     elif type=='tanh':
         return tf.nn.tanh(inputs)
     elif type=='leaky_relu':
-        alpha = .2
-        return tf.maximum(alpha*inputs, inputs)
+        # alpha = .2
+        # return tf.maximum(alpha*inputs, inputs)
+        return tf.nn.leaky_relu(inputs)
     else:
         assert False, 'Unknow non linear operation'
