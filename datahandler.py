@@ -525,6 +525,9 @@ class DataHandler(object):
         # vizu set
         self.vizu_data = Data(opts, X[shuffling_mask[-opts['plot_num_pics']:]])
         self.vizu_labels = Data(opts, self.Y[shuffling_mask[-opts['plot_num_pics']:]])
+        # plot set
+        idx = np.arange(10, np.prod(self.factor_sizes), int(np.prod(self.factor_sizes[1:]) / 2))
+        self.plot_data = Data(opts, X[idx])
         # data informations
         self.data_shape = datashapes[opts['dataset']]
         self.num_points = len(self.data)

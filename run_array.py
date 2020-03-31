@@ -37,6 +37,10 @@ parser.add_argument("--sigma_pen", default='False',
                     help='penalization of Sigma_q')
 parser.add_argument("--cost", default='xentropy',
                     help='ground cost [l2, l2sq, l2sq_norm, l1, xentropy]')
+parser.add_argument("--save_model", default='True',
+                    help='save final model weights [True/False]')
+parser.add_argument("--save_data", default='True',
+                    help='save training data [True/False]')
 parser.add_argument("--weights_file")
 parser.add_argument('--gpu_id', default='cpu',
                     help='gpu id for DGX box. Default is cpu')
@@ -143,12 +147,8 @@ def main():
                 lmba0 = [1, 10, 20, 25, 50, 75, 100, 150]
                 lmba1 = [1, 10, 20, 25, 50, 75, 100, 150]
             else :
-                if opts['model'] == 'TCWAE_GAN':
-                    lmba0 = [50, 100, 150, 200, 500, 1000]
-                    lmba1 = [50, 100, 150, 200, 500, 1000]
-                else:
-                    lmba0 = [1, 10, 20, 25, 50, 75, 100, 150]
-                    lmba1 = [1, 10, 20, 25, 50, 75, 100, 150]
+                lmba0 = [1, 10, 20, 25, 50, 75, 100, 200]
+                lmba1 = [1, 10, 20, 25, 50, 75, 100, 200]
         lmba = list(itertools.product(lmba0,lmba1))
         opts['obj_fn_coeffs'] = list(lmba[FLAGS.idx-1])
     elif opts['model'] == 'disWAE':
@@ -220,8 +220,14 @@ def main():
     opts['print_every'] = int(opts['epoch_num'] / 3.) * int(data.num_points/opts['batch_size'])-1
     opts['evaluate_every'] = int(opts['print_every'] / 5.) + 1
     opts['save_every'] = 1000000000
-    opts['save_final'] = True
-    opts['save_train_data'] = True
+    if FLAGS.save_model=='True':
+        opts['save_final'] = True
+    else:
+        opts['save_final'] = False
+    if FLAGS.save_data=='True':
+        opts['save_train_data'] = True
+    else:
+        opts['save_train_data'] = False        
     opts['vizu_encSigma'] = False
 
 

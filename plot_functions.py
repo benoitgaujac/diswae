@@ -428,14 +428,10 @@ def plot_interpolation(opts, interpolations, exp_dir, filename, train=True):
     plt.close()
 
 
-def save_test(opts, data, reconstructions, samples, exp_dir):
+def save_test(opts, data, reconstructions, transversals, samples, exp_dir):
 
     """ Generates and saves rec and samples plots"""
 
-    num_pics = opts['plot_num_pics']
-    num_cols = opts['plot_num_cols']
-    assert num_pics % num_cols == 0
-    assert num_pics % 2 == 0
     greyscale = data.shape[-1] == 1
 
     if opts['input_normalize_sym']:
@@ -443,74 +439,83 @@ def save_test(opts, data, reconstructions, samples, exp_dir):
         reconstructions = reconstructions / 2. + 0.5
         samples = samples / 2. + 0.5
 
+    ### data
+    num_cols = data.shape[0]
+    obs = []
+    for idx in range(data.shape[0]):
+        if greyscale:
+            obs.append(1. - data[idx, :, :, :])
+        else:
+            obs.append(data[idx, :, :, :])
+    obs = np.array(obs)
+    obs = np.concatenate(np.split(obs, num_cols), axis=2)
+    obs = np.concatenate(obs, axis=0)
     ### Reconstruction plots
-    assert data.shape == reconstructions.shape, 'inconsistant data/recon shape'
-    # Arrange pics and reconstructions in a proper way
-    assert len(data) == num_pics
-    assert len(data) == len(reconstructions)
-    pics = []
-    merged = np.vstack([reconstructions, data])
-    r_ptr = 0
-    w_ptr = 0
-    for _ in range(int(num_pics / 2)):
-        merged[w_ptr] = data[r_ptr]
-        merged[w_ptr + 1] = reconstructions[r_ptr]
-        r_ptr += 1
-        w_ptr += 2
-    for idx in range(num_pics):
+    num_cols = reconstructions.shape[0]
+    rec = []
+    for idx in range(reconstructions.shape[0]):
         if greyscale:
-            pics.append(1. - merged[idx, :, :, :])
+            rec.append(1. - reconstructions[idx, :, :, :])
         else:
-            pics.append(merged[idx, :, :, :])
-    # Figuring out a layout
-    pics = np.array(pics)
-    rec = np.concatenate(np.split(pics, num_cols), axis=2)
+            rec.append(reconstructions[idx, :, :, :])
+    rec = np.array(rec)
+    rec = np.concatenate(np.split(rec, num_cols), axis=2)
     rec = np.concatenate(rec, axis=0)
-
-    ### Sample plots
-    assert len(samples) == num_pics
-    pics = []
-    for idx in range(num_pics):
+    ### Samples
+    num_cols = transversals.shape[2]
+    gen = []
+    for idx in range(samples.shape[0]):
         if greyscale:
-            pics.append(1. - samples[idx, :, :, :])
+            gen.append(1. - samples[idx, :, :, :])
         else:
-            pics.append(samples[idx, :, :, :])
-    # Figuring out a layout
-    pics = np.array(pics)
-    gen = np.concatenate(np.split(pics, num_cols), axis=2)
+            gen.append(samples[idx, :, :, :])
+    gen = np.array(gen)
+    gen = np.concatenate(np.split(gen, num_cols), axis=2)
     gen = np.concatenate(gen, axis=0)
-
-    # Creating a pyplot fig
+    ### Latent transversal
+    num_rows = transversals.shape[1]
+    images = []
+    for i in range(np.shape(transversals)[0]):
+        pics = np.concatenate(np.split(transversals[i],num_cols,axis=1),axis=3)
+        pics = pics[:,0]
+        pics = np.concatenate(np.split(pics,num_rows),axis=1)
+        pics = pics[0]
+        if greyscale:
+            image = 1. - pics
+        else:
+            image = pics
+        images.append(image)
+    ### Creating a pyplot fig
+    to_plot_list = zip([obs, rec, gen] + images,
+                         ['observation',
+                         'reconstruction',
+                         'sample',
+                         'latent_transversal'])
     dpi = 100
-    height_pic = rec.shape[0]
-    width_pic = rec.shape[1]
-    fig_height = 2*height_pic / float(dpi)
-    fig_width = 2*width_pic / float(dpi)
-    # titles and names
-    titles = ['Test reconstruction', 'Generated samples']
-    filenames = ['rec.png', 'samples.png']
-    # First samples and reconstructions
-    for img, title, filename in zip([rec, gen], titles, filenames):
+    for img, filename in to_plot_list:
+        height_pic = img.shape[0]
+        width_pic = img.shape[1]
+        fig_height = height_pic / 20
+        fig_width = width_pic / 20
         fig = plt.figure(figsize=(fig_width, fig_height))
         if greyscale:
             image = img[:, :, 0]
             # in Greys higher values correspond to darker colors
-            ax = plt.imshow(image, cmap='Greys',
+            plt.imshow(image, cmap='Greys',
                             interpolation='none', vmin=0., vmax=1.)
         else:
-            ax = plt.imshow(img, interpolation='none', vmin=0., vmax=1.)
-        plt.title(title)
-        # Removing ticks
-        ax.axes.get_xaxis().set_ticks([])
-        ax.axes.get_yaxis().set_ticks([])
-        ax.axes.set_aspect(1)
-
-        # Saving plot
-        plots_dir = 'test_plots'
-        save_path = os.path.join(exp_dir,plots_dir)
+            plt.imshow(img, interpolation='none', vmin=0., vmax=1.)
+        # Removing axes, ticks, labels
+        plt.axis('off')
+        # # placing subplot
+        plt.subplots_adjust(top = 1, bottom = 0, right = 1, left = 0,
+                hspace = 0, wspace = 0)
+        # Saving
+        save_path = os.path.join(exp_dir,'test_plots')
         utils.create_dir(save_path)
-        fig.savefig(utils.o_gfile((save_path, filename), 'wb'),
-                    dpi=dpi, format='png')
+        filename = filename + '.png'
+        plt.savefig(utils.o_gfile((save_path, filename), 'wb'),
+                    dpi=dpi, format='png', box_inches='tight', pad_inches=0.0)
         plt.close()
 
 
