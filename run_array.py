@@ -144,8 +144,8 @@ def main():
         else:
             # real word experiment with l2^2
             if FLAGS.exp == 'smallNORB':
-                lmba0 = [1, 10, 20, 25, 50, 75, 100, 150]
-                lmba1 = [1, 10, 20, 25, 50, 75, 100, 150]
+                lmba0 = [1, 5, 10, 20, 25, 50, 75, 100]
+                lmba1 = [1, 5, 10, 20, 25, 50, 75, 100]
             else :
                 lmba0 = [1, 10, 20, 25, 50, 75, 100, 200]
                 lmba1 = [1, 10, 20, 25, 50, 75, 100, 200]
@@ -174,7 +174,7 @@ def main():
     if FLAGS.exp == 'dsprites':
         opts['lambda_pen_enc_sigma'] = 1.
     elif FLAGS.exp == 'smallNORB':
-        opts['lambda_pen_enc_sigma'] = .5
+        opts['lambda_pen_enc_sigma'] = .2
     elif FLAGS.exp == '3dshapes':
         opts['lambda_pen_enc_sigma'] = 1.
     else:
@@ -227,7 +227,7 @@ def main():
     if FLAGS.save_data=='True':
         opts['save_train_data'] = True
     else:
-        opts['save_train_data'] = False        
+        opts['save_train_data'] = False
     opts['vizu_encSigma'] = False
 
 
