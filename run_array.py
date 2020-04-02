@@ -121,7 +121,7 @@ def main():
             elif FLAGS.exp == 'smallNORB':
                 lmba = [1, 50, 100, 150, 200, 500, 1000]
             else:
-                lmba = [1, 50, 100, 150, 200, 500, 1000]
+                lmba = [1, 10, 20, 50, 100, 150, 200]
         else:
             # real word experiment with l2^2
             if FLAGS.exp == 'smallNORB':
