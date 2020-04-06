@@ -142,6 +142,7 @@ def decoder(opts, input, output_dim, scope=None, reuse=False,
         assert False, 'Unknown decoder %s' % opts['decoder']
 
     if opts['input_normalize_sym']:
+        mean = tf.nn.tanh(mean)
         x = tf.nn.tanh(x)
     else:
         x = tf.nn.sigmoid(x)

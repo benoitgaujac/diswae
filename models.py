@@ -81,11 +81,11 @@ class BetaVAE(Model):
 
         beta = loss_coeffs
 
-        enc_z, enc_mean, enc_Sigma, recon_x, _, _ = self.forward_pass(inputs=inputs,
+        enc_z, enc_mean, enc_Sigma, recon_x, dec_mean, _ = self.forward_pass(inputs=inputs,
                                                                       is_training=is_training,
                                                                       dropout_rate=dropout_rate)
 
-        loss_reconstruct = self.reconstruction_loss(inputs, recon_x)
+        loss_reconstruct = self.reconstruction_loss(inputs, dec_mean)
         kl = self.kl_penalty(self.pz_mean, self.pz_sigma, enc_mean, enc_Sigma)
         matching_penalty = beta * kl
         divergences = matching_penalty
@@ -134,7 +134,7 @@ class BetaTCVAE(BetaVAE):
 
         beta = loss_coeffs
 
-        enc_z, enc_mean, enc_Sigma, recon_x, dec_mean, dec_Sigma = self.forward_pass(inputs=inputs,
+        enc_z, enc_mean, enc_Sigma, recon_x, dec_mean, _ = self.forward_pass(inputs=inputs,
                                                                       is_training=is_training,
                                                                       dropout_rate=dropout_rate)
 
@@ -174,7 +174,7 @@ class FactorVAE(BetaVAE):
         (beta, gamma) = loss_coeffs
 
         # --- Encoding and reconstructing
-        enc_z, enc_mean, enc_Sigma, recon_x, dec_mean, dec_Sigma = self.forward_pass(inputs=inputs,
+        enc_z, enc_mean, enc_Sigma, recon_x, dec_mean, _ = self.forward_pass(inputs=inputs,
                                                                       is_training=is_training,
                                                                       dropout_rate=dropout_rate)
         loss_reconstruct = self.reconstruction_loss(inputs, dec_mean)
