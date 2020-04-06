@@ -428,7 +428,7 @@ def plot_interpolation(opts, interpolations, exp_dir, filename, train=True):
     plt.close()
 
 
-def save_test(opts, data, reconstructions, transversals, samples, exp_dir):
+def save_test_smallnorb(opts, data, reconstructions, transversals, samples, exp_dir):
 
     """ Generates and saves rec and samples plots"""
 
@@ -475,6 +475,7 @@ def save_test(opts, data, reconstructions, transversals, samples, exp_dir):
     ### Latent transversal
     num_rows = transversals.shape[1]
     images = []
+    names = []
     for i in range(np.shape(transversals)[0]):
         pics = np.concatenate(np.split(transversals[i],num_cols,axis=1),axis=3)
         pics = pics[:,0]
@@ -485,12 +486,104 @@ def save_test(opts, data, reconstructions, transversals, samples, exp_dir):
         else:
             image = pics
         images.append(image)
+        names.append(opts['model'] + '_latent_transversal_' + str(i))
     ### Creating a pyplot fig
     to_plot_list = zip([obs, rec, gen] + images,
-                         ['observation',
-                         'reconstruction',
-                         'sample',
-                         'latent_transversal'])
+                         [opts['model'] + '_observation',
+                         opts['model'] + '_reconstruction',
+                         opts['model'] + '_sample',]
+                         + names)
+    dpi = 100
+    for img, filename in to_plot_list:
+        height_pic = img.shape[0]
+        width_pic = img.shape[1]
+        fig_height = height_pic / 20
+        fig_width = width_pic / 20
+        fig = plt.figure(figsize=(fig_width, fig_height))
+        if greyscale:
+            image = img[:, :, 0]
+            # in Greys higher values correspond to darker colors
+            plt.imshow(image, cmap='Greys',
+                            interpolation='none', vmin=0., vmax=1.)
+        else:
+            plt.imshow(img, interpolation='none', vmin=0., vmax=1.)
+        # Removing axes, ticks, labels
+        plt.axis('off')
+        # # placing subplot
+        plt.subplots_adjust(top = 1, bottom = 0, right = 1, left = 0,
+                hspace = 0, wspace = 0)
+        # Saving
+        save_path = os.path.join(exp_dir,'test_plots')
+        utils.create_dir(save_path)
+        filename = filename + '.png'
+        plt.savefig(utils.o_gfile((save_path, filename), 'wb'),
+                    dpi=dpi, format='png', box_inches='tight', pad_inches=0.0)
+        plt.close()
+
+
+def save_test_celeba(opts, data, reconstructions, transversals, samples, exp_dir):
+
+    """ Generates and saves rec and samples plots"""
+
+    greyscale = data.shape[-1] == 1
+
+    if opts['input_normalize_sym']:
+        data = data / 2. + 0.5
+        reconstructions = reconstructions / 2. + 0.5
+        samples = samples / 2. + 0.5
+
+    ### Reconstruction plots
+    num_pics = 100
+    num_cols = 10
+    rec = []
+    merged = np.vstack([reconstructions, data])
+    r_ptr = 0
+    w_ptr = 0
+    for _ in range(int(num_pics / 2)):
+        merged[w_ptr] = data[r_ptr]
+        merged[w_ptr + 1] = reconstructions[r_ptr]
+        r_ptr += 1
+        w_ptr += 2
+    for idx in range(num_pics):
+        if greyscale:
+            rec.append(1. - merged[idx, :, :, :])
+        else:
+            rec.append(merged[idx, :, :, :])
+    # Figuring out a layout
+    rec = np.array(rec)
+    rec = np.concatenate(np.split(rec, num_cols), axis=2)
+    rec = np.concatenate(rec, axis=0)
+    ### Samples
+    num_cols = 10
+    gen = []
+    for idx in range(samples.shape[0]):
+        if greyscale:
+            gen.append(1. - samples[idx, :, :, :])
+        else:
+            gen.append(samples[idx, :, :, :])
+    gen = np.array(gen)
+    gen = np.concatenate(np.split(gen, num_cols), axis=2)
+    gen = np.concatenate(gen, axis=0)
+    ### Latent transversal
+    num_rows = transversals.shape[1]
+    images = []
+    names = []
+    for i in range(np.shape(transversals)[0]):
+        pics = np.concatenate(np.split(transversals[i],num_cols,axis=1),axis=3)
+        pics = pics[:,0]
+        pics = np.concatenate(np.split(pics,num_rows),axis=1)
+        pics = pics[0]
+        if greyscale:
+            image = 1. - pics
+        else:
+            image = pics
+        images.append(image)
+        names.append(opts['model'] + '_latent_transversal_' + str(i))
+    ### Creating a pyplot fig
+    to_plot_list = zip([rec, gen] + images,
+                         [opts['model'] + '_reconstruction',
+                         opts['model'] + '_sample',]
+                         + names)
     dpi = 100
     for img, filename in to_plot_list:
         height_pic = img.shape[0]

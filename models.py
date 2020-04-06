@@ -68,13 +68,12 @@ class BetaVAE(Model):
         kl = 0.5 * tf.reduce_sum(kl, axis=-1)
         return tf.reduce_mean(kl)
 
-    def reconstruction_loss(self, labels, logits): # To check implementation
+    def reconstruction_loss(self, labels, logits):
         """
         Compute Xentropy for bernoulli
         """
         eps = 1e-8
         labels = tf.layers.flatten(labels)
-        # cross_entropy = - labels*tf.log(mean_params + eps) + (1. - labels)*tf.log(1. - mean_params - eps)
         cross_entropy = tf.nn.sigmoid_cross_entropy_with_logits(labels=labels, logits=logits)
         return tf.reduce_mean(tf.reduce_sum(cross_entropy,axis=-1))
 
@@ -82,11 +81,11 @@ class BetaVAE(Model):
 
         beta = loss_coeffs
 
-        enc_z, enc_mean, enc_Sigma, recon_x, dec_mean, _ = self.forward_pass(inputs=inputs,
+        enc_z, enc_mean, enc_Sigma, recon_x, _, _ = self.forward_pass(inputs=inputs,
                                                                       is_training=is_training,
                                                                       dropout_rate=dropout_rate)
 
-        loss_reconstruct = self.reconstruction_loss(inputs, dec_mean)
+        loss_reconstruct = self.reconstruction_loss(inputs, recon_x)
         kl = self.kl_penalty(self.pz_mean, self.pz_sigma, enc_mean, enc_Sigma)
         matching_penalty = beta * kl
         divergences = matching_penalty
