@@ -8,11 +8,11 @@
 #$ -l tmem=5G
 #$ -l h_rt=15:00:00
 
-#$ -t 1-64
+#$ -t 1-36
 
 #$ -N ganTCWAE_celebA
 
 source /share/apps/examples/source_files/python/python-3.6.4.source
 source /share/apps/examples/source_files/cuda/cuda-9.0.source
 
-python3 run_array.py --num_it 600000 --net_archi conv_locatello --idx $SGE_TASK_ID --save_data False --exp celebA --cost l2sq --out_dir celebA --sigma_pen False --model TCWAE_GAN
+python3 run_array.py --num_it 600000 --net_archi conv_locatello --idx $SGE_TASK_ID --save_data False --exp celebA --cost l2sq --out_dir celebA_v2 --sigma_pen True --model TCWAE_GAN
