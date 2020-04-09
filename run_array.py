@@ -106,7 +106,10 @@ def main():
         beta = [1, 2, 4, 6, 8, 10, 20]
         opts['obj_fn_coeffs'] = beta[FLAGS.idx-1]
     elif opts['model'] == 'BetaTCVAE':
-        beta = [1, 2, 4, 6, 8, 10, 20]
+        if FLAGS.exp == 'celebA':
+            beta = [1, 5, 10, 15, 20, 50]
+        else:
+            beta = [1, 2, 4, 6, 8, 10, 20]
         opts['obj_fn_coeffs'] = beta[FLAGS.idx-1]
     elif opts['model'] == 'FactorVAE':
         beta = [1,]
@@ -147,8 +150,8 @@ def main():
                 lmba0 = [1, 5, 10, 20, 25, 50, 75, 100]
                 lmba1 = [1, 5, 10, 20, 25, 50, 75, 100]
             else :
-                lmba0 = [1, 10, 20, 50, 100, 200]
-                lmba1 = [1, 10, 20, 50, 100, 200]
+                lmba0 = [1, 5, 10, 20, 50, 100]
+                lmba1 = [1, 5, 10, 20, 50, 100]
         lmba = list(itertools.product(lmba0,lmba1))
         opts['obj_fn_coeffs'] = list(lmba[FLAGS.idx-1])
     elif opts['model'] == 'disWAE':
@@ -172,7 +175,7 @@ def main():
     # Penalty Sigma_q
     opts['pen_enc_sigma'] = FLAGS.sigma_pen=='True'
     if FLAGS.exp == 'celebA':
-        opts['lambda_pen_enc_sigma'] = .1
+        opts['lambda_pen_enc_sigma'] = .01
     elif FLAGS.exp == 'smallNORB':
         opts['lambda_pen_enc_sigma'] = .2
     else:
