@@ -75,8 +75,8 @@ def linespace(opts, n, anchors, std=1.0):
     identity = np.eye(zdim)
     linespce = []
     for i in range(zdim):
-        start = anchors-2*std*identity[i]
-        stop = anchors+2*std*identity[i]
+        start = anchors-4*std*identity[i]
+        stop = anchors+4*std*identity[i]
         inter = []
         for j in range(nanchors):
             int_m = np.linspace(start[j],anchors[j],int(n/2.),endpoint=False)
