@@ -74,9 +74,13 @@ def linespace(opts, n, anchors, std=1.0):
     zdim = np.shape(anchors)[-1]
     identity = np.eye(zdim)
     linespce = []
+    if opts['dataset'] = 'celebA':
+        std_range = 4*std
+    else:
+        std_range = 2*std
     for i in range(zdim):
-        start = anchors-4*std*identity[i]
-        stop = anchors+4*std*identity[i]
+        start = anchors-std_range*identity[i]
+        stop = anchors+std_range*identity[i]
         inter = []
         for j in range(nanchors):
             int_m = np.linspace(start[j],anchors[j],int(n/2.),endpoint=False)
