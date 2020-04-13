@@ -37,7 +37,6 @@ class Model(object):
                                              reuse=reuse,
                                              is_training=is_training,
                                              dropout_rate=dropout_rate)
-
         return enc_z, enc_mean, enc_Sigma, dec_x, dec_mean, dec_Sigma
 
     def sample_x_from_prior(self, noise):
@@ -49,8 +48,26 @@ class Model(object):
                                                       reuse=True,
                                                       is_training=False,
                                                       dropout_rate=1.)
-
         return sample_x         #, sample_mean, sample_Sigma
+
+    def dimewise_kl_to_prior(self,  z, z_mean, z_logvar):
+      """Estimate dimension-wise KL(q(z_i),p(z_i)) to plot latent traversals.
+      """
+      # Compute log(q(z(x_j)|x_i)) for every sample in the batch, which is a
+      # tensor of size [batch_size, batch_size, num_latents]. In the following
+      # comments, [batch_size, batch_size, num_latents] are indexed by [j, i, l].
+      log_qz_prob = utils.gaussian_log_density(
+          tf.expand_dims(z, 1), tf.expand_dims(z_mean, 0),
+          tf.expand_dims(z_logvar, 0))
+      # Compute log q(z(x_j)_l) = log(sum_i(q(z(x_j)_l|x_i))
+      # + constant) for each sample in the batch, which is a vector of size
+      # [batch_size, num_latents].
+      log_qz_l = tf.reduce_logsumexp(log_qz_prob, axis=1, keepdims=False)
+      # Compute log p(z_l)
+      # + constant) where p~N(0,1), for each sample in the batch, which is a vector of size
+      # [batch_size, num_latents].
+      log_pz_l = - tf.square(z) / 2.
+      return tf.reduce_mean(log_qz_l - log_pz_l, axis=0)
 
 
 class BetaVAE(Model):
@@ -129,7 +146,6 @@ class BetaTCVAE(BetaVAE):
           keepdims=False)
       return tf.reduce_mean(log_qz - log_qz_product)
 
-
     def loss(self, inputs, samples, loss_coeffs, is_training, dropout_rate):
 
         beta = loss_coeffs
@@ -165,7 +181,6 @@ class FactorVAE(BetaVAE):
       with tf.variable_scope("discriminator",reuse=reuse):
           logits, probs = discriminator(self.opts, inputs, is_training, dropout_rate)
           clipped = tf.clip_by_value(probs, 1e-6, 1 - 1e-6)
-
       return logits, clipped
 
 
@@ -288,7 +303,6 @@ class WAE(Model):
                 res2 = (1. + distances / scale / 2.) ** (-scale)
                 res2 = tf.reduce_sum(res2) * 2. / (nf * nf)
                 stat += res1 - res2
-
         return stat
 
     def reconstruction_loss(self, x1, x2, logits):
@@ -309,7 +323,6 @@ class WAE(Model):
             cost = xentropy_cost(x1, logits)
         else:
             assert False, 'Unknown cost function %s' % opts['obs_cost']
-
         return tf.reduce_mean(cost)
 
     def loss(self, inputs, samples, loss_coeffs, is_training, dropout_rate):
@@ -374,10 +387,7 @@ class TCWAE_MWS(WAE):
           tf.square(z) / 2.,
           axis=1,
           keepdims=False)
-
-
       return tf.reduce_mean(log_qz), tf.reduce_mean(log_qz_product), tf.reduce_mean(log_pz_product)
-
 
     def loss(self, inputs, samples, loss_coeffs, is_training, dropout_rate):
 
@@ -424,9 +434,7 @@ class TCWAE_GAN(WAE):
       with tf.variable_scope('discriminator/' + scope, reuse=reuse):
           logits, probs = discriminator(self.opts, inputs, is_training, dropout_rate)
           clipped = tf.clip_by_value(probs, 1e-6, 1 - 1e-6)
-
       return logits, clipped
-
 
     def loss(self, inputs, samples, loss_coeffs, is_training, dropout_rate):
 
@@ -602,7 +610,6 @@ class disWAE(WAE):
         res1 = tf.reduce_sum(tf.reduce_prod(K,axis=1)) / nf*nf
         res2 = tf.reduce_prod(tf.reduce_sum(K,axis=[1,2]) / (nf*nf))
         res3 = tf.reduce_sum(tf.reduce_prod(tf.reduce_sum(K, axis=1) / nf, axis=0) / nf)
-
         return res1 + res2 - 2. * res3
 
     def loss(self, inputs, samples, loss_coeffs, is_training, dropout_rate):

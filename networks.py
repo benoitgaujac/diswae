@@ -191,10 +191,10 @@ def locatello_encoder(opts, input, output_dim, reuse=False,
     # 256 FC layer
     layer_x = tf.reshape(layer_x,[-1,np.prod(layer_x.get_shape().as_list()[1:])])
     layer_x = ops.linear.Linear(opts,layer_x,np.prod(layer_x.get_shape().as_list()[1:]),
-                256, scope='hid_fc/fc')
+                256, scope='hid_fc')
     if opts['normalization']=='batchnorm':
         layer_x = ops.batchnorm.Batchnorm_layers(
-            opts, layer_x, 'hid_fc/fc', is_training, reuse)
+            opts, layer_x, 'hid_bn' , is_training, reuse)
     layer_x = ops._ops.non_linear(layer_x,'relu')
     # Final FC
     outputs = ops.linear.Linear(opts,layer_x,np.prod(layer_x.get_shape().as_list()[1:]),
@@ -236,16 +236,16 @@ def  locatello_decoder(opts, input, output_dim, reuse,
     batch_size = tf.shape(input)[0]
     # Linear layers
     h0 = ops.linear.Linear(opts,input,np.prod(input.get_shape().as_list()[1:]),
-                256, scope='hid0/lin')
+                256, scope='hid0/lin0')
     if opts['normalization']=='batchnorm':
         h0 = ops.batchnorm.Batchnorm_layers(
-            opts, h0, 'hid0/bn', is_training, reuse)
+            opts, h0, 'hid0/bn0', is_training, reuse)
     h0 = ops._ops.non_linear(h0,'relu')
     h1 = ops.linear.Linear(opts,h0,np.prod(h0.get_shape().as_list()[1:]),
-                4*4*64, scope='hid1/lin')
+                4*4*64, scope='hid0/lin1')
     if opts['normalization']=='batchnorm':
         h1 = ops.batchnorm.Batchnorm_layers(
-            opts, h1, 'hid1/bn', is_training, reuse)
+            opts, h1, 'hid0/bn0', is_training, reuse)
     h1 = ops._ops.non_linear(h1,'relu')
     h1 = tf.reshape(h1, [-1, 4, 4, 64])
     layer_x = h1
@@ -255,7 +255,7 @@ def  locatello_decoder(opts, input, output_dim, reuse,
                         2*layer_x.get_shape().as_list()[2],
                         opts['network']['d_nfilters'][opts['network']['d_nlayers']-1-i]]
         layer_x = ops.deconv2d.Deconv2D(opts, layer_x, layer_x.get_shape().as_list()[-1], _out_shape,
-                   opts['network']['filter_size'][opts['network']['d_nlayers']-1-i], stride=2, scope='hid%d/deconv' % (i+2), init= opts['conv_init'])
+                   opts['network']['filter_size'][opts['network']['d_nlayers']-1-i], stride=2, scope='hid%d/deconv' % i, init= opts['conv_init'])
         if opts['normalization']=='batchnorm':
             layer_x = ops.batchnorm.Batchnorm_layers(
                 opts, layer_x, 'hid%d/bn' % (i+2), is_training, reuse)

@@ -73,12 +73,16 @@ class Run(object):
                               is_training=self.is_training,
                               dropout_rate=self.dropout_rate)
 
-        self.z_samples, self.z_mean, _, _, _, _ = self.model.forward_pass(inputs=self.batch,
+        self.z_samples, self.z_mean, self.z_logvar, _, _, _ = self.model.forward_pass(inputs=self.batch,
                                                                           is_training=self.is_training,
                                                                           dropout_rate=self.dropout_rate,
                                                                           reuse=True)
 
         self.generated_x = self.model.sample_x_from_prior(noise=self.samples_pz)
+
+        self.kl_to_prior = self.model.dimewise_kl_to_prior(self.z_samples,
+                                                    self.z_mean,
+                                                    self.z_logvar)
 
         # --- Optimizers, savers, etc
         self.add_optimizers()
@@ -413,6 +417,7 @@ class Run(object):
                         divergences_test = np.zeros(len(divergences))
                     else:
                         divergences_test = 0.
+                    kl_to_prior = np.zeros(opts['zdim'])
                     for it_ in range(batches_num_te):
                         # Sample batches of data points
                         data_ids = np.random.choice(test_size, batch_size_te, replace=True)
@@ -423,15 +428,17 @@ class Run(object):
                                           self.obj_fn_coeffs: opts['obj_fn_coeffs'],
                                           self.dropout_rate: 1.,
                                           self.is_training: False}
-                        [loss, l_rec, divergences, z, z_mean] = self.sess.run([self.objective,
+                        [loss, l_rec, divergences, z, z_mean, kl] = self.sess.run([self.objective,
                                                          self.loss_reconstruct,
                                                          self.divergences,
                                                          self.z_samples,
-                                                         self.z_mean],
+                                                         self.z_mean,
+                                                         self.kl_to_prior],
                                                         feed_dict=test_feed_dict)
                         loss_test += loss / batches_num_te
                         loss_rec_test += l_rec / batches_num_te
                         divergences_test += np.array(divergences) / batches_num_te
+                        kl_to_prior += kl / batches_num_te
                         if opts['true_gen_model']:
                             codes[batch_size_te*it_:batch_size_te*(it_+1)] = z
                             codes_mean[batch_size_te*it_:batch_size_te*(it_+1)] = z_mean
@@ -491,7 +498,8 @@ class Run(object):
                                                                      self.dropout_rate: 1.,
                                                                      self.is_training: False})
                         inter_anchors = np.reshape(dec_interpolation, [-1, opts['zdim'], num_steps]+im_shape)
-                        plot_interpolation(opts, inter_anchors, exp_dir,
+                        kl_to_prior_sorted = np.argsort(kl_to_prior)[::-1]
+                        plot_interpolation(opts, inter_anchors[:,kl_to_prior_sorted], exp_dir,
                                            'inter_e%04d_mb%05d.png' % (epoch, it))
 
                     # Saving plots
@@ -802,6 +810,20 @@ class Run(object):
                                                self.samples_pz: fixed_noise,
                                                self.dropout_rate: 1.,
                                                self.is_training: False})
+        # - get kl(q(z_i),p(z_i)) on test data to plot latent traversals
+        test_size = np.shape(data.test_data)[0]
+        batch_size_te = min(test_size,1000)
+        batches_num_te = int(test_size/batch_size_te)+1
+        kl_to_prior = np.zeros(opts['zdim'])
+        for it_ in range(batches_num_te):
+            data_ids = np.random.choice(test_size, batch_size_te, replace=True)
+            batch_images_test = data.test_data[data_ids].astype(np.float32)
+            kl = self.sess.run(self.kl_to_prior, feed_dict={
+                                                self.batch: batch_images_test,
+                                                self.dropout_rate: 1.,
+                                                self.is_training: False})
+            kl_to_prior += kl / batches_num_te
+
         # - Latent transversals
         enc_var = np.ones(opts['zdim'])
         # create latent linespacel
@@ -819,6 +841,8 @@ class Run(object):
                                                self.dropout_rate: 1.,
                                                self.is_training: False})
         obs_transversal = np.reshape(obs_transversal, [-1, opts['zdim'], num_steps]+im_shape)
+        kl_to_prior_sorted = np.argsort(kl_to_prior)[::-1]
+        obs_transversal = obs_transversal[:,kl_to_prior_sorted]
 
         # - ploting and saving
         if opts['dataset']=='smallNORB':
