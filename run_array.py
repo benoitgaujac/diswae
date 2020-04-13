@@ -96,7 +96,7 @@ def main():
 
     # Model set up
     if FLAGS.exp == 'celebA':
-        opts['zdim'] = 32
+        opts['zdim'] = 20
     else:
         opts['zdim'] = 10
     opts['batch_size'] = 64
@@ -150,8 +150,8 @@ def main():
                 lmba0 = [1, 5, 10, 20, 25, 50, 75, 100]
                 lmba1 = [1, 5, 10, 20, 25, 50, 75, 100]
             else :
-                lmba0 = [1, 10, 50, 100, 200, 300]
-                lmba1 = [1, 10, 50, 100, 200, 300]
+                lmba0 = [1, 5, 10, 25, 50, 100]
+                lmba1 = [1, 5, 10, 25, 50, 100]
         lmba = list(itertools.product(lmba0,lmba1))
         opts['obj_fn_coeffs'] = list(lmba[FLAGS.idx-1])
     elif opts['model'] == 'disWAE':
