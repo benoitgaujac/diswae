@@ -74,7 +74,7 @@ def linespace(opts, n, anchors, std=1.0):
     zdim = np.shape(anchors)[-1]
     identity = np.eye(zdim)
     linespce = []
-    if opts['dataset'] = 'celebA':
+    if opts['dataset'] == 'celebA':
         std_range = 4*std
     else:
         std_range = 2*std
