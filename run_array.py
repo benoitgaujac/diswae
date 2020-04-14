@@ -136,8 +136,8 @@ def main():
         if opts['cost'] == 'xentropy':
             # toy experiment with xent
             if FLAGS.exp == 'dsprites':
-                lmba0 = [1, 5, 10, 20, 50, 75, 100]
-                lmba1 = [1, 5, 10, 20, 50, 75, 100]
+                lmba0 = [1, 5, 10, 20, 50, 75, 100, 150]
+                lmba1 = [1, 5, 10, 20, 50, 75, 100, 150]
             elif FLAGS.exp == 'smallNORB':
                 lmba0 = [1, 10, 20, 25, 50, 75, 100, 150]
                 lmba1 = [1, 10, 20, 25, 50, 75, 100, 150]

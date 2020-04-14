@@ -383,10 +383,12 @@ class TCWAE_MWS(WAE):
       # Compute log prod_l p(z_l) = sum_l(log(p(z_l)))
       # + constant) where p~N(0,1), for each sample in the batch, which is a vector of size
       # [batch_size,].
+      pi = tf.constant(math.pi)
       log_pz_product = tf.reduce_sum(
-          tf.square(z) / 2.,
+          -0.5 * (tf.log(2*pi) + tf.log(self.opts['zdim']) + tf.square(z)),
           axis=1,
           keepdims=False)
+
       return tf.reduce_mean(log_qz), tf.reduce_mean(log_qz_product), tf.reduce_mean(log_pz_product)
 
     def loss(self, inputs, samples, loss_coeffs, is_training, dropout_rate):
@@ -402,9 +404,12 @@ class TCWAE_MWS(WAE):
         # --- Latent regularization
         log_qz, log_qz_product, log_pz_product = self.total_correlation(enc_z, enc_mean, enc_Sigma)
         # - WAE latent reg
-        matching_penalty = lmbd1*log_qz + (lmbd2-lmbd1)*log_qz_product + lmbd2*log_pz_product
+        tc = log_qz-log_qz_product
+        kl = log_qz_product-log_pz_product
+        matching_penalty = lmbd1*tc + lmbd2*kl
+        # matching_penalty = lmbd1*log_qz + (lmbd2-lmbd1)*log_qz_product + lmbd2*log_pz_product
         wae_match_penalty = self.mmd_penalty(enc_z, samples)
-        divergences = (lmbd1*(log_qz-log_qz_product), lmbd2*(log_qz_product-log_pz_product), wae_match_penalty)
+        divergences = (lmbd1*tc, lmbd2*kl, wae_match_penalty)
 
         # -- Obj
         objective = loss_reconstruct + matching_penalty
