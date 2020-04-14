@@ -1,6 +1,6 @@
 import numpy as np
 import tensorflow as tf
-from math import pi
+import math
 
 from networks import encoder, decoder, discriminator
 from datahandler import datashapes
@@ -384,8 +384,9 @@ class TCWAE_MWS(WAE):
       # + constant) where p~N(0,1), for each sample in the batch, which is a vector of size
       # [batch_size,].
       pi = tf.constant(math.pi)
+      zdim = tf.constant(self.opts['zdim'],dtype=tf.float32)
       log_pz_product = tf.reduce_sum(
-          -0.5 * (tf.log(2*pi) + tf.log(self.opts['zdim']) + tf.square(z)),
+          -0.5 * (tf.log(2*pi) + tf.log(zdim) + tf.square(z)),
           axis=1,
           keepdims=False)
 
