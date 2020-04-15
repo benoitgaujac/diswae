@@ -626,7 +626,7 @@ def save_dimwise_traversals(opts, transversals, exp_dir):
     num_rows = transversals.shape[0]
     num_cols = transversals.shape[2]
     num_im = transversals.shape[1]
-    images = []
+    images, names = [], []
     for i in range(num_im):
         pics = np.concatenate(np.split(transversals[:,i],num_cols,axis=1),axis=3)
         pics = pics[:,0]
@@ -637,7 +637,7 @@ def save_dimwise_traversals(opts, transversals, exp_dir):
         else:
             image = pics
         images.append(image)
-        names.append(opts['model'] + '_latent_transversal_z' + str(i))
+        names.append(opts['model'] + '_lt_z' + str(i))
     ### Creating a pyplot fig
     to_plot_list = zip(images,names)
     dpi = 100
