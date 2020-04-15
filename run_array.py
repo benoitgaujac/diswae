@@ -142,16 +142,16 @@ def main():
                 lmba0 = [1, 10, 20, 25, 50, 75, 100, 150]
                 lmba1 = [1, 10, 20, 25, 50, 75, 100, 150]
             else :
-                lmba0 = [1, 5, 10, 20, 50, 75, 100]
-                lmba1 = [1, 5, 10, 20, 50, 75, 100]
+                lmba0 = [1, 5, 10, 25, 50, 75, 100]
+                lmba1 = [1, 5, 10, 25, 50, 75, 100]
         else:
             # real word experiment with l2^2
             if FLAGS.exp == 'smallNORB':
                 lmba0 = [1, 5, 10, 20, 25, 50, 75, 100]
                 lmba1 = [1, 5, 10, 20, 25, 50, 75, 100]
             else :
-                lmba0 = [1, 5, 10, 25, 50, 100]
-                lmba1 = [1, 5, 10, 25, 50, 100]
+                lmba0 = [1, 5, 10, 25, 50, 75, 100]
+                lmba1 = [1, 5, 10, 25, 50, 75, 100]
         lmba = list(itertools.product(lmba0,lmba1))
         opts['obj_fn_coeffs'] = list(lmba[FLAGS.idx-1])
     elif opts['model'] == 'disWAE':
@@ -178,6 +178,8 @@ def main():
         opts['lambda_pen_enc_sigma'] = .01
     elif FLAGS.exp == 'smallNORB':
         opts['lambda_pen_enc_sigma'] = .2
+    elif FLAGS.exp == '3Dchairs':
+        opts['lambda_pen_enc_sigma'] = .1
     else:
         opts['lambda_pen_enc_sigma'] = 1.
 

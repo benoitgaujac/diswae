@@ -563,17 +563,26 @@ class DataHandler(object):
                             print('{} images unizped'.format(n))
             np.savez_compressed(filename,data=np.array(X).reshape([-1,]+datashapes['3Dchairs']) / 255.)
             shutil.rmtree(root_dir)
+
         # loading data
         X = np.load(filename,allow_pickle=True)['data']
         seed = 123
+        shuffling_mask = np.arange(len(X))
         np.random.seed(seed)
-        np.random.shuffle(X)
+        np.random.shuffle(shuffling_mask)
         np.random.seed()
-        self.data_shape = datashapes['3Dchairs']
-        test_size = 10000
-        self.data = Data(opts, X[:-test_size])
+        np.random.shuffle(shuffling_mask[opts['plot_num_pics']:])
+        np.random.shuffle(shuffling_mask[opts['plot_num_pics']:])
+        # training set
+        self.data = Data(opts, X[shuffling_mask[:-10000]])
+        # testing set
+        # test_size = 10000 - opts['plot_num_pics']
+        self.test_data = Data(opts, X[shuffling_mask[-10000:-opts['plot_num_pics']]])
+        # vizu set
+        self.vizu_data = Data(opts, X[shuffling_mask[-opts['plot_num_pics']:]])
+        # data informations
+        self.data_shape = datashapes[opts['dataset']]
         self.num_points = len(self.data)
-        self.test_data = Data(opts, X[-test_size:])
 
         logging.error('Loading Done.')
 
