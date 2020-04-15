@@ -382,6 +382,7 @@ def plot_embedded(opts, encoded, decoded, labels, exp_dir, filename, train=True)
 def plot_interpolation(opts, interpolations, exp_dir, filename, train=True):
     ### Reshaping images
     greyscale = interpolations.shape[-1] == 1
+    transversals = transversals / 2. + 0.5
     white_pix = 4
     num_rows = np.shape(interpolations)[1]
     num_cols = np.shape(interpolations)[2]
@@ -438,6 +439,7 @@ def save_test_smallnorb(opts, data, reconstructions, transversals, samples, exp_
         data = data / 2. + 0.5
         reconstructions = reconstructions / 2. + 0.5
         samples = samples / 2. + 0.5
+        transversals = transversals / 2. + 0.5
 
     ### data
     num_cols = data.shape[0]
@@ -531,6 +533,7 @@ def save_test_celeba(opts, data, reconstructions, transversals, samples, exp_dir
         data = data / 2. + 0.5
         reconstructions = reconstructions / 2. + 0.5
         samples = samples / 2. + 0.5
+        transversals = transversals / 2. + 0.5
 
     ### Reconstruction plots
     num_pics = 100
@@ -605,6 +608,61 @@ def save_test_celeba(opts, data, reconstructions, transversals, samples, exp_dir
                 hspace = 0, wspace = 0)
         # Saving
         save_path = os.path.join(exp_dir,'test_plots')
+        utils.create_dir(save_path)
+        filename = filename + '.png'
+        plt.savefig(utils.o_gfile((save_path, filename), 'wb'),
+                    dpi=dpi, format='png', box_inches='tight', pad_inches=0.0)
+        plt.close()
+
+
+def save_dimwise_traversals(opts, transversals, exp_dir):
+
+    """ Dimwise latent traversals"""
+
+    assert transversals.shape[1]==opts['zdim']
+    greyscale = transversals.shape[-1] == 1
+    if opts['input_normalize_sym']:
+        transversals = transversals / 2. + 0.5
+    num_rows = transversals.shape[0]
+    num_cols = transversals.shape[2]
+    num_im = transversals.shape[1]
+    images = []
+    for i in range(num_im):
+        pics = np.concatenate(np.split(transversals[:,i],num_cols,axis=1),axis=3)
+        pics = pics[:,0]
+        pics = np.concatenate(np.split(pics,num_rows),axis=1)
+        pics = pics[0]
+        if greyscale:
+            image = 1. - pics
+        else:
+            image = pics
+        images.append(image)
+        names.append(opts['model'] + '_latent_transversal_z' + str(i))
+    ### Creating a pyplot fig
+    to_plot_list = zip(images,names)
+    dpi = 100
+    for img, filename in to_plot_list:
+        height_pic = img.shape[0]
+        width_pic = img.shape[1]
+        fig_height = height_pic / 20
+        fig_width = width_pic / 20
+        fig = plt.figure(figsize=(fig_width, fig_height))
+        if greyscale:
+            image = img[:, :, 0]
+            # in Greys higher values correspond to darker colors
+            plt.imshow(image, cmap='Greys',
+                            interpolation='none', vmin=0., vmax=1.)
+        else:
+            plt.imshow(img, interpolation='none', vmin=0., vmax=1.)
+        # Removing axes, ticks, labels
+        plt.axis('off')
+        # # placing subplot
+        plt.subplots_adjust(top = 1, bottom = 0, right = 1, left = 0,
+                hspace = 0, wspace = 0)
+        # Saving
+        save_path = os.path.join(exp_dir,'test_plots')
+        utils.create_dir(save_path)
+        save_path = os.path.join(save_path,'dimwise_traversals')
         utils.create_dir(save_path)
         filename = filename + '.png'
         plt.savefig(utils.o_gfile((save_path, filename), 'wb'),
