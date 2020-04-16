@@ -382,7 +382,8 @@ def plot_embedded(opts, encoded, decoded, labels, exp_dir, filename, train=True)
 def plot_interpolation(opts, interpolations, exp_dir, filename, train=True):
     ### Reshaping images
     greyscale = interpolations.shape[-1] == 1
-    interpolations = interpolations / 2. + 0.5
+    if opts['input_normalize_sym']:
+        interpolations = interpolations / 2. + 0.5
     white_pix = 4
     num_rows = np.shape(interpolations)[1]
     num_cols = np.shape(interpolations)[2]
