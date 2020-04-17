@@ -386,7 +386,7 @@ class TCWAE_MWS(WAE):
       pi = tf.constant(math.pi)
       zdim = tf.constant(self.opts['zdim'],dtype=tf.float32)
       log_pz_product = tf.reduce_sum(
-          -0.5 * (tf.log(2*pi) + tf.log(zdim) + tf.square(z)),
+          -0.5 * (tf.log(2*pi) + tf.square(z)),
           axis=1,
           keepdims=False)
 
