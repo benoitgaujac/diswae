@@ -465,7 +465,7 @@ def save_test_smallnorb(opts, data, reconstructions, transversals, samples, exp_
     rec = np.concatenate(np.split(rec, num_cols), axis=2)
     rec = np.concatenate(rec, axis=0)
     ### Samples
-    num_cols = transversals.shape[2]
+    num_cols = samples.shape[0]
     gen = []
     for idx in range(samples.shape[0]):
         if greyscale:
@@ -476,6 +476,7 @@ def save_test_smallnorb(opts, data, reconstructions, transversals, samples, exp_
     gen = np.concatenate(np.split(gen, num_cols), axis=2)
     gen = np.concatenate(gen, axis=0)
     ### Latent transversal
+    num_cols = transversals.shape[2]
     num_rows = transversals.shape[1]
     images = []
     names = []
@@ -570,6 +571,7 @@ def save_test_celeba(opts, data, reconstructions, transversals, samples, exp_dir
     gen = np.concatenate(gen, axis=0)
     ### Latent transversal
     num_rows = transversals.shape[1]
+    num_cols = transversals.shape[2]
     images = []
     names = []
     for i in range(np.shape(transversals)[0]):

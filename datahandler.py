@@ -376,7 +376,7 @@ class DataHandler(object):
             self.factor_sizes)
         # Creating shuffling mask
         seed = 123
-        shuffling_mask = np.arange(len(X))
+        shuffling_mask = np.arange(len(Y))
         np.random.seed(seed)
         np.random.shuffle(shuffling_mask)
         np.random.seed()
@@ -392,6 +392,9 @@ class DataHandler(object):
         # vizu set
         self.vizu_data = Data(opts, X[shuffling_mask[-opts['plot_num_pics']:]])
         self.vizu_labels = Data(opts, Y[shuffling_mask[-opts['plot_num_pics']:]])
+        # plot set
+        idx = np.arange(41488,len(Y),34816)
+        self.plot_data = Data(opts, X[idx])
         # data informations
         self.data_shape = datashapes[opts['dataset']]
         self.num_points = len(self.data)
@@ -526,7 +529,7 @@ class DataHandler(object):
         self.vizu_data = Data(opts, X[shuffling_mask[-opts['plot_num_pics']:]])
         self.vizu_labels = Data(opts, self.Y[shuffling_mask[-opts['plot_num_pics']:]])
         # plot set
-        idx = np.arange(0+18*6,20+18*6,2)
+        idx = np.arange(0+18*6,40+18*6,2)
         self.plot_data = Data(opts, X[idx])
         # data informations
         self.data_shape = datashapes[opts['dataset']]
@@ -580,6 +583,9 @@ class DataHandler(object):
         self.test_data = Data(opts, X[shuffling_mask[-10000:-opts['plot_num_pics']]])
         # vizu set
         self.vizu_data = Data(opts, X[shuffling_mask[-opts['plot_num_pics']:]])
+        # plot set
+        idx = np.arange(5,5+50)
+        self.plot_data = Data(opts, X[idx])
         # data informations
         self.data_shape = datashapes[opts['dataset']]
         self.num_points = len(self.data)
@@ -608,7 +614,7 @@ class DataHandler(object):
         # vizu set
         self.vizu_data = Data(opts, None, paths[shuffling_mask[-opts['plot_num_pics']:]])
         # plot set
-        idx = [5,6,14,17,39,50,60,70,80,90]
+        # idx = [5,6,14,17,39,50,60,70,80,90]
         idx = np.arange(5,5+50)
         plot_data = Data(opts, None, paths[idx])
         self.plot_data = plot_data[np.arange(50)]

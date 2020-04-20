@@ -137,10 +137,16 @@ def main():
             # toy experiment with xent
             if FLAGS.exp == 'dsprites':
                 lmba0 = [1, 5, 10, 20, 50, 75, 100, 150]
-                lmba1 = [1, 5, 10, 20, 50, 75, 100, 150]
+                lmba1 = [150,]
+                lmba = list(itertools.product(lmba0,lmba1))
+                lmba += list(itertools.product(lmba1,lmba0))
             elif FLAGS.exp == 'smallNORB':
-                lmba0 = [1, 10, 20, 25, 50, 75, 100, 150]
-                lmba1 = [1, 10, 20, 25, 50, 75, 100, 150]
+                lmba0 = [1, 5, 10, 20, 25, 50, 75, 100, 150]
+                lmba1 = [5,]
+                lmba = list(itertools.product(lmba0,lmba1))
+                lmba += list(itertools.product(lmba1,lmba0))
+                lmba = [lmba[0],] + lmba[2:]
+                # lmba1 = [1, 10, 20, 25, 50, 75, 100, 150]
             else :
                 lmba0 = [1, 5, 10, 25, 50, 75, 100]
                 lmba1 = [1, 5, 10, 25, 50, 75, 100]
@@ -152,7 +158,6 @@ def main():
             else :
                 lmba0 = [1, 5, 10, 25, 50, 75, 100]
                 lmba1 = [1, 5, 10, 25, 50, 75, 100]
-        lmba = list(itertools.product(lmba0,lmba1))
         opts['obj_fn_coeffs'] = list(lmba[FLAGS.idx-1])
     elif opts['model'] == 'disWAE':
         # Penalty
