@@ -361,6 +361,8 @@ class TCWAE_MWS(WAE):
       """Estimate of total correlation and dimensionwise on a batch.
       Based on ICML paper
       """
+      M = utils.get_batch_size(z)
+      N = self.opts['dataset_size']
       # Compute log(q(z(x_j)|x_i)) for every sample in the batch, which is a
       # tensor of size [batch_size, batch_size, num_latents]. In the following
       # comments, [batch_size, batch_size, num_latents] are indexed by [j, i, l].
@@ -371,7 +373,7 @@ class TCWAE_MWS(WAE):
       # + constant) for each sample in the batch, which is a vector of size
       # [batch_size,].
       log_qz_product = tf.reduce_sum(
-          tf.reduce_logsumexp(log_qz_prob, axis=1, keepdims=False),
+          tf.reduce_logsumexp(log_qz_prob, axis=1, keepdims=False) - tf.math.log(N*M),
           axis=1,
           keepdims=False)
       # Compute log(q(z(x_j))) as log(sum_i(q(z(x_j)|x_i))) + constant =
@@ -379,12 +381,11 @@ class TCWAE_MWS(WAE):
       log_qz = tf.reduce_logsumexp(
           tf.reduce_sum(log_qz_prob, axis=2, keepdims=False),
           axis=1,
-          keepdims=False)
+          keepdims=False) - tf.math.log(N*M)
       # Compute log prod_l p(z_l) = sum_l(log(p(z_l)))
       # + constant) where p~N(0,1), for each sample in the batch, which is a vector of size
       # [batch_size,].
       pi = tf.constant(math.pi)
-      zdim = tf.constant(self.opts['zdim'],dtype=tf.float32)
       log_pz_product = tf.reduce_sum(
           -0.5 * (tf.log(2*pi) + tf.square(z)),
           axis=1,

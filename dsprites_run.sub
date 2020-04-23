@@ -5,7 +5,7 @@
 #$ -wd /home/bgaujac/diswae
 
 #$ -l gpu=true
-#$ -l tmem=25G
+#$ -l tmem=28G
 #$ -l h_rt=10:00:00
 
 #$ -t 1-15
@@ -16,4 +16,5 @@ source /share/apps/examples/source_files/python/python-3.6.4.source
 source /share/apps/examples/source_files/cuda/cuda-9.0.source
 
 # python3 run.py --out_dir dsprites  --exp dsprites --enum 100 --lmba0 1 --lmba1 1
-python3 run_array.py --num_it 600000 --net_archi conv_locatello --idx $SGE_TASK_ID --exp dsprites --save_model True --out_dir dSprites_v6 --sigma_pen True --model TCWAE_MWS
+# python3 run_array.py --num_it 600000 --net_archi conv_locatello --idx $SGE_TASK_ID --exp dsprites --save_model True --out_dir dSprites_v6 --sigma_pen True --model TCWAE_MWS
+python3 run_ablation.py --num_it 300000 --idx $SGE_TASK_ID --save_model Falsea --out_dir dSprites_ablation --model TCWAE_MWS

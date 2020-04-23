@@ -793,7 +793,7 @@ class Run(object):
 
         # - Set up
         im_shape = datashapes[opts['dataset']]
-        num_steps = 10
+        num_steps = 6
         num_pics = 20
         if opts['dataset']=='celebA' or opts['dataset']=='3Dchairs':
             num_pics = 100
@@ -830,7 +830,7 @@ class Run(object):
         # create latent linespacel
         if opts['dataset']=='celebA' or opts['dataset']=='3Dchairs':
             latent_transversal = linespace(opts, num_steps,  # shape: [nanchors, zdim, nsteps, zdim]
-                                    anchors=latents[30:30+15],
+                                    anchors=latents[34:34+5],
                                     std=enc_var)
         else:
             latent_transversal = linespace(opts, num_steps,  # shape: [nanchors, zdim, nsteps, zdim]

@@ -640,7 +640,7 @@ def save_dimwise_traversals(opts, transversals, exp_dir):
         else:
             image = pics
         images.append(image)
-        names.append(opts['model'] + '_lt_z' + str(i))
+        names.append(opts['model'] + '_z' + str(i))
     ### Creating a pyplot fig
     to_plot_list = zip(images,names)
     dpi = 100
