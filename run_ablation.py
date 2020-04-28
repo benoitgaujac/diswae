@@ -76,7 +76,7 @@ def main():
     opts['zdim'] = 10
     opts['batch_size'] = 64
     if opts['model']=='TCWAE_MWS':
-        opts['batch_size'] = 256
+        opts['batch_size'] = 512
     opts['cost'] = 'xentropy'
     # Objective Function Coefficients
     lmba = [1, 5, 10, 20, 50, 75, 100, 150]
