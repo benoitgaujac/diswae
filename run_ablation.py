@@ -80,9 +80,10 @@ def main():
     opts['cost'] = 'xentropy'
     # Objective Function Coefficients
     lmba = [1, 5, 10, 20, 50, 75, 100, 150]
+    opts['obj_fn_coeffs'] = lmba[FLAGS.idx-1]
     if opts['model']!='WAE':
         lmba = list(zip(lmba,lmba))
-    opts['obj_fn_coeffs'] = list(lmba[FLAGS.idx-1])
+        opts['obj_fn_coeffs'] = list(lmba[FLAGS.idx-1])
     # Penalty Sigma_q
     opts['pen_enc_sigma'] = True
     opts['lambda_pen_enc_sigma'] = 1.
