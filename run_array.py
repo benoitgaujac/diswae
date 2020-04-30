@@ -144,8 +144,8 @@ def main():
                 lmba0 = [0.001, 0.005, 0.01, 0.05, .1, .5, 1]
                 lmba1 = [0.001, 0.005, 0.01, 0.05, .1, .5, 1]
         else:
-                lmba0 = [0.1, 1, 10]
-                lmba1 = [0.01, 0.1, 1]
+                lmba0 = [10, 20, 50]
+                lmba1 = [100, 200, 500]
         lmba = list(itertools.product(lmba0,lmba1))
         opts['obj_fn_coeffs'] = list(lmba[FLAGS.idx-1])
     elif opts['model'] == 'disWAE':
