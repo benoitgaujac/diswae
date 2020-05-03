@@ -92,7 +92,7 @@ def main():
         opts['fid'] = False
 
     # Opt set up
-    opts['lr'] = 0.0004
+    opts['lr'] = 0.0001
 
     # Model set up
     if FLAGS.exp == 'celebA':
