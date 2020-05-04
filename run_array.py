@@ -141,11 +141,14 @@ def main():
                 lmba0 = [1, 10, 20, 50, 75, 100, 150]
                 lmba1 = [1, 10, 20, 50, 75, 100, 150]
             elif opts['cost'] == 'l1':
-                lmba0 = [.01, .05, .1, .5, 1]
-                lmba1 = [.01, .1, 1, 2, 5]
+                lmba0 = [.05, .1, .5, 1., 2]
+                lmba1 = [.05, .1, .5, 1., 2]
             elif opts['cost'] == 'l2':
-                lmba0 = [.01, .05, .1, .5, 1]
-                lmba1 = [.01, .1, 1, 2, 5]
+                lmba0 = [.001, .005, .01, .05, .1]
+                lmba1 = [.001, .005, .01, .05, .1]
+            elif opts['cost'] == 'l2sq':
+                lmba0 = [.05, .1, .5, 1., 2]
+                lmba1 = [.05, .1, .5, 1., 2]
             else:
                 lmba0 = [.01, .05, .1, .5, 1]
                 lmba1 = [.05, .1, .5, 1, 5, 10]
@@ -220,8 +223,8 @@ def main():
 
     # Experiemnts set up
     opts['epoch_num'] = int(FLAGS.num_it / int(data.num_points/opts['batch_size']))
-    opts['print_every'] = int(opts['epoch_num'] / 3.) * int(data.num_points/opts['batch_size'])-1
-    opts['evaluate_every'] = int(opts['print_every'] / 5.) + 1
+    opts['print_every'] = int(opts['epoch_num'] / 5.) * int(data.num_points/opts['batch_size'])-1
+    opts['evaluate_every'] = int(opts['print_every'] / 3.) + 1
     opts['save_every'] = 1000000000
     if FLAGS.save_model=='True':
         opts['save_final'] = True
