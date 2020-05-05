@@ -136,6 +136,7 @@ def main():
         if FLAGS.exp == 'smallNORB':
             lmba0 = [1, 5, 10, 20, 25, 50, 100]
             lmba1 = [1, 5, 10, 20, 25, 50, 100]
+            opts['lr'] = 0.0004
         elif FLAGS.exp == 'dsprites':
             if opts['cost'] == 'xentropy':
                 lmba0 = [1, 10, 20, 50, 75, 100, 150]
