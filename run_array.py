@@ -134,8 +134,21 @@ def main():
         opts['obj_fn_coeffs'] = lmba[FLAGS.idx-1]
     elif opts['model'] == 'TCWAE_MWS' or opts['model'] == 'TCWAE_GAN':
         if FLAGS.exp == 'smallNORB':
-            lmba0 = [1, 5, 10, 20, 25, 50, 100]
-            lmba1 = [1, 5, 10, 20, 25, 50, 100]
+            if opts['cost'] == 'xentropy':
+                lmba0 = [1, 5, 10, 20, 25, 50, 100]
+                lmba1 = [1, 5, 10, 20, 25, 50, 100]
+            elif opts['cost'] == 'l1':
+                lmba0 = [2, 4 ,6, 8, 10]
+                lmba1 = [2, 4 ,6, 8, 10]
+            elif opts['cost'] == 'l2':
+                lmba0 = [.01,.05,.1,.5,1,5,10]
+                lmba1 = [.01,.05,.1,.5,1,5,10]
+            elif opts['cost'] == 'l2sq':
+                lmba0 = [.05, .1, .5, 1, 2]
+                lmba1 = [.05, .1, .5, 1, 2]
+            else:
+                lmba0 = [.01, .05, .1, .5, 1]
+                lmba1 = [.05, .1, .5, 1, 5, 10]
             opts['lr'] = 0.0004
         elif FLAGS.exp == 'dsprites':
             if opts['cost'] == 'xentropy':
