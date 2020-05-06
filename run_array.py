@@ -167,8 +167,9 @@ def main():
                 lmba0 = [.01, .05, .1, .5, 1]
                 lmba1 = [.05, .1, .5, 1, 5, 10]
         else:
-                lmba0 = [1, 5, 10, 25, 50, 100]
-                lmba1 = [1, 5, 10, 25, 50, 100]
+            lmba0 = [.05, .1, .5, 1, 2]
+            lmba1 = [.1, .5, 1, 2, 4]
+            opts['batch_size'] = 256
         lmba = list(itertools.product(lmba0,lmba1))
         opts['obj_fn_coeffs'] = list(lmba[FLAGS.idx-1])
     elif opts['model'] == 'disWAE':
