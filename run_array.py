@@ -158,8 +158,9 @@ def main():
                 lmba0 = [2, 4 ,6, 8, 10]
                 lmba1 = [2, 4 ,6, 8, 10]
             elif opts['cost'] == 'l2':
-                lmba0 = [.01, .1, .5, 1, 10]
-                lmba1 = [.01, .1, .5, 1, 10]
+                lmba0 = [.01, .1, 1, 2, 4, 6]
+                lmba1 = [.01, .1, 1, 2, 4, 6]
+                opts['lr'] = 0.00001
             elif opts['cost'] == 'l2sq':
                 lmba0 = [.1, .5, 1, 2, 4, 6]
                 lmba1 = [.1, .5, 1, 2, 4, 6]
@@ -170,9 +171,10 @@ def main():
             lmba0 = [1, 2, 4, 6, 8, 10]
             lmba1 = [1, 2, 4, 6, 8, 10]
         else:
-            lmba0 = [.05, .1, .5, 1, 2]
-            lmba1 = [.1, .5, 1, 2, 4]
+            lmba0 = [1, 2, 4, 6, 8, 10]
+            lmba1 = [1, 4, 8, 12, 16, 20]
             opts['batch_size'] = 256
+            opts['lr'] = 0.0004
         lmba = list(itertools.product(lmba0,lmba1))
         opts['obj_fn_coeffs'] = list(lmba[FLAGS.idx-1])
     elif opts['model'] == 'disWAE':
