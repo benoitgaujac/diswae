@@ -170,6 +170,9 @@ def main():
         elif FLAGS.exp == '3Dchairs':
             lmba0 = [1, 2, 4, 6, 8, 10]
             lmba1 = [1, 2, 4, 6, 8, 10]
+        elif FLAGS.exp == 'celeb_A':
+            lmba0 = [1, 2, 4, 6, 8, 10]
+            lmba1 = [1, 2, 4, 6, 8, 10]
         else:
             lmba0 = [1, 2, 4, 6, 8, 10]
             lmba1 = [1, 4, 8, 12, 16, 20]
