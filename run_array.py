@@ -158,8 +158,8 @@ def main():
                 lmba0 = [2, 4 ,6, 8, 10]
                 lmba1 = [2, 4 ,6, 8, 10]
             elif opts['cost'] == 'l2':
-                lmba0 = [.01, .1, 1, 2, 4, 6]
-                lmba1 = [.01, .1, 1, 2, 4, 6]
+                lmba0 = [0.0001, 0.001, .01, .1]
+                lmba1 = [0.0001, 0.001, .01, .1]
                 opts['lr'] = 0.00001
             elif opts['cost'] == 'l2sq':
                 lmba0 = [.1, .5, 1, 2, 4, 6]
@@ -170,7 +170,7 @@ def main():
         elif FLAGS.exp == '3Dchairs':
             lmba0 = [1, 2, 4, 6, 8, 10]
             lmba1 = [1, 2, 4, 6, 8, 10]
-        elif FLAGS.exp == 'celeb_A':
+        elif FLAGS.exp == 'celebA':
             lmba0 = [1, 2, 4, 6, 8, 10]
             lmba1 = [1, 2, 4, 6, 8, 10]
         else:
