@@ -173,6 +173,7 @@ def main():
         elif FLAGS.exp == 'celebA':
             lmba0 = [1, 2, 4, 6, 8, 10]
             lmba1 = [1, 2, 4, 6, 8, 10]
+            opts['lr'] = 0.0004
         else:
             lmba0 = [1, 2, 4, 6, 8, 10]
             lmba1 = [1, 4, 8, 12, 16, 20]
