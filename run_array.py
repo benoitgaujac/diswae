@@ -35,6 +35,8 @@ parser.add_argument("--idx", type=int, default=0,
                     help='idx latent reg weight setup')
 parser.add_argument("--sigma_pen", default='False',
                     help='penalization of Sigma_q')
+parser.add_argument("--sp", type=float, default=0.01,
+                    help='value of penalization of Sigma_q')
 parser.add_argument("--cost", default='xentropy',
                     help='ground cost [l2, l2sq, l2sq_norm, l1, xentropy]')
 parser.add_argument("--save_model", default='True',
@@ -203,7 +205,7 @@ def main():
     # Penalty Sigma_q
     opts['pen_enc_sigma'] = FLAGS.sigma_pen=='True'
     if FLAGS.exp == 'celebA':
-        opts['lambda_pen_enc_sigma'] = .01
+        opts['lambda_pen_enc_sigma'] = FLAGS.sp
     elif FLAGS.exp == 'smallNORB':
         opts['lambda_pen_enc_sigma'] = .2
     elif FLAGS.exp == '3Dchairs':
