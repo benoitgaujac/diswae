@@ -592,23 +592,24 @@ class Run(object):
                         raise NotImplementedError('Model type not recognised')
 
                 # - Update learning rate if necessary and counter
-                # if counter >= batches_num * opts['epoch_num'] / 5 and counter % decay_steps == 0:
-                if False:
-                    decay = decay_rate ** (int(counter / decay_steps))
-                    logging.error('Reduction in lr: %f\n' % decay)
-                    """
-                    # If no significant progress was made in last 20 epochs
-                    # then decrease the learning rate.
-                    if np.mean(Loss_rec[-20:]) < np.mean(Loss_rec[-20 * batches_num:])-1.*np.var(Loss_rec[-20 * batches_num:]):
-                        wait = 0
-                    else:
-                        wait += 1
-                    if wait > 20 * batches_num:
-                        decay = max(decay  / 1.33, 1e-6)
+                # if False:
+                if opts['dataset']=='celebA':
+                    if counter >= batches_num * opts['epoch_num'] / 5 and counter % decay_steps == 0:
+                        decay = decay_rate ** (int(counter / decay_steps))
                         logging.error('Reduction in lr: %f\n' % decay)
-                        print('')
-                        wait = 0
-                    """
+                        """
+                        # If no significant progress was made in last 20 epochs
+                        # then decrease the learning rate.
+                        if np.mean(Loss_rec[-20:]) < np.mean(Loss_rec[-20 * batches_num:])-1.*np.var(Loss_rec[-20 * batches_num:]):
+                            wait = 0
+                        else:
+                            wait += 1
+                        if wait > 20 * batches_num:
+                            decay = max(decay  / 1.33, 1e-6)
+                            logging.error('Reduction in lr: %f\n' % decay)
+                            print('')
+                            wait = 0
+                        """
 
                 # - Update regularizer if necessary
                 if opts['lambda_schedule'] == 'adaptive':
