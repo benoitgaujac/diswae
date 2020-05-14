@@ -362,7 +362,7 @@ class Run(object):
             enc_Sigmas = []
 
         decay, counter = 1., 0
-        decay_steps, decay_rate = int(batches_num * opts['epoch_num'] / 5), 0.98
+        decay_steps, decay_rate = int(batches_num * opts['epoch_num'] / 5), 0.95
         wait, wait_lambda = 0, 0
         for epoch in range(opts['epoch_num']):
             # Saver
@@ -594,7 +594,7 @@ class Run(object):
                 # - Update learning rate if necessary and counter
                 # if False:
                 if opts['dataset']=='celebA':
-                    if counter >= batches_num * opts['epoch_num'] / 5 and counter % decay_steps == 0:
+                    if counter+1 % decay_steps == 0:
                         decay = decay_rate ** (int(counter / decay_steps))
                         logging.error('Reduction in lr: %f\n' % decay)
                         """

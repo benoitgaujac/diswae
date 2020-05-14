@@ -8,11 +8,11 @@
 #$ -l tmem=5G
 #$ -l h_rt=12:00:00
 
-#$ -t 1-4
+#$ -t 1-16
 
 #$ -N mwscelebA
 
 source /share/apps/examples/source_files/python/python-3.6.4.source
 source /share/apps/examples/source_files/cuda/cuda-9.0.source
 
-python3 run_array.py --num_it 1500000 --net_archi conv_locatello --idx $SGE_TASK_ID --save_data False --exp celebA --cost l2sq --model TCWAE_MWS --sp 0.001 --sigma_pen False --out_dir celebA_sp_0
+python3 run_array.py --num_it 300000 --net_archi conv_locatello --idx $SGE_TASK_ID --save_data False --exp celebA --cost l2sq --model TCWAE_MWS --sp 0.001 --sigma_pen False --out_dir celebA_sp_0
