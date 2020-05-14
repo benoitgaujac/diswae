@@ -151,7 +151,7 @@ def main():
             else:
                 lmba0 = [1, 2, 4 ,6, 8, 10]
                 lmba1 = [1, 2, 4 ,6, 8, 10]
-            opts['lr'] = 0.0004
+            opts['lr'] = 0.0002
         elif FLAGS.exp == 'dsprites':
             if opts['cost'] == 'xentropy':
                 lmba0 = [1, 10, 20, 50, 75, 100, 150]
