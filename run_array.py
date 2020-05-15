@@ -173,20 +173,19 @@ def main():
             lmba0 = [1, 2, 4, 6, 8, 10]
             lmba1 = [1, 2, 4, 6, 8, 10]
             opts['lr'] = 0.0004
-            opts['batch_size'] = 256            
+            opts['batch_size'] = 256
         elif FLAGS.exp == 'celebA':
             if opts['model'] == 'TCWAE_MWS':
-                lmba0 = [1, 2, 4, 6]
-                lmba1 = [6, 8, 10, 12]
-                opts['batch_size'] = 256
+                lmba0 = [1, 2, 4]
+                lmba1 = [8, 10, 12]
             elif opts['model'] == 'TCWAE_GAN':
-                lmba0 = [1, 2, 4, 6]
-                lmba1 = [1, 2, 4, 6]
-                opts['batch_size'] = 256
+                lmba0 = [2, 4, 6, 8, 10]
+                lmba1 = [1, 2, 4, 6, 8, 10]
             else:
                 lmba0 = [1, 2, 4, 6, 8, 10]
                 lmba1 = [1, 2, 4, 6, 8, 10]
             opts['lr'] = 0.0004
+            opts['batch_size'] = 256
         else:
             lmba0 = [1, 2, 4, 6, 8, 10]
             lmba1 = [1, 4, 8, 12, 16, 20]
