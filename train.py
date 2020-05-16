@@ -594,7 +594,7 @@ class Run(object):
 
                 # - Update learning rate if necessary and counter
                 # if False:
-                if opts['dataset']=='celebA':
+                if opts['dataset']=='celebA' or opts['dataset']=='3Dchairs':
                     if (counter+1) % decay_steps == 0:
                         decay = decay_rate ** (int(counter / decay_steps))
                         logging.error('Reduction in lr: %f\n' % decay)
