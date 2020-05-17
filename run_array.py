@@ -218,7 +218,7 @@ def main():
     elif FLAGS.exp == 'smallNORB':
         opts['lambda_pen_enc_sigma'] = .2
     elif FLAGS.exp == '3Dchairs':
-        opts['lambda_pen_enc_sigma'] = .1
+        opts['lambda_pen_enc_sigma'] = FLAGS.sp
     else:
         opts['lambda_pen_enc_sigma'] = 1.
 
