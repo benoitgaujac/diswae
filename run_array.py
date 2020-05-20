@@ -170,8 +170,15 @@ def main():
                 lmba0 = [.01, .05, .1, .5, 1]
                 lmba1 = [.05, .1, .5, 1, 5, 10]
         elif FLAGS.exp == '3Dchairs':
-            lmba0 = [1, 2, 4, 6, 8, 10]
-            lmba1 = [1, 2, 4, 6, 8, 10]
+            if opts['model'] == 'TCWAE_MWS':
+                lmba0 = [2, 4, 6, 8, 10]
+                lmba1 = [1, 2, 4, 6, 8]
+            elif opts['model'] == 'TCWAE_GAN':
+                lmba0 = [1, 2, 4, 6, 8, 10]
+                lmba1 = [1, 2, 4, 6, 8, 10]
+            else:
+                lmba0 = [1, 2, 4, 6, 8, 10]
+                lmba1 = [1, 2, 4, 6, 8, 10]
             opts['lr'] = 0.0004
             opts['batch_size'] = 256
         elif FLAGS.exp == 'celebA':
