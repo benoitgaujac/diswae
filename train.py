@@ -19,10 +19,10 @@ from datahandler import datashapes
 # Path to inception model and stats for training set
 sys.path.append('../TTUR')
 sys.path.append('../inception')
-import fid
-inception_path = '../inception'
-inception_model = os.path.join(inception_path, 'classify_image_graph_def.pb')
-layername = 'FID_Inception_Net/pool_3:0'
+# import fid
+# inception_path = '../inception'
+# inception_model = os.path.join(inception_path, 'classify_image_graph_def.pb')
+# layername = 'FID_Inception_Net/pool_3:0'
 
 
 import pdb
@@ -1027,12 +1027,12 @@ class Run(object):
 
         # - Set up
         im_shape = datashapes[opts['dataset']]
-        num_steps = 7
-        num_pics = 20
         if opts['dataset']=='celebA' or opts['dataset']=='3Dchairs':
             num_pics = 100
+            num_steps = 7
         else:
             num_pics = 20
+            num_steps = 10
         fixed_noise = sample_pz(opts, self.pz_params, num_pics)
 
 
