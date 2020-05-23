@@ -371,7 +371,7 @@ class Run(object):
         update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
         # discriminator opt if needed
         if self.opts['model']=='FactorVAE' or self.opts['model']=='TCWAE_GAN':
-            if opts['dataset']=='celebA':
+            if opts['dataset']=='celebA' or opts['dataset']=='3Dchairs':
                 discr_opt = self.discr_optimizer(0.00001)
             else:
                 discr_opt = self.discr_optimizer()
