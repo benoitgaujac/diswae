@@ -111,18 +111,21 @@ def main():
         if FLAGS.exp == 'celebA':
             beta = [1, 5, 10, 15, 20, 50]
         else:
-            beta = [1, 2, 4, 6, 8, 10, 20]
+            # beta = [1, 2, 4, 6, 8, 10, 20]
+            beta = [8, 8, 8, 8, 8]
         opts['obj_fn_coeffs'] = beta[FLAGS.idx-1]
     elif opts['model'] == 'FactorVAE':
         beta = [1,]
-        gamma = [1, 10, 20, 30, 40, 50, 100]
+        # gamma = [1, 10, 20, 30, 40, 50, 100]
+        gamma = [100, 100, 100, 100, 100]
         lmba = list(itertools.product(beta,gamma))
         opts['obj_fn_coeffs'] = list(lmba[FLAGS.idx-1])
     elif opts['model'] == 'WAE':
         if opts['cost'] == 'xentropy':
             # toy experiment with xent
             if FLAGS.exp == 'dsprites':
-                lmba = [1, 10, 20, 50, 100, 150, 200]
+                # lmba = [1, 10, 20, 50, 100, 150, 200]
+                lmba = [200, 200, 200, 200, 200]
             elif FLAGS.exp == 'smallNORB':
                 lmba = [1, 50, 100, 150, 200, 500, 1000]
             else:
@@ -154,8 +157,15 @@ def main():
             opts['lr'] = 0.0002
         elif FLAGS.exp == 'dsprites':
             if opts['cost'] == 'xentropy':
-                lmba0 = [1, 10, 20, 50, 75, 100, 150]
-                lmba1 = [1, 10, 20, 50, 75, 100, 150]
+                if opts['model'] == 'TCWAE_MWS':
+                    lmba0 = [50, 50,]
+                    lmba1 = [100, 100, 100]
+                elif opts['model'] == 'TCWAE_GAN':
+                    lmba0 = [100, 100,]
+                    lmba1 = [5, 5, 5]
+                else:
+                    lmba0 = [1, 10, 20, 50, 75, 100, 150]
+                    lmba1 = [1, 10, 20, 50, 75, 100, 150]
             elif opts['cost'] == 'l1':
                 lmba0 = [2, 4 ,6, 8, 10]
                 lmba1 = [2, 4 ,6, 8, 10]
@@ -183,8 +193,8 @@ def main():
             opts['batch_size'] = 256
         elif FLAGS.exp == 'celebA':
             if opts['model'] == 'TCWAE_MWS':
-                lmba0 = [4, 6, 8, 10, 15]
-                lmba1 = [1, 2, 4, 6]
+                lmba0 = [5, 10, 15, 20]
+                lmba1 = [10, 25, 50, 75, 100]
             elif opts['model'] == 'TCWAE_GAN':
                 lmba0 = [15, 20, 50]
                 lmba1 = [1, 2, 4, 6, 10]
@@ -266,7 +276,7 @@ def main():
 
     # Experiemnts set up
     opts['epoch_num'] = int(FLAGS.num_it / int(data.num_points/opts['batch_size']))
-    opts['print_every'] = int(opts['epoch_num'] / 5.) * int(data.num_points/opts['batch_size'])-1
+    opts['print_every'] = int(opts['epoch_num'] / 2.) * int(data.num_points/opts['batch_size'])-1
     opts['evaluate_every'] = int(opts['print_every'] / 2.) + 1
     opts['save_every'] = 1000000000
     if FLAGS.save_model=='True':
