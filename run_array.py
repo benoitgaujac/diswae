@@ -110,14 +110,23 @@ def main():
     elif opts['model'] == 'BetaTCVAE':
         if FLAGS.exp == 'celebA':
             beta = [1, 5, 10, 15, 20, 50]
-        else:
-            # beta = [1, 2, 4, 6, 8, 10, 20]
+        elif FLAGS.exp == 'dsprites':
             beta = [8, 8, 8, 8, 8]
+        elif FLAGS.exp == 'smallNORB':
+            beta = [4, 4, 4, 4, 4]
+        else:
+            beta = [1, 2, 4, 6, 8, 10, 20]
         opts['obj_fn_coeffs'] = beta[FLAGS.idx-1]
     elif opts['model'] == 'FactorVAE':
         beta = [1,]
-        # gamma = [1, 10, 20, 30, 40, 50, 100]
-        gamma = [100, 100, 100, 100, 100]
+        if FLAGS.exp == 'celebA':
+            gamma = [1, 5, 10, 15, 20, 50]
+        elif FLAGS.exp == 'dsprites':
+            gamma = [100, 100, 100, 100, 100]
+        elif FLAGS.exp == 'smallNORB':
+            gamma = [10, 10, 10, 10, 10]
+        else:
+            gamma = [1, 10, 20, 30, 40, 50, 100]
         lmba = list(itertools.product(beta,gamma))
         opts['obj_fn_coeffs'] = list(lmba[FLAGS.idx-1])
     elif opts['model'] == 'WAE':
@@ -127,7 +136,8 @@ def main():
                 # lmba = [1, 10, 20, 50, 100, 150, 200]
                 lmba = [200, 200, 200, 200, 200]
             elif FLAGS.exp == 'smallNORB':
-                lmba = [1, 50, 100, 150, 200, 500, 1000]
+                lmba = [100, 100, 100, 100, 100]
+                # lmba = [1, 50, 100, 150, 200, 500, 1000]
             else:
                 lmba = [1, 10, 20, 50, 100, 150, 200]
         else:
@@ -140,17 +150,38 @@ def main():
     elif opts['model'] == 'TCWAE_MWS' or opts['model'] == 'TCWAE_GAN':
         if FLAGS.exp == 'smallNORB':
             if opts['cost'] == 'xentropy':
-                lmba0 = [1, 5, 10, 20, 25, 50, 100]
-                lmba1 = [1, 5, 10, 20, 25, 50, 100]
+                if opts['model'] == 'TCWAE_MWS':
+                    lmba0 = [10, 10, 10]
+                    lmba1 = [25, 25]
+                elif opts['model'] == 'TCWAE_GAN':
+                    lmba0 = [25, 25, 25]
+                    lmba1 = [1, 1]
+                else:
+                    lmba0 = [1, 5, 10, 20, 25, 50, 100]
+                    lmba1 = [1, 5, 10, 20, 25, 50, 100]
             elif opts['cost'] == 'l1':
-                lmba0 = [1, 2, 4 ,6, 8, 10]
-                lmba1 = [1, 2, 4 ,6, 8, 10]
+                if opts['model'] == 'TCWAE_MWS':
+                    lmba0 = [2, 2, 2]
+                    lmba1 = [4, 4]
+                elif opts['model'] == 'TCWAE_GAN':
+                    lmba0 = [4, 4, 4]
+                    lmba1 = [1, 1]
+                else:
+                    lmba0 = [1, 2, 4 ,6, 8, 10]
+                    lmba1 = [1, 2, 4 ,6, 8, 10]
             elif opts['cost'] == 'l2':
                 lmba0 = [.1, .2, .4 ,.6, .8, 1.]
                 lmba1 = [.1, .2, .4 ,.6, .8, 1.]
             elif opts['cost'] == 'l2sq':
-                lmba0 = [1, 2, 4 ,6, 8, 10]
-                lmba1 = [1, 2, 4 ,6, 8, 10]
+                if opts['model'] == 'TCWAE_MWS':
+                    lmba0 = [4, 4, 4]
+                    lmba1 = [8, 8]
+                elif opts['model'] == 'TCWAE_GAN':
+                    lmba0 = [4, 4, 4]
+                    lmba1 = [1, 1]
+                else:
+                    lmba0 = [1, 2, 4 ,6, 8, 10]
+                    lmba1 = [1, 2, 4 ,6, 8, 10]
             else:
                 lmba0 = [1, 2, 4 ,6, 8, 10]
                 lmba1 = [1, 2, 4 ,6, 8, 10]
