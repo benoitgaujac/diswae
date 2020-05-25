@@ -17,12 +17,12 @@ import models
 from datahandler import datashapes
 
 # Path to inception model and stats for training set
-# sys.path.append('../TTUR')
-# sys.path.append('../inception')
+sys.path.append('../TTUR')
+sys.path.append('../inception')
 # import fid
-# inception_path = '../inception'
-# inception_model = os.path.join(inception_path, 'classify_image_graph_def.pb')
-# layername = 'FID_Inception_Net/pool_3:0'
+inception_path = '../inception'
+inception_model = os.path.join(inception_path, 'classify_image_graph_def.pb')
+layername = 'FID_Inception_Net/pool_3:0'
 
 
 import pdb
