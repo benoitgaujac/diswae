@@ -6,14 +6,14 @@
 
 #$ -l gpu=1
 #$ -l tmem=10G
-#$ -l h_rt=10:00:00
+#$ -l h_rt=15:00:00
 
-#$ -t 1-36
+#$ -t 1-15
 
-#$ -N ganTCWAE_chairs3d
+#$ -N ganchairs3d
 
 source /share/apps/examples/source_files/python/python-3.6.4.source
 source /share/apps/examples/source_files/cuda/cuda-9.0.source
 
 # python3 run.py --out_dir 3Dchairs_test  --exp 3Dchairs --enum 100 --lmba0 50 --lmba1 10
-python3 run_array.py --num_it 600000 --net_archi conv_locatello --idx $SGE_TASK_ID --save_data False --exp 3Dchairs --cost l2sq --out_dir 3Dchairs --sigma_pen False --model TCWAE_MWS
+python3 run_array.py --num_it 900000 --net_archi conv_locatello --idx $SGE_TASK_ID --save_data False --exp 3Dchairs --cost l2sq --out_dir 3Dchairs_3 --sigma_pen True --sp 0.05 --model TCWAE_GAN

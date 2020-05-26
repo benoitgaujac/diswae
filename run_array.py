@@ -212,11 +212,11 @@ def main():
                 lmba1 = [.05, .1, .5, 1, 5, 10]
         elif FLAGS.exp == '3Dchairs':
             if opts['model'] == 'TCWAE_MWS':
-                lmba0 = [2, 4, 6, 8, 10]
-                lmba1 = [1, 2, 4, 6, 8]
+                lmba0 = [2, 4, 6, 8]
+                lmba1 = [15, 20, 50]
             elif opts['model'] == 'TCWAE_GAN':
-                lmba0 = [1, 2, 4, 6, 8, 10]
-                lmba1 = [1, 2, 4, 6, 8, 10]
+                lmba0 = [15, 20, 50]
+                lmba1 = [1, 2, 4, 6, 8]
             else:
                 lmba0 = [1, 2, 4, 6, 8, 10]
                 lmba1 = [1, 2, 4, 6, 8, 10]
@@ -224,7 +224,7 @@ def main():
             opts['batch_size'] = 256
         elif FLAGS.exp == 'celebA':
             if opts['model'] == 'TCWAE_MWS':
-                lmba0 = [5, 10, 15, 20]
+                lmba0 = [10, 15, 20]
                 lmba1 = [10, 25, 50, 75, 100]
             elif opts['model'] == 'TCWAE_GAN':
                 lmba0 = [15, 20, 50]
