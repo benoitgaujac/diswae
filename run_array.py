@@ -94,7 +94,7 @@ def main():
         opts['fid'] = False
 
     # Opt set up
-    opts['lr'] = 0.0001
+    opts['lr'] = 0.0004
 
     # Model set up
     if FLAGS.exp == 'celebA':
@@ -185,7 +185,6 @@ def main():
             else:
                 lmba0 = [1, 2, 4 ,6, 8, 10]
                 lmba1 = [1, 2, 4 ,6, 8, 10]
-            opts['lr'] = 0.0002
         elif FLAGS.exp == 'dsprites':
             if opts['cost'] == 'xentropy':
                 if opts['model'] == 'TCWAE_MWS':
