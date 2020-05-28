@@ -1064,7 +1064,7 @@ class Run(object):
         # create latent linespacel
         if opts['dataset']=='celebA' or opts['dataset']=='3Dchairs':
             latent_transversal = linespace(opts, num_steps,  # shape: [nanchors, zdim, nsteps, zdim]
-                                    anchors=latents[24:24+5],
+                                    anchors=latents[23:24+5],
                                     std=enc_var)
         else:
             latent_transversal = linespace(opts, num_steps,  # shape: [nanchors, zdim, nsteps, zdim]

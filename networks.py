@@ -129,25 +129,16 @@ def decoder(opts, input, output_dim, scope=None, reuse=False,
     mean = tf.layers.flatten(mean)
     Sigma = tf.layers.flatten(Sigma)
 
-    # if opts['decoder'] == 'det':
-    #     x = mean
-    # elif opts['decoder'] == 'gauss':
-    #     px_params = tf.concat((mean, Sigma), axis=-1)
-    #     x = sample_gaussian(px_params, 'tensorflow')
-    # elif opts['decoder'] == 'bernoulli':
-    #     assert False, 'Bernoulli decoder not implemented yet.'
-    #     mean = tf.nn.sigmoid(mean)
-    #     # x = sample_bernoulli(mean)
-    # else:
-    #     assert False, 'Unknown decoder %s' % opts['decoder']
-
     if opts['model'] == 'TCWAE_MWS' or opts['model'] == 'TCWAE_GAN':
         if opts['input_normalize_sym']:
             x = tf.nn.tanh(mean)
         else:
             x = tf.nn.sigmoid(mean)
     else:
-        x = tf.nn.sigmoid(mean)        
+        x = tf.nn.sigmoid(mean)
+        if opts['input_normalize_sym']:
+            x = tf.nn.tanh(x)
+
     x = tf.reshape(x, [-1] + datashapes[opts['dataset']])
 
     return x, mean, Sigma
