@@ -46,9 +46,10 @@ def save_train(opts, data_train, data_test,
     if opts['input_normalize_sym']:
         data_train = data_train / 2. + 0.5
         data_test = data_test / 2. + 0.5
-        rec_train = rec_train / 2. + 0.5
-        rec_test = rec_test / 2. + 0.5
-        samples = samples / 2. + 0.5
+        if opts['model']=='TCWAE_MWS' and opts['model']=='TCWAE_GAN' and opts['model']=='WAE':
+            rec_train = rec_train / 2. + 0.5
+            rec_test = rec_test / 2. + 0.5
+            samples = samples / 2. + 0.5
 
     images = []
     ### Reconstruction plots
