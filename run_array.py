@@ -214,7 +214,7 @@ def main():
         elif FLAGS.exp == '3Dchairs':
             if opts['model'] == 'TCWAE_MWS':
                 lmba0 = [2, 4, 6, 8]
-                lmba1 = [15, 20, 50]
+                lmba1 = [1, 5, 10, 20]
             elif opts['model'] == 'TCWAE_GAN':
                 lmba0 = [15, 20, 50]
                 lmba1 = [1, 2, 4, 6, 8]
