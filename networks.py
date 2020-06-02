@@ -129,13 +129,10 @@ def decoder(opts, input, output_dim, scope=None, reuse=False,
     mean = tf.layers.flatten(mean)
     Sigma = tf.layers.flatten(Sigma)
 
-    if opts['model']=='TCWAE_MWS' or opts['model']=='TCWAE_GAN' or opts['model']=='WAE':
-        if opts['input_normalize_sym']:
-            x = tf.nn.tanh(mean)
-        else:
-            x = tf.nn.sigmoid(mean)
+    if opts['input_normalize_sym']:
+        x = tf.nn.tanh(mean)
     else:
-        x = tf.nn.sigmoid(mean)    
+        x = tf.nn.sigmoid(mean)
 
     x = tf.reshape(x, [-1] + datashapes[opts['dataset']])
 
