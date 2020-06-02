@@ -438,7 +438,7 @@ def save_test_smallnorb(opts, data, reconstructions, transversals, samples, exp_
 
     if opts['input_normalize_sym']:
         data = data / 2. + 0.5
-        if opts['model']!='TCWAE_MWS' and opts['model']!='TCWAE_GAN' and opts['model']!='WAE':
+        if opts['model']=='TCWAE_MWS' and opts['model']=='TCWAE_GAN' and opts['model']=='WAE':
             reconstructions = reconstructions / 2. + 0.5
             samples = samples / 2. + 0.5
             transversals = transversals / 2. + 0.5
