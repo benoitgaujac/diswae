@@ -103,7 +103,7 @@ def main():
         opts['zdim'] = 10
     opts['batch_size'] = 64
     opts['cost'] = FLAGS.cost #l2, l2sq, l2sq_norm, l1, xentropy
-    if opts['model']!='TCWAE_MWS' or opts['model']!='TCWAE_GAN' or opts['model']!='WAE':
+    if opts['model']!='TCWAE_MWS' and opts['model']!='TCWAE_GAN' and opts['model']!='WAE':
         opts['input_normalize_sym'] = False
     # Objective Function Coefficients
     if opts['model'] == 'BetaVAE':
@@ -216,8 +216,8 @@ def main():
                 lmba0 = [2, 4, 6, 8]
                 lmba1 = [1, 5, 10, 20]
             elif opts['model'] == 'TCWAE_GAN':
-                lmba0 = [15, 20, 50]
-                lmba1 = [1, 2, 4, 6, 8]
+                lmba0 = [5, 10, 15, 20]
+                lmba1 = [2, 4, 6, 8]
             else:
                 lmba0 = [1, 2, 4, 6, 8, 10]
                 lmba1 = [1, 2, 4, 6, 8, 10]
