@@ -199,7 +199,7 @@ config_3Dchairs['plot_num_cols'] = 10
 # Data set up
 config_3Dchairs['dataset'] = '3Dchairs'
 config_3Dchairs['3Dchairs_data_source_url'] = 'https://www.di.ens.fr/willow/research/seeing3Dchairs/data/'
-config_3Dchairs['input_normalize_sym'] = True
+config_3Dchairs['input_normalize_sym'] = False
 config_3Dchairs['true_gen_model'] = False #If synthetic data with true gen. model known: True, False
 config_3Dchairs['dataset_size'] = 86366
 # Experiment set up
