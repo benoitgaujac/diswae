@@ -213,8 +213,8 @@ def main():
                 lmba1 = [.05, .1, .5, 1, 5, 10]
         elif FLAGS.exp == '3Dchairs':
             if opts['model'] == 'TCWAE_MWS':
-                lmba0 = [2, 4, 6, 8]
-                lmba1 = [1, 5, 10, 20]
+                lmba0 = [1, 2, 4, 6]
+                lmba1 = [2, 4, 6, 8, 10]
             elif opts['model'] == 'TCWAE_GAN':
                 lmba0 = [5, 10, 15, 20]
                 lmba1 = [2, 4, 6, 8]
