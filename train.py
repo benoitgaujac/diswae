@@ -19,7 +19,7 @@ from datahandler import datashapes
 # Path to inception model and stats for training set
 sys.path.append('../TTUR')
 sys.path.append('../inception')
-# import fid
+import fid
 inception_path = '../inception'
 inception_model = os.path.join(inception_path, 'classify_image_graph_def.pb')
 layername = 'FID_Inception_Net/pool_3:0'
@@ -421,7 +421,7 @@ class Run(object):
 
         decay, counter = 1., 0
         # decay_steps, decay_rate = int(batches_num * opts['epoch_num'] / 5), 0.95
-        decay_steps, decay_rate = 100000, 0.95
+        decay_steps, decay_rate = 500000, 0.95
         wait, wait_lambda = 0, 0
         for epoch in range(opts['epoch_num']):
             # Saver
@@ -1062,10 +1062,18 @@ class Run(object):
         # - Latent transversals
         enc_var = np.ones(opts['zdim'])
         # create latent linespacel
-        if opts['dataset']=='celebA' or opts['dataset']=='3Dchairs':
+        if opts['dataset']=='celebA' :
+            idx = [0,20,26,40,49]
             latent_transversal = linespace(opts, num_steps,  # shape: [nanchors, zdim, nsteps, zdim]
-                                    anchors=latents[23:24+5],
+                                    anchors=latents[idx],
                                     std=enc_var)
+            # latent_transversal = latent_transversal[:,:,::-1]
+        elif opts['dataset']=='3Dchairs':
+            idx = [48,4,21,44,1]
+            latent_transversal = linespace(opts, num_steps,  # shape: [nanchors, zdim, nsteps, zdim]
+                                    anchors=latents[idx],
+                                    std=enc_var)
+            latent_transversal = latent_transversal[:,:,::-1]
         else:
             latent_transversal = linespace(opts, num_steps,  # shape: [nanchors, zdim, nsteps, zdim]
                                     anchors=latents[::2],

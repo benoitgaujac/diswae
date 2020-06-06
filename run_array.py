@@ -94,11 +94,11 @@ def main():
         opts['fid'] = False
 
     # Opt set up
-    opts['lr'] = 0.0004
+    opts['lr'] = 0.0001
 
     # Model set up
     if FLAGS.exp == 'celebA':
-        opts['zdim'] = 20
+        opts['zdim'] = 32
     else:
         opts['zdim'] = 10
     opts['batch_size'] = 64
@@ -213,28 +213,28 @@ def main():
                 lmba1 = [.05, .1, .5, 1, 5, 10]
         elif FLAGS.exp == '3Dchairs':
             if opts['model'] == 'TCWAE_MWS':
-                lmba0 = [1, 2, 4, 6]
+                lmba0 = [1, 2, 4, 6, 10, 15]
                 lmba1 = [2, 4, 6, 8, 10]
             elif opts['model'] == 'TCWAE_GAN':
                 lmba0 = [5, 10, 15, 20]
                 lmba1 = [2, 4, 6, 8]
             else:
-                lmba0 = [1, 2, 4, 6, 8, 10]
-                lmba1 = [1, 2, 4, 6, 8, 10]
+                lmba0 = [2, 4, 6, 8, 10]
+                lmba1 = [1, 2, 4, 6]
             opts['lr'] = 0.0004
             opts['batch_size'] = 256
         elif FLAGS.exp == 'celebA':
             if opts['model'] == 'TCWAE_MWS':
-                lmba0 = [1, 2, 4, 6]
-                lmba1 = [1, 2, 4, 6, 8, 10]
+                lmba0 = [1, 2, 5, 10, 15, 20]
+                lmba1 = [1, 2, 5, 10, 15, 20]
             elif opts['model'] == 'TCWAE_GAN':
-                lmba0 = [15, 20, 50]
-                lmba1 = [1, 2, 4, 6, 10]
+                lmba0 = [1, 2, 5, 10, 15, 20]
+                lmba1 = [1, 2, 5, 10, 15, 20]
             else:
                 lmba0 = [1, 2, 4, 6, 8, 10]
                 lmba1 = [1, 2, 4, 6, 8, 10]
-            opts['lr'] = 0.0004
-            opts['batch_size'] = 256
+            opts['lr'] = 0.0001
+            opts['batch_size'] = 128
         else:
             lmba0 = [1, 2, 4, 6, 8, 10]
             lmba1 = [1, 4, 8, 12, 16, 20]
@@ -308,7 +308,7 @@ def main():
 
     # Experiemnts set up
     opts['epoch_num'] = int(FLAGS.num_it / int(data.num_points/opts['batch_size']))
-    opts['print_every'] = int(opts['epoch_num'] / 2.) * int(data.num_points/opts['batch_size'])-1
+    opts['print_every'] = int(opts['epoch_num'] / 5.) * int(data.num_points/opts['batch_size'])-1
     opts['evaluate_every'] = int(opts['print_every'] / 2.) + 1
     opts['save_every'] = 1000000000
     if FLAGS.save_model=='True':
