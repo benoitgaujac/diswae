@@ -111,7 +111,7 @@ def main():
         opts['obj_fn_coeffs'] = beta[FLAGS.idx-1]
     elif opts['model'] == 'BetaTCVAE':
         if FLAGS.exp == 'celebA':
-            beta = [1, 5, 10, 15, 20]
+            beta = [1, 5, 10, 15, 20, 50]
         elif FLAGS.exp == 'dsprites':
             beta = [8, 8, 8, 8, 8]
         elif FLAGS.exp == 'smallNORB':
@@ -122,7 +122,7 @@ def main():
     elif opts['model'] == 'FactorVAE':
         beta = [1,]
         if FLAGS.exp == 'celebA':
-            gamma = [1, 10, 15, 20, 50]
+            gamma = [1, 5, 10, 15, 20, 50]
         elif FLAGS.exp == 'dsprites':
             gamma = [100, 100, 100, 100, 100]
         elif FLAGS.exp == 'smallNORB':
