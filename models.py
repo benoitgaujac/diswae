@@ -103,7 +103,7 @@ class BetaVAE(Model):
                                                                       dropout_rate=dropout_rate)
 
         loss_reconstruct = self.reconstruction_loss(inputs, dec_mean)
-        kl = self.kl_penalty(self.pz_mean, self.pz_sigma, enc_mean, tf.log(enc_Sigma))
+        kl = self.kl_penalty(self.pz_mean, self.pz_sigma, enc_mean, enc_Sigma)
         matching_penalty = beta * kl
         divergences = matching_penalty
         objective = loss_reconstruct + matching_penalty
@@ -155,7 +155,7 @@ class BetaTCVAE(BetaVAE):
                                                                       dropout_rate=dropout_rate)
 
         loss_reconstruct = self.reconstruction_loss(inputs, dec_mean)
-        kl = self.kl_penalty(self.pz_mean, self.pz_sigma, enc_mean, tf.log(enc_Sigma))
+        kl = self.kl_penalty(self.pz_mean, self.pz_sigma, enc_mean, enc_Sigma)
         tc = self.total_correlation(enc_z, enc_mean, tf.log(enc_Sigma))
 
         matching_penalty = (beta - 1.) * tc + kl
@@ -196,7 +196,7 @@ class FactorVAE(BetaVAE):
 
         # --- Latent regularization
         # - KL reg
-        kl = self.kl_penalty(self.pz_mean, self.pz_sigma, enc_mean, tf.log(enc_Sigma))
+        kl = self.kl_penalty(self.pz_mean, self.pz_sigma, enc_mean, enc_Sigma)
         # - shuffling latent codes
         enc_z_shuffle = []
         seed = 456
