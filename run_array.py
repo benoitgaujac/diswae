@@ -99,9 +99,16 @@ def main():
     # Model set up
     if FLAGS.exp == 'celebA':
         opts['zdim'] = 32
+        opts['batch_size'] = 128
+        opts['lr'] = 0.0001
+    elif FLAGS.exp == '3Dchairs':
+        opts['zdim'] = 10
+        opts['batch_size'] = 128
+        opts['lr'] = 0.0001
     else:
         opts['zdim'] = 10
-    opts['batch_size'] = 128
+        opts['batch_size'] = 64
+        opts['lr'] = 0.0004
     opts['cost'] = FLAGS.cost #l2, l2sq, l2sq_norm, l1, xentropy
     if opts['model']!='TCWAE_MWS' and opts['model']!='TCWAE_GAN' and opts['model']!='WAE':
         opts['input_normalize_sym'] = False
@@ -112,150 +119,47 @@ def main():
     elif opts['model'] == 'BetaTCVAE':
         if FLAGS.exp == 'celebA':
             beta = [1, 5, 10, 15, 20, 50]
-        elif FLAGS.exp == 'dsprites':
-            beta = [8, 8, 8, 8, 8]
-        elif FLAGS.exp == 'smallNORB':
-            beta = [4, 4, 4, 4, 4]
         else:
             beta = [1, 2, 4, 6, 8, 10, 20]
         opts['obj_fn_coeffs'] = beta[FLAGS.idx-1]
     elif opts['model'] == 'FactorVAE':
-        beta = [1,]
         if FLAGS.exp == 'celebA':
             gamma = [1, 5, 10, 15, 20, 50]
-        elif FLAGS.exp == 'dsprites':
-            gamma = [100, 100, 100, 100, 100]
-        elif FLAGS.exp == 'smallNORB':
-            gamma = [10, 10, 10, 10, 10]
         else:
             gamma = [1, 10, 20, 30, 40, 50, 100]
-        lmba = list(itertools.product(beta,gamma))
-        opts['obj_fn_coeffs'] = list(lmba[FLAGS.idx-1])
+        opts['obj_fn_coeffs'] = gamma[FLAGS.idx-1]
     elif opts['model'] == 'WAE':
         if opts['cost'] == 'xentropy':
             # toy experiment with xent
             if FLAGS.exp == 'dsprites':
-                # lmba = [1, 10, 20, 50, 100, 150, 200]
-                lmba = [200, 200, 200, 200, 200]
+                lmba = [1, 10, 20, 50, 100, 150, 200]
             elif FLAGS.exp == 'smallNORB':
-                lmba = [100, 100, 100, 100, 100]
-                # lmba = [1, 50, 100, 150, 200, 500, 1000]
+                lmba = [1, 50, 100, 150, 200, 500, 1000]
             else:
                 lmba = [1, 10, 20, 50, 100, 150, 200]
         else:
-            # real word experiment with l2^2
-            if FLAGS.exp == 'smallNORB':
-                lmba = [1, 10, 20, 50, 100, 150, 200]
-            else:
-                lmba = [1, 10, 20, 50, 100, 150, 200]
+            lmba = [1, 10, 20, 50, 100, 150, 200]
         opts['obj_fn_coeffs'] = lmba[FLAGS.idx-1]
     elif opts['model'] == 'TCWAE_MWS' or opts['model'] == 'TCWAE_GAN':
         if FLAGS.exp == 'smallNORB':
             if opts['cost'] == 'xentropy':
-                if opts['model'] == 'TCWAE_MWS':
-                    lmba0 = [10, 10, 10]
-                    lmba1 = [25, 25]
-                elif opts['model'] == 'TCWAE_GAN':
-                    lmba0 = [25, 25, 25]
-                    lmba1 = [1, 1]
-                else:
-                    lmba0 = [1, 5, 10, 20, 25, 50, 100]
-                    lmba1 = [1, 5, 10, 20, 25, 50, 100]
-            elif opts['cost'] == 'l1':
-                if opts['model'] == 'TCWAE_MWS':
-                    lmba0 = [2, 2, 2]
-                    lmba1 = [4, 4]
-                elif opts['model'] == 'TCWAE_GAN':
-                    lmba0 = [4, 4, 4]
-                    lmba1 = [1, 1]
-                else:
-                    lmba0 = [1, 2, 4 ,6, 8, 10]
-                    lmba1 = [1, 2, 4 ,6, 8, 10]
-            elif opts['cost'] == 'l2':
-                lmba0 = [.1, .2, .4 ,.6, .8, 1.]
-                lmba1 = [.1, .2, .4 ,.6, .8, 1.]
-            elif opts['cost'] == 'l2sq':
-                if opts['model'] == 'TCWAE_MWS':
-                    lmba0 = [4, 4, 4]
-                    lmba1 = [8, 8]
-                elif opts['model'] == 'TCWAE_GAN':
-                    lmba0 = [4, 4, 4]
-                    lmba1 = [1, 1]
-                else:
-                    lmba0 = [1, 2, 4 ,6, 8, 10]
-                    lmba1 = [1, 2, 4 ,6, 8, 10]
+                lmba0 = [1, 5, 10, 25, 50, 100]
+                lmba1 = [1, 5, 10, 25, 50, 100]
             else:
                 lmba0 = [1, 2, 4 ,6, 8, 10]
                 lmba1 = [1, 2, 4 ,6, 8, 10]
         elif FLAGS.exp == 'dsprites':
-            if opts['cost'] == 'xentropy':
-                if opts['model'] == 'TCWAE_MWS':
-                    lmba0 = [50, 50,]
-                    lmba1 = [100, 100, 100]
-                elif opts['model'] == 'TCWAE_GAN':
-                    lmba0 = [100, 100,]
-                    lmba1 = [5, 5, 5]
-                else:
-                    lmba0 = [1, 10, 20, 50, 75, 100, 150]
-                    lmba1 = [1, 10, 20, 50, 75, 100, 150]
-            elif opts['cost'] == 'l1':
-                lmba0 = [2, 4 ,6, 8, 10]
-                lmba1 = [2, 4 ,6, 8, 10]
-            elif opts['cost'] == 'l2':
-                lmba0 = [0.0001, 0.001, .01, .1]
-                lmba1 = [0.0001, 0.001, .01, .1]
-                opts['lr'] = 0.00001
-            elif opts['cost'] == 'l2sq':
-                lmba0 = [.1, .5, 1, 2, 4, 6]
-                lmba1 = [.1, .5, 1, 2, 4, 6]
-            else:
-                lmba0 = [.01, .05, .1, .5, 1]
-                lmba1 = [.05, .1, .5, 1, 5, 10]
+            lmba0 = [1, 5, 10, 50, 100, 150]
+            lmba0 = [1, 5, 10, 50, 100, 150]
         elif FLAGS.exp == '3Dchairs':
-            if opts['model'] == 'TCWAE_MWS':
-                lmba0 = [1, 2, 4, 6, 10, 15]
-                lmba1 = [2, 4, 6, 8, 10]
-            elif opts['model'] == 'TCWAE_GAN':
-                lmba0 = [5, 10, 15, 20]
-                lmba1 = [2, 4, 6, 8]
-            else:
-                lmba0 = [2, 4, 6, 8, 10]
-                lmba1 = [1, 2, 4, 6]
-            opts['lr'] = 0.0004
-            opts['batch_size'] = 256
+            lmba0 = [1, 2, 5, 10, 15, 20]
+            lmba0 = [1, 2, 5, 10, 15, 20]
         elif FLAGS.exp == 'celebA':
-            if opts['model'] == 'TCWAE_MWS':
-                lmba0 = [1, 2, 5, 10, 15, 20]
-                lmba1 = [1, 2, 5, 10, 15, 20]
-            elif opts['model'] == 'TCWAE_GAN':
-                lmba0 = [1, 2, 5, 10, 15, 20]
-                lmba1 = [1, 2, 5, 10, 15, 20]
-            else:
-                lmba0 = [1, 2, 4, 6, 8, 10]
-                lmba1 = [1, 2, 4, 6, 8, 10]
-            opts['lr'] = 0.0001
-            opts['batch_size'] = 128
+            lmba0 = [1, 2, 5, 10, 15, 20]
+            lmba1 = [1, 2, 5, 10, 15, 20]
         else:
             lmba0 = [1, 2, 4, 6, 8, 10]
-            lmba1 = [1, 4, 8, 12, 16, 20]
-            opts['batch_size'] = 256
-            opts['lr'] = 0.0004
-        lmba = list(itertools.product(lmba0,lmba1))
-        opts['obj_fn_coeffs'] = list(lmba[FLAGS.idx-1])
-    elif opts['model'] == 'disWAE':
-        # Penalty
-        if FLAGS.exp == 'dsprites':
-            lmba0 = [1, 50, 100, 200, 300, 400, 600, 800, 900, 1000]
-            lmba1 = [1, 5, 10, 20, 40, 100, 200, 400, 600, 1000]
-        elif FLAGS.exp == 'smallNORB':
-            lmba0 = [1, 5, 10, 20, 50, 75, 100, 250, 500, 1000]
-            lmba1 = [1, 10, 50, 75, 100, 150, 200, 400, 600, 1000]
-        elif FLAGS.exp == '3dshapes':
-            lmba0 = [1, 50, 100, 150, 250, 500, 750, 1000, 1500, 2000]
-            lmba1 = [1, 10, 20, 50, 100, 250, 500, 750, 1000, 1500]
-        else :
-            lmba0 = [1, 10, 50, 100, 250, 500, 750, 1000, 1500]
-            lmba1 = [1, 10, 50, 100, 250, 500, 750, 1000, 1500]
+            lmba1 = [1, 2, 4, 6, 8, 10]
         lmba = list(itertools.product(lmba0,lmba1))
         opts['obj_fn_coeffs'] = list(lmba[FLAGS.idx-1])
     else:
@@ -279,7 +183,7 @@ def main():
         opts['out_dir'] = FLAGS.out_dir
     if FLAGS.exp_dir:
         opts['exp_dir'] = FLAGS.exp_dir
-    if opts['model'] == 'FactorVAE' or opts['model'] == 'disWAE' or opts['model'] == 'TCWAE_MWS' or opts['model'] == 'TCWAE_GAN':
+    if opts['model'] == 'disWAE' or opts['model'] == 'TCWAE_MWS' or opts['model'] == 'TCWAE_GAN':
         exp_dir = os.path.join(opts['out_dir'],
                                opts['model'],
                                '{}_{}_{}_{:%Y_%m_%d_%H_%M}'.format(

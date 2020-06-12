@@ -186,7 +186,7 @@ class FactorVAE(BetaVAE):
 
     def loss(self, inputs, samples, loss_coeffs, is_training, dropout_rate):
 
-        (beta, gamma) = loss_coeffs
+        gamma = loss_coeffs
 
         # --- Encoding and reconstructing
         enc_z, enc_mean, enc_Sigma, recon_x, dec_mean, _ = self.forward_pass(inputs=inputs,
@@ -219,8 +219,8 @@ class FactorVAE(BetaVAE):
         self.discr_loss = tf.add(
                             0.5 * tf.reduce_mean(tf.log(probs_z[:, 0])),
                             0.5 * tf.reduce_mean(tf.log(probs_z_shuffle[:, 1])))
-        matching_penalty = beta*kl + gamma*tc
-        divergences = (beta*kl, gamma*tc)
+        matching_penalty = kl + gamma*tc
+        divergences = (kl, gamma*tc)
 
         # -- Obj
         objective = loss_reconstruct + matching_penalty

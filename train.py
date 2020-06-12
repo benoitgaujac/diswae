@@ -59,7 +59,7 @@ class Run(object):
             self.obj_fn_coeffs = self.beta
         elif opts['model'] == 'FactorVAE':
             self.model = models.FactorVAE(opts)
-            self.obj_fn_coeffs = (self.lmbd1, self.lmbd2)
+            self.obj_fn_coeffs = self.beta
         elif opts['model'] == 'WAE':
             self.model = models.WAE(opts)
             self.obj_fn_coeffs = self.lmbd
@@ -606,13 +606,13 @@ class Run(object):
                                                     Divergences_test[-1][1])
                         logging.error(debug_str)
                     elif opts['model'] == 'FactorVAE':
-                        debug_str = 'REC=%.3f, TEST REC=%.3f, b*KL=%10.3e, TEST b*KL=%10.3e, g*TC=%10.3e, TEST g*TC=%10.3e, \n '  % (
+                        debug_str = 'REC=%.3f, TEST REC=%.3f, g*TC=%10.3e, TEST g*TC=%10.3e, b*KL=%10.3e, TEST KL=%10.3e, \n '  % (
                                                     Loss_rec[-1],
                                                     Loss_rec_test[-1],
-                                                    Divergences[-1][0],
-                                                    Divergences_test[-1][0],
                                                     Divergences[-1][1],
-                                                    Divergences_test[-1][1])
+                                                    Divergences_test[-1][1],
+                                                    Divergences[-1][0],
+                                                    Divergences_test[-1][0])
                         logging.error(debug_str)
                     elif opts['model'] == 'WAE':
                         debug_str = 'REC=%.3f, TEST REC=%.3f, l*MMD=%10.3e, l*TEST MMD=%10.3e \n ' % (
@@ -1063,7 +1063,7 @@ class Run(object):
         enc_var = np.ones(opts['zdim'])
         # create latent linespacel
         if opts['dataset']=='celebA' :
-            idx = [0,20,26,40,49]
+            idx = [0,3,20,26,40,49]
             latent_transversal = linespace(opts, num_steps,  # shape: [nanchors, zdim, nsteps, zdim]
                                     anchors=latents[idx],
                                     std=enc_var)
