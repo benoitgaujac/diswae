@@ -123,7 +123,7 @@ class Run(object):
         self.is_training = tf.placeholder(tf.bool, name='is_training_ph')
         self.dropout_rate = tf.placeholder(tf.float32, name='dropout_rate_ph')
         self.batch_size = tf.placeholder(tf.int32, name='batch_size_ph')
-        if self.opts['model']=='BetaVAE' or self.opts['model'] == 'BetaTCVAE':
+        if self.opts['model']=='BetaVAE' or self.opts['model'] == 'BetaTCVAE' or self.opts['model'] == 'FactorVAE':
             self.beta = tf.placeholder(tf.float32, name='beta_ph')
         elif self.opts['model']=='WAE':
             self.lmbd = tf.placeholder(tf.float32, name='lambda_ph')
