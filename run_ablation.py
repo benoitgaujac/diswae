@@ -75,11 +75,9 @@ def main():
     # Model set up
     opts['zdim'] = 10
     opts['batch_size'] = 64
-    if opts['model']=='TCWAE_MWS':
-        opts['batch_size'] = 512
     opts['cost'] = 'xentropy'
     # Objective Function Coefficients
-    lmba = [1, 5, 10, 20, 50, 75, 100, 150]
+    lmba = [1, 2, 5, 10, 15, 20, 25, 50, 100, 150]
     opts['obj_fn_coeffs'] = lmba[FLAGS.idx-1]
     if opts['model']!='WAE':
         lmba = list(zip(lmba,lmba))
