@@ -18,6 +18,9 @@ parser.add_argument("--model", default='TCWAE_MWS',
                     help='model to train [WAE/BetaVAE/...]')
 parser.add_argument("--mode", default='train',
                     help='mode to run [train/vizu/fid/test]')
+parser.add_argument("--exp", default='dsprites',
+                    help='dataset [mnist/cifar10/].'\
+                    ' celebA/dsprites Not implemented yet')
 parser.add_argument("--data_dir", type=str, default='../data',
                     help='directory in which data is stored')
 parser.add_argument("--out_dir", type=str, default='code_outputs',
@@ -28,6 +31,8 @@ parser.add_argument("--num_it", type=int, default=300000,
                     help='iteration number')
 parser.add_argument("--idx", type=int, default=0,
                     help='idx latent reg weight setup')
+parser.add_argument("--cost", default='xentropy',
+                    help='ground cost [l2, l2sq, l2sq_norm, l1, xentropy]')
 parser.add_argument("--save_model", default='True',
                     help='save final model weights [True/False]')
 parser.add_argument("--save_data", default='True',
@@ -54,7 +59,12 @@ net_configs = {'mlp': mlp_config, 'conv_locatello': conv_config}
 def main():
 
     # Select dataset to use
-    opts = configs.config_dsprites
+    if FLAGS.exp == 'dsprites':
+        opts = configs.config_dsprites
+    elif FLAGS.exp == 'smallNORB':
+        opts = configs.config_smallNORB
+    else:
+        assert False, 'Unvalid experiment dataset for ablation'
 
     # Select training method
     if FLAGS.model:
@@ -63,28 +73,32 @@ def main():
     # Data directory
     opts['data_dir'] = FLAGS.data_dir
 
-    # Mode
-    if FLAGS.mode=='fid':
-        opts['fid'] = True
-    else:
-        opts['fid'] = False
-
     # Opt set up
     opts['lr'] = 0.0004
 
     # Model set up
     opts['zdim'] = 10
-    opts['batch_size'] = 64
-    opts['cost'] = 'xentropy'
+    opts['batch_size'] = 128
+    opts['cost'] = FLAGS.cost
+
     # Objective Function Coefficients
-    lmba = [1, 2, 5, 10, 15, 20, 25, 50, 100, 150]
-    opts['obj_fn_coeffs'] = lmba[FLAGS.idx-1]
-    if opts['model']!='WAE':
+    if opts['cost'] == 'xentropy':
+        # toy experiment with xent
+        if FLAGS.exp == 'dsprites':
+            lmba = [1, 5, 10, 15, 25, 50, 75, 100, 150, 200]
+        else:
+            lmba = [1, 2, 5, 10, 15, 25, 50, 75, 100, 200]
+    else:
+        if FLAGS.exp == 'dsprites':
+            assert False, 'No ablation for dsprites without xent cost'
+        else FLAGS.exp == 'smallNORB':
+            lmba = [1, 2, 4 ,6, 8, 10, 15, 20, 30, 50]
+    if opts['model']=='WAE':
+        opts['obj_fn_coeffs'] = lmba[FLAGS.idx-1]
+    else:
         lmba = list(zip(lmba,lmba))
         opts['obj_fn_coeffs'] = list(lmba[FLAGS.idx-1])
-    # Penalty Sigma_q
-    opts['pen_enc_sigma'] = True
-    opts['lambda_pen_enc_sigma'] = 1.
+
     # NN set up
     opts['network'] = net_configs['conv_locatello']
 
@@ -122,7 +136,7 @@ def main():
 
     # Experiemnts set up
     opts['epoch_num'] = int(FLAGS.num_it / int(data.num_points/opts['batch_size']))
-    opts['print_every'] = int(opts['epoch_num'] / 2.) * int(data.num_points/opts['batch_size'])-1
+    opts['print_every'] = int(opts['epoch_num'] / 5.) * int(data.num_points/opts['batch_size'])-1
     opts['evaluate_every'] = int(opts['print_every'] / 2.) + 1
     opts['save_every'] = 1000000000
     if FLAGS.save_model=='True':

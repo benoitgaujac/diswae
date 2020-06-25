@@ -8,12 +8,12 @@
 #$ -l tmem=4G
 #$ -l h_rt=10:00:00
 
-#$ -t 1-5
+#$ -t 1-10
 
-#$ -N ganxentsmallnorb
+#$ -N mwssmallnorb
 
 source /share/apps/examples/source_files/python/python-3.6.4.source
 source /share/apps/examples/source_files/cuda/cuda-9.0.source
 
-# python3 run.py --out_dir dsprites  --exp dsprites --enum 100 --lmba0 1 --lmba1 1
-python3 run_array.py --num_it 600000 --net_archi conv_locatello --idx $SGE_TASK_ID --exp smallNORB --save_model False --out_dir smallNORB_xent_testing --cost xentropy --sigma_pen True --model TCWAE_GAN
+#python3 run_array.py --num_it 600000 --net_archi conv_locatello --idx $SGE_TASK_ID --exp smallNORB --save_model False --out_dir smallNORB_xent_v3 --cost xentropy --sigma_pen False --model TCWAE_MWS
+python3 run_ablation.py --num_it 300000 --idx $SGE_TASK_ID --exp smallNORB --save_model False --cost l2sq --out_dir smallNORB_ablation_l2sq --model TCWAE_MWS
