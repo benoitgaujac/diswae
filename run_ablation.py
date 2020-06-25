@@ -91,7 +91,7 @@ def main():
     else:
         if FLAGS.exp == 'dsprites':
             assert False, 'No ablation for dsprites without xent cost'
-        else FLAGS.exp == 'smallNORB':
+        else:
             lmba = [1, 2, 4 ,6, 8, 10, 15, 20, 30, 50]
     if opts['model']=='WAE':
         opts['obj_fn_coeffs'] = lmba[FLAGS.idx-1]
