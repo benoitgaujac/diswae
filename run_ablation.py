@@ -80,7 +80,8 @@ def main():
     opts['zdim'] = 10
     opts['batch_size'] = 128
     opts['cost'] = FLAGS.cost
-
+    opts['pen_enc_sigma'] = False
+    
     # Objective Function Coefficients
     if opts['cost'] == 'xentropy':
         # toy experiment with xent
