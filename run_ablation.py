@@ -81,19 +81,19 @@ def main():
     opts['batch_size'] = 128
     opts['cost'] = FLAGS.cost
     opts['pen_enc_sigma'] = False
-    
+
     # Objective Function Coefficients
     if opts['cost'] == 'xentropy':
         # toy experiment with xent
         if FLAGS.exp == 'dsprites':
-            lmba = [1, 5, 10, 15, 25, 50, 75, 100, 150, 200]
+            lmba = [1, 5, 10, 15, 25, 50, 75, 100, 150, 200, 250, 500]
         else:
             lmba = [1, 2, 5, 10, 15, 25, 50, 75, 100, 200]
     else:
         if FLAGS.exp == 'dsprites':
             assert False, 'No ablation for dsprites without xent cost'
         else:
-            lmba = [1, 2, 4 ,6, 8, 10, 15, 20, 30, 50]
+            lmba = [1, 2, 4 ,6, 8, 10, 15, 20, 30, 50, 75, 100]
     if opts['model']=='WAE':
         opts['obj_fn_coeffs'] = lmba[FLAGS.idx-1]
     else:
