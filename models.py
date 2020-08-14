@@ -69,6 +69,11 @@ class Model(object):
       log_pz_l = - tf.square(z) / 2.
       return tf.reduce_mean(log_qz_l - log_pz_l, axis=0)
 
+    def MSE(self, inputs, reconstructions):
+        # compute MSE between inputs and reconstruction
+        square_dist = tf.reduce_sum(tf.square(inputs - reconstructions),axis=[1,2,3])
+        return tf.reduce_mean(square_dist)
+
 
 class BetaVAE(Model):
 

@@ -18,6 +18,7 @@ from six.moves import cPickle
 import urllib.request
 import requests
 from scipy.io import loadmat
+from sklearn.feature_extraction import image
 import struct
 from tqdm import tqdm
 from PIL import Image
@@ -31,6 +32,8 @@ import pdb
 
 datashapes = {}
 datashapes['dsprites'] = [64, 64, 1]
+datashapes['noisydsprites'] = [64, 64, 3]
+datashapes['screamdsprites'] = [64, 64, 3]
 datashapes['3dshapes'] = [64, 64, 3]
 datashapes['smallNORB'] = [64, 64, 1]
 datashapes['3Dchairs'] = [64, 64, 3]
@@ -38,6 +41,7 @@ datashapes['celebA'] = [64, 64, 3]
 datashapes['mnist'] = [28, 28, 1]
 datashapes['svhn'] = [32, 32, 3]
 
+SCREAM_PATH = '../data/dsprites/scream.jpg'
 
 def _data_dir(opts):
     data_path = maybe_download(opts)
@@ -47,10 +51,13 @@ def maybe_download(opts):
     """Download the data from url, unless it's already here."""
     if not tf.gfile.Exists(opts['data_dir']):
         tf.gfile.MakeDirs(opts['data_dir'])
-    data_path = os.path.join(opts['data_dir'], opts['dataset'])
+    if opts['dataset']=='noisydsprites' or opts['dataset']=='screamdsprites':
+        data_path = os.path.join(opts['data_dir'], opts['dataset'][-8:])
+    else:
+        data_path = os.path.join(opts['data_dir'], opts['dataset'])
     if not tf.gfile.Exists(data_path):
         tf.gfile.MakeDirs(data_path)
-    if opts['dataset']=='dsprites':
+    if opts['dataset'][-8:]=='dsprites':
         filename = 'dsprites_ndarray_co1sh3sc6or40x32y32_64x64.npz?raw=true'
         file_path = os.path.join(data_path, filename[:-9])
         if not tf.gfile.Exists(file_path):
@@ -202,16 +209,25 @@ class Data(object):
                             in self.X.loaded
         self.X.loaded       list containing already loaded pictures
     """
-    def __init__(self, opts, X, paths=None, dict_loaded=None, loaded=None):
+    def __init__(self, opts, X, type='data', paths=None, dict_loaded=None, loaded=None):
         """
         X is either np.ndarray or paths
         """
         data_dir = _data_dir(opts)
+        self.opts = opts
         self.X = None
+        self.type = type
         self.normalize = opts['input_normalize_sym']
         self.paths = None
         self.dict_loaded = None
         self.loaded = None
+        # Load scream for screamdSprites
+        if opts['dataset']=='screamdsprites':
+            with utils.o_gfile(SCREAM_PATH, 'rb') as f:
+                scream = Image.open(f)
+                scream.thumbnail((350, 274, 3))
+                self.scream = np.array(scream) * 1. / 255.
+        
         if isinstance(X, np.ndarray):
             self.X = X
             self.shape = X.shape
@@ -240,7 +256,25 @@ class Data(object):
 
     def __getitem__(self, key):
         if isinstance(self.X, np.ndarray):
-            return self.X[key]
+            obs = self.X[key]
+            # transforming data if needed
+            if self.opts['dataset'] == 'noisydsprites' and self.type=='data':
+                obs = np.repeat(obs, 3, axis=-1)
+                color = np.random.uniform(0, 1, obs.shape[:-1] + (3,))
+                obs = np.minimum(obs + color, 1.)
+            elif self.opts['dataset'] == 'screamdsprites'and self.type=='data':
+                obs = np.repeat(obs, 3, axis=-1)
+                if len(obs.shape)==3:
+                    npatch = 1
+                    patches = image.extract_patches_2d(self.scream, (64, 64), npatch)[0]
+                else:
+                    npatch = obs.shape[0]
+                    patches = image.extract_patches_2d(self.scream, (64, 64), npatch)
+                background = (patches + np.random.uniform(0, 1, size=patches.shape)) / 2
+                mask = (obs == 1)
+                background[mask] = 1 - background[mask]
+                obs = background
+            return obs
         else:
             # Our dataset was too large to fit in the memory
             if isinstance(key, int):
@@ -334,7 +368,7 @@ class DataHandler(object):
         """Load a dataset and fill all the necessary variables.
 
         """
-        if opts['dataset'] == 'dsprites':
+        if opts['dataset'][-8:] == 'dsprites':
             self._load_dsprites(opts)
         elif opts['dataset'] == '3dshapes':
             self._load_3dshapes(opts)
@@ -384,14 +418,14 @@ class DataHandler(object):
         self.data_order_idx = np.argsort(shuffling_mask)
         # training set
         self.data = Data(opts, X[shuffling_mask[:-10000]])
-        self.labels = Data(opts, Y[shuffling_mask[:-10000]])
+        self.labels = Data(opts, Y[shuffling_mask[:-10000]], type='label')
         # testing set
         # test_size = 10000 - opts['plot_num_pics']
         self.test_data = Data(opts, X[shuffling_mask[-10000:-opts['plot_num_pics']]])
-        self.test_labels = Data(opts, Y[shuffling_mask[-10000:-opts['plot_num_pics']]])
+        self.test_labels = Data(opts, Y[shuffling_mask[-10000:-opts['plot_num_pics']]], type='label')
         # vizu set
         self.vizu_data = Data(opts, X[shuffling_mask[-opts['plot_num_pics']:]])
-        self.vizu_labels = Data(opts, Y[shuffling_mask[-opts['plot_num_pics']:]])
+        self.vizu_labels = Data(opts, Y[shuffling_mask[-opts['plot_num_pics']:]], type='label')
         # plot set
         idx = np.arange(41488,len(Y),34816)
         self.plot_data = Data(opts, X[idx])
@@ -438,14 +472,14 @@ class DataHandler(object):
         self.data_order_idx = np.argsort(shuffling_mask)
         # training set
         self.data = Data(opts, X[shuffling_mask[:-10000]])
-        self.labels = Data(opts, Y[shuffling_mask[:-10000]])
+        self.labels = Data(opts, Y[shuffling_mask[:-10000]], type='label')
         # testing set
         # test_size = 10000 - opts['plot_num_pics']
         self.test_data = Data(opts, X[shuffling_mask[-10000:-opts['plot_num_pics']]])
-        self.test_labels = Data(opts, Y[shuffling_mask[-10000:-opts['plot_num_pics']]])
+        self.test_labels = Data(opts, Y[shuffling_mask[-10000:-opts['plot_num_pics']]], type='label')
         # vizu set
         self.vizu_data = Data(opts, X[shuffling_mask[-opts['plot_num_pics']:]])
-        self.vizu_labels = Data(opts, Y[shuffling_mask[-opts['plot_num_pics']:]])
+        self.vizu_labels = Data(opts, Y[shuffling_mask[-opts['plot_num_pics']:]], type='label')
         # data informations
         self.data_shape = datashapes[opts['dataset']]
         self.num_points = len(self.data)
@@ -789,7 +823,7 @@ class DataHandler(object):
         logging.error('Loading Done: Train size: %d, Test size: %d' % (self.num_points,len(self.test_data)))
 
     def sample_observations_from_factors(self, dataset, factors):
-        if dataset == 'dsprites':
+        if dataset[-8:] == 'dsprites':
             indices = np.dot(factors, self.factor_bases).astype(dtype=np.int32)
             images, labels = self.sample_from_factor_indices(indices)
         elif dataset == '3dshapes':

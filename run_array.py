@@ -18,31 +18,32 @@ parser.add_argument("--model", default='TCWAE_MWS',
                     help='model to train [WAE/BetaVAE/...]')
 parser.add_argument("--mode", default='train',
                     help='mode to run [train/vizu/fid/test]')
-parser.add_argument("--exp", default='dsprites',
-                    help='dataset [mnist/cifar10/].'\
-                    ' celebA/dsprites Not implemented yet')
+parser.add_argument("--dataset", default='dsprites',
+                    help='dataset')
 parser.add_argument("--data_dir", type=str, default='../data',
                     help='directory in which data is stored')
 parser.add_argument("--out_dir", type=str, default='code_outputs',
                     help='root_directory in which outputs are saved')
-parser.add_argument("--exp_dir", type=str, default='res',
-                    help='directory in which exp. outputs are saved')
+parser.add_argument("--res_dir", type=str, default='res',
+                    help='directory in which exp. res are saved')
 parser.add_argument("--num_it", type=int, default=300000,
                     help='iteration number')
 parser.add_argument("--net_archi", default='mlp',
                     help='networks architecture [mlp/conv_locatello]')
-parser.add_argument("--idx", type=int, default=0,
-                    help='idx latent reg weight setup')
-parser.add_argument("--sigma_pen", default='False',
+parser.add_argument("--id", type=int, default=0,
+                    help='exp id corresponding to latent reg weight setup')
+parser.add_argument("--sigma_pen", action='store_true', default=False,
                     help='penalization of Sigma_q')
-parser.add_argument("--sp", type=float, default=0.01,
+parser.add_argument("--sigma_pen_val", type=float, default=0.01,
                     help='value of penalization of Sigma_q')
 parser.add_argument("--cost", default='xentropy',
                     help='ground cost [l2, l2sq, l2sq_norm, l1, xentropy]')
-parser.add_argument("--save_model", default='True',
+parser.add_argument('--fid', action='store_true', default=False,
+                    help='compute FID score')
+parser.add_argument('--save_model', action='store_false', default=True,
                     help='save final model weights [True/False]')
-parser.add_argument("--save_data", default='True',
-                    help='save training data [True/False]')
+parser.add_argument("--save_data", action='store_false', default=True,
+                    help='save training data')
 parser.add_argument("--weights_file")
 parser.add_argument('--gpu_id', default='cpu',
                     help='gpu id for DGX box. Default is cpu')
@@ -65,126 +66,88 @@ net_configs = {'mlp': mlp_config, 'conv_locatello': conv_config}
 def main():
 
     # Select dataset to use
-    if FLAGS.exp == 'dsprites':
+    if FLAGS.dataset == 'dsprites':
         opts = configs.config_dsprites
-    elif FLAGS.exp == 'smallNORB':
+    elif FLAGS.dataset == 'noisydsprites':
+        opts = configs.config_noisydsprites
+    elif FLAGS.dataset == 'screamdsprites':
+        opts = configs.config_screamdsprites
+    elif FLAGS.dataset == 'smallNORB':
         opts = configs.config_smallNORB
-    elif FLAGS.exp == '3dshapes':
+    elif FLAGS.dataset == '3dshapes':
         opts = configs.config_3dshapes
-    elif FLAGS.exp == '3Dchairs':
+    elif FLAGS.dataset == '3Dchairs':
         opts = configs.config_3Dchairs
-    elif FLAGS.exp == 'celebA':
+    elif FLAGS.dataset == 'celebA':
         opts = configs.config_celebA
-    elif FLAGS.exp == 'mnist':
+    elif FLAGS.dataset == 'mnist':
         opts = configs.config_mnist
     else:
-        assert False, 'Unknown experiment dataset'
+        assert False, 'Unknown dataset'
 
-    # Select training method
-    if FLAGS.model:
-        opts['model'] = FLAGS.model
-
-    # Data directory
+    # Set method param
     opts['data_dir'] = FLAGS.data_dir
-
-    # Mode
-    if FLAGS.mode=='fid':
-        opts['fid'] = True
-    else:
-        opts['fid'] = False
-
-    # Opt set up
-    opts['lr'] = 0.0001
+    opts['fid'] = FLAGS.fid
+    opts['cost'] = FLAGS.cost #l2, l2sq, l2sq_norm, l1, xentropy
+    opts['network'] = net_configs[FLAGS.net_archi]
+    opts['pen_enc_sigma'] = FLAGS.sigma_pen
+    opts['lambda_pen_enc_sigma'] = FLAGS.sigma_pen_val
 
     # Model set up
-    if FLAGS.exp == 'celebA':
+    opts['model'] = FLAGS.model
+    if FLAGS.dataset == 'celebA':
         opts['zdim'] = 32
         opts['batch_size'] = 128
         opts['lr'] = 0.0001
-    elif FLAGS.exp == '3Dchairs':
-        opts['zdim'] = 10
+    elif FLAGS.dataset == '3Dchairs':
+        opts['zdim'] = 16
         opts['batch_size'] = 128
         opts['lr'] = 0.0001
     else:
         opts['zdim'] = 10
         opts['batch_size'] = 64
         opts['lr'] = 0.0004
-    opts['cost'] = FLAGS.cost #l2, l2sq, l2sq_norm, l1, xentropy
-    if opts['model']!='TCWAE_MWS' and opts['model']!='TCWAE_GAN' and opts['model']!='WAE':
+    if opts['model'][-3:]=='VAE':
         opts['input_normalize_sym'] = False
+
     # Objective Function Coefficients
-    if opts['model'] == 'BetaVAE':
-        beta = [1, 2, 4, 6, 8, 10, 20]
-        opts['obj_fn_coeffs'] = beta[FLAGS.idx-1]
-    elif opts['model'] == 'BetaTCVAE':
-        if FLAGS.exp == 'celebA':
-            beta = [1, 5, 10, 15, 20, 50]
+    if FLAGS.dataset == 'celebA':
+        if model[-3:]=='VAE':
+            beta = [1, 5, 10, 15, 20, 25, 50]
+            opts['obj_fn_coeffs'] = beta[FLAGS.id-1]
         else:
-            beta = [1, 2, 4, 6, 8, 10, 20]
-        opts['obj_fn_coeffs'] = beta[FLAGS.idx-1]
-    elif opts['model'] == 'FactorVAE':
-        if FLAGS.exp == 'celebA':
-            gamma = [1, 5, 10, 15, 20, 50]
+            beta = [1, 2, 5, 10, 15, 25, 50]
+            gamma = [1, 2, 5, 10, 15, 25, 50]
+            lmba = list(itertools.product(beta,gamma))
+            opts['obj_fn_coeffs'] = list(lmba[FLAGS.id-1])
+    elif FLAGS.dataset == '3Dchairs':
+        if model[-3:]=='VAE':
+            beta = [1, 2, 5, 10, 20, 50, 100]
+            opts['obj_fn_coeffs'] = beta[FLAGS.id-1]
         else:
-            gamma = [1, 10, 20, 30, 40, 50, 100]
-        opts['obj_fn_coeffs'] = gamma[FLAGS.idx-1]
-    elif opts['model'] == 'WAE':
-        if opts['cost'] == 'xentropy':
-            # toy experiment with xent
-            if FLAGS.exp == 'dsprites':
-                lmba = [1, 10, 20, 50, 100, 150, 200]
-            elif FLAGS.exp == 'smallNORB':
-                lmba = [1, 50, 100, 150, 200, 500, 1000]
-            else:
-                lmba = [1, 10, 20, 50, 100, 150, 200]
+            beta = [1, 2, 5, 10, 15, 20, 25]
+            gamma = [1, 2, 5, 10, 15, 20, 25]
+            lmba = list(itertools.product(beta,gamma))
+            opts['obj_fn_coeffs'] = list(lmba[FLAGS.id-1])
+    else:
+        if model == 'BetaVAE' or model == 'BetaTCVAE':
+            beta = [1, 2, 4, 6, 8, 10]
+            opts['obj_fn_coeffs'] = beta[FLAGS.id-1]
+        elif model=='FactorVAE':
+            beta = [1, 10, 25, 50, 75, 100]
+            opts['obj_fn_coeffs'] = beta[FLAGS.id-1]
         else:
-            lmba = [1, 10, 20, 50, 100, 150, 200]
-        opts['obj_fn_coeffs'] = lmba[FLAGS.idx-1]
-    elif opts['model'] == 'TCWAE_MWS' or opts['model'] == 'TCWAE_GAN':
-        if FLAGS.exp == 'smallNORB':
             if opts['cost'] == 'xentropy':
-                lmba0 = [1, 5, 10, 25, 50, 100]
-                lmba1 = [1, 5, 10, 25, 50, 100]
+                beta = [1, 5, 10, 25, 50, 100]
+                gamma = [1, 5, 10, 25, 50, 100]
             else:
-                lmba0 = [1, 2, 4 ,6, 8, 10]
-                lmba1 = [1, 2, 4 ,6, 8, 10]
-        elif FLAGS.exp == 'dsprites':
-            lmba0 = [1, 5, 10, 50, 100, 150]
-            lmba1 = [1, 5, 10, 50, 100, 150]
-            # lmba0 = [1, 2, 5, 10, 25, 50, 75, 100, 125, 150]
-            # lmba1 = [1, 2, 5, 10, 25, 50, 75, 100, 125, 150]
-        elif FLAGS.exp == '3Dchairs':
-            lmba0 = [1, 2, 5, 10, 15, 20]
-            lmba1 = [1, 2, 5, 10, 15, 20]
-        elif FLAGS.exp == 'celebA':
-            lmba0 = [1, 2, 5, 10, 15, 20]
-            lmba1 = [1, 2, 5, 10, 15, 20]
-        else:
-            lmba0 = [1, 2, 4, 6, 8, 10]
-            lmba1 = [1, 2, 4, 6, 8, 10]
-        lmba = list(itertools.product(lmba0,lmba1))
-        opts['obj_fn_coeffs'] = list(lmba[FLAGS.idx-1])
-    else:
-        assert False, 'unknown model {}'.format(opts['model'])
-    # Penalty Sigma_q
-    opts['pen_enc_sigma'] = FLAGS.sigma_pen=='True'
-    if FLAGS.exp == 'celebA':
-        opts['lambda_pen_enc_sigma'] = FLAGS.sp
-    elif FLAGS.exp == 'smallNORB':
-        opts['lambda_pen_enc_sigma'] = .2
-    elif FLAGS.exp == '3Dchairs':
-        opts['lambda_pen_enc_sigma'] = FLAGS.sp
-    else:
-        opts['lambda_pen_enc_sigma'] = 1.
-
-    # NN set up
-    opts['network'] = net_configs[FLAGS.net_archi]
-
+                beta = [1, 2, 4, 6, 8, 10]
+                gamma = [1, 2, 4, 6, 8, 10]
+            lmba = list(itertools.product(beta,gamma))
+            opts['obj_fn_coeffs'] = list(lmba[FLAGS.id-1])
     # Create directories
-    if FLAGS.out_dir:
-        opts['out_dir'] = FLAGS.out_dir
-    if FLAGS.exp_dir:
-        opts['exp_dir'] = FLAGS.exp_dir
+    opts['out_dir'] = FLAGS.out_dir
+    opts['exp_dir'] = FLAGS.res_dir
     if opts['model'] == 'disWAE' or opts['model'] == 'TCWAE_MWS' or opts['model'] == 'TCWAE_GAN':
         exp_dir = os.path.join(opts['out_dir'],
                                opts['model'],
@@ -216,15 +179,9 @@ def main():
     opts['epoch_num'] = int(FLAGS.num_it / int(data.num_points/opts['batch_size']))
     opts['print_every'] = int(opts['epoch_num'] / 5.) * int(data.num_points/opts['batch_size'])-1
     opts['evaluate_every'] = int(opts['print_every'] / 2.) + 1
-    opts['save_every'] = 1000000000
-    if FLAGS.save_model=='True':
-        opts['save_final'] = True
-    else:
-        opts['save_final'] = False
-    if FLAGS.save_data=='True':
-        opts['save_train_data'] = True
-    else:
-        opts['save_train_data'] = False
+    opts['save_every'] = 10000000000
+    opts['save_final'] = FLAGS.save_model
+    opts['save_train_data'] = FLAGS.save_data
     opts['vizu_encSigma'] = False
 
 

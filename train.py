@@ -94,6 +94,8 @@ class Run(object):
                                                     self.z_mean,
                                                     self.z_logvar)
 
+        self.mse = self.model.MSE(self.batch, self.recon_x)
+
         # FID score
         if opts['fid']:
             self.blurriness = self.compute_blurriness()
@@ -232,8 +234,8 @@ class Run(object):
         classifier = np.argmax(votes, axis=0)
         other_index = np.arange(votes.shape[1])
         # Generate classifier eval set and get eval accuracy
-        # eval_size = 50
-        eval_size = 5000
+        eval_size = 50
+        # eval_size = 5000
         votes = np.zeros((len(data.factor_sizes), opts['zdim']),dtype=np.int32)
         for i in range(eval_size):
             factor, vote = self.generate_factorVAE_minibatch(sess,
@@ -416,6 +418,7 @@ class Run(object):
         Loss, Loss_test, Loss_rec, Loss_rec_test = [], [], [], []
         Divergences, Divergences_test = [], []
         betaVAE, MIG, factorVAE, SAP = [], [], [], []
+        MSE = []
         if opts['vizu_encSigma']:
             enc_Sigmas = []
 
@@ -468,7 +471,7 @@ class Run(object):
                         enc_Sigmas.append(enc_sigmastats)
 
                     # Test losses
-                    loss_test, loss_rec_test = 0., 0.
+                    loss_test, loss_rec_test, mse = 0., 0., 0.
                     if opts['true_gen_model']:
                         codes, codes_mean = np.zeros((batches_num_te*batch_size_te,opts['zdim'])), np.zeros((batches_num_te*batch_size_te,opts['zdim']))
                         labels = np.zeros((batches_num_te*batch_size_te,len(data.factor_indices)))
@@ -487,8 +490,9 @@ class Run(object):
                                           self.obj_fn_coeffs: opts['obj_fn_coeffs'],
                                           self.dropout_rate: 1.,
                                           self.is_training: False}
-                        [loss, l_rec, divergences, z, z_mean, kl] = self.sess.run([self.objective,
+                        [loss, l_rec, m, divergences, z, z_mean, kl] = self.sess.run([self.objective,
                                                          self.loss_reconstruct,
+                                                         self.mse,
                                                          self.divergences,
                                                          self.z_samples,
                                                          self.z_mean,
@@ -496,6 +500,7 @@ class Run(object):
                                                         feed_dict=test_feed_dict)
                         loss_test += loss / batches_num_te
                         loss_rec_test += l_rec / batches_num_te
+                        mse += m / batches_num_te
                         divergences_test += np.array(divergences) / batches_num_te
                         kl_to_prior += kl / batches_num_te
                         if opts['true_gen_model']:
@@ -505,6 +510,7 @@ class Run(object):
                             labels[batch_size_te*it_:batch_size_te*(it_+1)] = data.test_labels[data_ids][:,data.factor_indices]
                     Loss_test.append(loss_test)
                     Loss_rec_test.append(loss_rec_test)
+                    MSE.append(mse)
                     Divergences_test.append(divergences_test.tolist())
                     if opts['true_gen_model']:
                         betaVAE.append(self.compute_betaVAE(self.sess, data))
@@ -698,7 +704,7 @@ class Run(object):
         Loss_rec.append(loss_rec)
         Divergences.append(divergences)
         # Test losses
-        loss_test, loss_rec_test = 0., 0.
+        loss_test, loss_rec_test, mse = 0., 0., 0.
         if opts['true_gen_model']:
             codes, codes_mean = np.zeros((batches_num_te*batch_size_te,opts['zdim'])), np.zeros((batches_num_te*batch_size_te,opts['zdim']))
             labels = np.zeros((batches_num_te*batch_size_te,len(data.factor_indices)))
@@ -717,8 +723,9 @@ class Run(object):
                               self.obj_fn_coeffs: opts['obj_fn_coeffs'],
                               self.dropout_rate: 1.,
                               self.is_training: False}
-            [loss, l_rec, divergences, z, z_mean, kl] = self.sess.run([self.objective,
+            [loss, l_rec, m, divergences, z, z_mean, kl] = self.sess.run([self.objective,
                                              self.loss_reconstruct,
+                                             self.mse,
                                              self.divergences,
                                              self.z_samples,
                                              self.z_mean,
@@ -726,6 +733,7 @@ class Run(object):
                                             feed_dict=test_feed_dict)
             loss_test += loss / batches_num_te
             loss_rec_test += l_rec / batches_num_te
+            mse += m / batches_num_te
             divergences_test += np.array(divergences) / batches_num_te
             kl_to_prior += kl / batches_num_te
             if opts['true_gen_model']:
@@ -735,6 +743,7 @@ class Run(object):
                 labels[batch_size_te*it_:batch_size_te*(it_+1)] = data.test_labels[data_ids][:,data.factor_indices]
         Loss_test.append(loss_test)
         Loss_rec_test.append(loss_rec_test)
+        MSE.append(mse)
         Divergences_test.append(divergences_test.tolist())
         if opts['true_gen_model']:
             betaVAE.append(self.compute_betaVAE(self.sess, data))
@@ -832,7 +841,7 @@ class Run(object):
             name = 'res_train_final'
             np.savez(os.path.join(save_path, name),
                     loss=np.array(Loss[-1]), loss_test=np.array(Loss_test[-1]),
-                    loss_rec=np.array(Loss_rec[-1]), loss_rec_test=np.array(Loss_rec_test[-1]),
+                    loss_rec=np.array(Loss_rec[-1]), loss_rec_test=np.array(Loss_rec_test[-1]), mse = np.array(MSE[-1]),
                     divergences=np.array(Divergences[-1]), divergences_test=np.array(Divergences_test[-1]),
                     mig=np.array(MIG[-1]), factorVAE=np.array(factorVAE[-1]), sap=np.array(SAP[-1]))
 
