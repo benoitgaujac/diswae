@@ -2,7 +2,7 @@
 
 #$ -S /bin/bash
 
-#$ -wd /home/minzhang/new-home-dir/diswae
+#$ -wd /home/bgaujac/diswae
 
 #$ -l gpu=true
 #$ -l tmem=4G
