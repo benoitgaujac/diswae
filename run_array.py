@@ -112,7 +112,7 @@ def main():
 
     # Objective Function Coefficients
     if FLAGS.dataset == 'celebA':
-        if model[-3:]=='VAE':
+        if opts['model'][-3:]=='VAE':
             beta = [1, 5, 10, 15, 20, 25, 50]
             opts['obj_fn_coeffs'] = beta[FLAGS.id-1]
         else:
@@ -121,7 +121,7 @@ def main():
             lmba = list(itertools.product(beta,gamma))
             opts['obj_fn_coeffs'] = list(lmba[FLAGS.id-1])
     elif FLAGS.dataset == '3Dchairs':
-        if model[-3:]=='VAE':
+        if opts['model'][-3:]=='VAE':
             beta = [1, 2, 5, 10, 20, 50, 100]
             opts['obj_fn_coeffs'] = beta[FLAGS.id-1]
         else:
@@ -130,10 +130,10 @@ def main():
             lmba = list(itertools.product(beta,gamma))
             opts['obj_fn_coeffs'] = list(lmba[FLAGS.id-1])
     else:
-        if model == 'BetaVAE' or model == 'BetaTCVAE':
+        if opts['model'] == 'BetaVAE' or model == 'BetaTCVAE':
             beta = [1, 2, 4, 6, 8, 10]
             opts['obj_fn_coeffs'] = beta[FLAGS.id-1]
-        elif model=='FactorVAE':
+        elif opts['model']=='FactorVAE':
             beta = [1, 10, 25, 50, 75, 100]
             opts['obj_fn_coeffs'] = beta[FLAGS.id-1]
         else:
