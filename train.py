@@ -34,7 +34,7 @@ class Run(object):
         logging.error('Building the Tensorflow Graph')
 
         # --- Create session
-        self.sess = tf.Session()
+        # self.sess = tf.Session()
         self.opts = opts
 
         # --- Data shape
@@ -76,16 +76,14 @@ class Run(object):
             raise NotImplementedError()
 
         # --- Define Objective
-        self.objective, self.loss_reconstruct, self.divergences, self.recon_x, self.enc_z, self.enc_sigmastats \
+        self.objective, self.loss_reconstruct, self.divergences, self.enc_sigmastats \
             = self.model.loss(inputs=self.batch,
                               samples=self.samples_pz,
                               loss_coeffs=self.obj_fn_coeffs,
-                              is_training=self.is_training,
-                              dropout_rate=self.dropout_rate)
+                              is_training=self.is_training)
 
-        self.z_samples, self.z_mean, self.z_logvar, _, _, _ = self.model.forward_pass(inputs=self.batch,
+        self.z_samples, self.z_mean, self.z_logvar, self.recon_x, _, _ = self.model.forward_pass(inputs=self.batch,
                                                                           is_training=self.is_training,
-                                                                          dropout_rate=self.dropout_rate,
                                                                           reuse=True)
 
         self.generated_x = self.model.sample_x_from_prior(noise=self.samples_pz)
@@ -123,7 +121,6 @@ class Run(object):
     def add_training_placeholders(self):
         self.lr_decay = tf.placeholder(tf.float32, name='rate_decay_ph')
         self.is_training = tf.placeholder(tf.bool, name='is_training_ph')
-        self.dropout_rate = tf.placeholder(tf.float32, name='dropout_rate_ph')
         self.batch_size = tf.placeholder(tf.int32, name='batch_size_ph')
         if self.opts['model']=='BetaVAE' or self.opts['model'] == 'BetaTCVAE' or self.opts['model'] == 'FactorVAE':
             self.beta = tf.placeholder(tf.float32, name='beta_ph')
@@ -191,21 +188,21 @@ class Run(object):
 
         return np.mean(mig)
 
-    def generate_factorVAE_minibatch(self, sess, data, global_variances, active_dims):
+    def generate_factorVAE_minibatch(self, data, global_variances, active_dims):
         opts = self.opts
         batch_size = 64
         # sample batch of factors
-        factors = utils.sample_factors(opts, batch_size, data)
+        factors = utils.sample_factors(batch_size, data.factor_sizes)
         # sample factor idx
         factor_index = np.random.randint(len(data.factor_indices))
         factor_index = data.factor_indices[factor_index]
         # fixing the selected factor across batch
         factors[:, factor_index] = factors[0, factor_index]
         # sample batch of images with fix selected factor
-        batch_images = utils.sample_images(opts, opts['dataset'], data, factors)
+        # batch_images = utils.sample_images(opts, opts['dataset'], data, factors)
+        batch_images = data.sample_observations_from_factors(opts['dataset'], factors)
         # encode images
-        z = sess.run(self.z_samples, feed_dict={self.batch: batch_images,
-                                                self.dropout_rate: 1.,
+        z = self.sess.run(self.z_samples, feed_dict={self.batch: batch_images,
                                                 self.is_training: False})
         # get variance per dimension and vote
         local_variances = np.var(z, axis=0, ddof=1)
@@ -213,7 +210,7 @@ class Run(object):
 
         return factor_index, argmin
 
-    def compute_factorVAE(self, sess, data, codes):
+    def compute_factorVAE(self, data, codes):
         """Compute FactorVAE metric"""
         opts = self.opts
         threshold = .05
@@ -221,12 +218,11 @@ class Run(object):
         global_variances = np.var(codes, axis=0, ddof=1)
         active_dims = np.sqrt(global_variances)>=threshold
         # Generate classifier training set and build classifier
-        # training_size = 100
         training_size = 10000
+        # training_size = 100
         votes = np.zeros((len(data.factor_sizes), opts['zdim']),dtype=np.int32)
         for i in range(training_size):
-            factor, vote = self.generate_factorVAE_minibatch(sess,
-                                                    data,
+            factor, vote = self.generate_factorVAE_minibatch(data,
                                                     global_variances,
                                                     active_dims)
             votes[factor, vote] += 1
@@ -234,12 +230,11 @@ class Run(object):
         classifier = np.argmax(votes, axis=0)
         other_index = np.arange(votes.shape[1])
         # Generate classifier eval set and get eval accuracy
-        eval_size = 50
-        # eval_size = 5000
+        eval_size = 5000
+        # eval_size = 50
         votes = np.zeros((len(data.factor_sizes), opts['zdim']),dtype=np.int32)
         for i in range(eval_size):
-            factor, vote = self.generate_factorVAE_minibatch(sess,
-                                                    data,
+            factor, vote = self.generate_factorVAE_minibatch(data,
                                                     global_variances,
                                                     active_dims)
             votes[factor, vote] += 1
@@ -248,7 +243,7 @@ class Run(object):
 
         return acc
 
-    def generate_SAP_minibatch(self, sess, data, num_points):
+    def generate_SAP_minibatch(self, data, num_points):
         opts = self.opts
         batch_size = 500
         # batch_size = 50
@@ -258,13 +253,13 @@ class Run(object):
         while i < num_points:
             num_points_iter = min(num_points - i, batch_size)
             # sample batch of factors
-            current_factors = utils.sample_factors(opts, num_points_iter, data)
+            current_factors = utils.sample_factors(num_points_iter, data.factor_sizes)
             # sample batch of images from factors
-            batch_images = utils.sample_images(opts, opts['dataset'], data, current_factors)
+            # batch_images = utils.sample_images(opts, opts['dataset'], data, current_factors)
+            batch_images = data.sample_observations_from_factors(opts['dataset'], current_factors)
             # encode images
-            current_z = sess.run(self.z_samples, feed_dict={
+            current_z = self.sess.run(self.z_samples, feed_dict={
                                                 self.batch: batch_images,
-                                                self.dropout_rate: 1.,
                                                 self.is_training: False})
             if i == 0:
                 factors = current_factors
@@ -276,17 +271,17 @@ class Run(object):
 
         return z, factors
 
-    def compute_SAP(self, sess, data):
+    def compute_SAP(self, data):
         """Compute SAP metric"""
         opts = self.opts
         # Generate training set
-        # training_size = 100
         training_size = 10000
-        mus, ys = self.generate_SAP_minibatch(sess, data, training_size)
+        # training_size = 100
+        mus, ys = self.generate_SAP_minibatch(data, training_size)
         # Generate testing set
-        # testing_size = 50
         testing_size = 5000
-        mus_test, ys_test = self.generate_SAP_minibatch(sess, data, testing_size)
+        # testing_size = 50
+        mus_test, ys_test = self.generate_SAP_minibatch(data, testing_size)
         # Computing score matrix
         score_matrix = utils.compute_score_matrix(mus, ys, mus_test, ys_test)
         # average diff top 2 predictive latent dim for each factor
@@ -295,48 +290,48 @@ class Run(object):
 
         return sap
 
-    def generate_betaVAE_minibatch(self, sess, data):
+    def generate_betaVAE_minibatch(self, data):
         opts = self.opts
         batch_size = 64
         # sample 2 batches of factors
-        factors_1 = utils.sample_factors(opts, batch_size, data)
-        factors_2 = utils.sample_factors(opts, batch_size, data)
+        factors_1 = utils.sample_factors(batch_size, data.factor_sizes)
+        factors_2 = utils.sample_factors(batch_size, data.factor_sizes)
         # sample factor idx
         factor_index = np.random.randint(len(data.factor_indices))
         factor_index = data.factor_indices[factor_index]
         # fixing the selected factor across batch
         factors_1[:, factor_index] = factors_2[:, factor_index]
         # sample images with fix selected factor
-        images_1 = utils.sample_images(opts, opts['dataset'], data, factors_1)
-        images_2 = utils.sample_images(opts, opts['dataset'], data, factors_2)
+        # images_1 = utils.sample_images(opts, opts['dataset'], data, factors_1)
+        # images_2 = utils.sample_images(opts, opts['dataset'], data, factors_2)
+        images_1 = data.sample_observations_from_factors(opts['dataset'], factors_1)
+        images_2 = data.sample_observations_from_factors(opts['dataset'], factors_2)
         # encode images
-        z_1 = sess.run(self.z_samples, feed_dict={self.batch: images_1,
-                                                self.dropout_rate: 1.,
+        z_1 = self.sess.run(self.z_samples, feed_dict={self.batch: images_1,
                                                 self.is_training: False})
-        z_2 = sess.run(self.z_samples, feed_dict={self.batch: images_2,
-                                                self.dropout_rate: 1.,
+        z_2 = self.sess.run(self.z_samples, feed_dict={self.batch: images_2,
                                                 self.is_training: False})
         # Compute the feature vector based on differences in representation.
         feature_vector = np.mean(np.abs(z_1 - z_2), axis=0)
 
         return feature_vector, factor_index
 
-    def compute_betaVAE(self, sess, data):
+    def compute_betaVAE(self, data):
         """Compute betaVAE metric"""
         opts = self.opts
         # Generate classifier training set and build classifier
-        # training_size = 100
         training_size = 10000
+        # training_size = 100
         x_train = np.zeros((training_size,opts['zdim']))
         y_train = np.zeros((training_size,))
         for i in range(training_size):
-            x_train[i], y_train[i] = self.generate_betaVAE_minibatch(sess, data)
+            x_train[i], y_train[i] = self.generate_betaVAE_minibatch(data)
         # logging.info("Training sklearn model.")
         model = linear_model.LogisticRegression()
         model.fit(x_train, y_train)
         # Generate classifier eval set and get eval accuracy
-        # eval_size = 50
         eval_size = 5000
+        # eval_size = 50
         x_eval = np.zeros((eval_size,opts['zdim']))
         y_eval = np.zeros((eval_size,))
         for i in range(eval_size):
@@ -370,7 +365,7 @@ class Run(object):
                                                 scope='encoder')
         decoder_vars = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES,
                                                 scope='decoder')
-        update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
+        # update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
         # discriminator opt if needed
         if self.opts['model']=='FactorVAE' or self.opts['model']=='TCWAE_GAN':
             if opts['dataset']=='celebA' or opts['dataset']=='3Dchairs':
@@ -381,10 +376,12 @@ class Run(object):
                                                     scope='discriminator')
             vae_opt = opt.minimize(loss=self.objective,var_list=encoder_vars + decoder_vars)
             discriminator_opt = discr_opt.minimize(loss=-self.model.discr_loss,var_list=discr_vars)
-            self.opt = tf.group(vae_opt, discriminator_opt, update_ops)
+            # self.opt = tf.group(vae_opt, discriminator_opt, update_ops)
+            self.opt = tf.group(vae_opt, discriminator_opt)
         else:
-            with tf.control_dependencies(update_ops):
-                self.opt = opt.minimize(loss=self.objective,var_list=encoder_vars + decoder_vars)
+            self.opt = opt.minimize(loss=self.objective,var_list=encoder_vars + decoder_vars)
+            # with tf.control_dependencies(update_ops):
+            #     self.opt = opt.minimize(loss=self.objective,var_list=encoder_vars + decoder_vars)
 
     def train(self, data, WEIGHTS_FILE):
         """
@@ -397,15 +394,17 @@ class Run(object):
         # writer = tf.summary.FileWriter(exp_dir)
 
         # - Init sess and load trained weights if needed
+        self.sess = tf.Session()
         if opts['use_trained']:
             if not tf.gfile.Exists(WEIGHTS_FILE+".meta"):
                 raise Exception("weights file doesn't exist")
             self.saver.restore(self.sess, WEIGHTS_FILE)
         else:
             self.sess.run(self.initializer)
+        self.sess.graph.finalize()
 
         # - Set up for training
-        train_size = data.num_points
+        train_size = data.train_size
         batches_num = int(train_size/opts['batch_size'])
         logging.error('Train size: {}, Batch num.: {}, Epoch num: {}'.format(train_size, batches_num, opts['epoch_num']))
         npics = opts['plot_num_pics']
@@ -437,31 +436,35 @@ class Run(object):
             for it in range(batches_num):
                 # Sample batches of data points and Pz noise
                 data_ids = np.random.choice(train_size, opts['batch_size'], replace=True)
-                batch_images = data.data[data_ids].astype(np.float32)
+                batch_images = data.get_batch_img(data_ids,'train').astype(np.float32)
                 batch_pz_samples = sample_pz(opts, self.pz_params, opts['batch_size'])
                 # Feeding dictionary
                 feed_dict = {self.batch: batch_images,
                              self.samples_pz: batch_pz_samples,
                              self.lr_decay: decay,
                              self.obj_fn_coeffs: opts['obj_fn_coeffs'],
-                             self.dropout_rate: 1.,
                              self.is_training: True}
-                [_, loss, loss_rec, divergences, enc_sigmastats] = self.sess.run([
-                                                self.opt,
+                _ = self.sess.run(self.opt, feed_dict=feed_dict)
+
+                ##### TESTING LOOP #####
+                if (counter+1)%opts['evaluate_every'] == 0 or (counter+1) == 100:
+                    print("Epoch {}, Iteration {}".format(epoch, it+1))
+                    # Train losses
+                    data_ids = np.random.choice(train_size, opts['batch_size'], replace=True)
+                    batch_images = data.get_batch_img(data_ids,'train').astype(np.float32)
+                    batch_pz_samples = sample_pz(opts, self.pz_params, opts['batch_size'])
+                    # Feeding dictionary
+                    feed_dict = {self.batch: batch_images,
+                                 self.samples_pz: batch_pz_samples,
+                                 self.lr_decay: decay,
+                                 self.obj_fn_coeffs: opts['obj_fn_coeffs'],
+                                 self.is_training: True}
+                    [loss, loss_rec, divergences, enc_sigmastats] = self.sess.run([
                                                 self.objective,
                                                 self.loss_reconstruct,
                                                 self.divergences,
                                                 self.enc_sigmastats],
                                                 feed_dict=feed_dict)
-
-                ##### TESTING LOOP #####
-                if (counter+1)%opts['evaluate_every'] == 0 or (counter+1) == 100:
-                    print("Epoch {}, Iteration {}".format(epoch, it+1))
-                    # batch_size_te = 64
-                    test_size = np.shape(data.test_data)[0]
-                    batch_size_te = min(test_size,1000)
-                    batches_num_te = int(test_size/batch_size_te)+1
-                    # Train losses
                     Loss.append(loss)
                     Loss_rec.append(loss_rec)
                     Divergences.append(divergences)
@@ -471,6 +474,9 @@ class Run(object):
                         enc_Sigmas.append(enc_sigmastats)
 
                     # Test losses
+                    test_size = data.test_size
+                    batch_size_te = min(test_size,500)
+                    batches_num_te = int(test_size/batch_size_te)+1
                     loss_test, loss_rec_test, mse = 0., 0., 0.
                     if opts['true_gen_model']:
                         codes, codes_mean = np.zeros((batches_num_te*batch_size_te,opts['zdim'])), np.zeros((batches_num_te*batch_size_te,opts['zdim']))
@@ -483,12 +489,11 @@ class Run(object):
                     for it_ in range(batches_num_te):
                         # Sample batches of data points
                         data_ids = np.random.choice(test_size, batch_size_te, replace=True)
-                        batch_images_test = data.test_data[data_ids].astype(np.float32)
+                        batch_images_test = data.get_batch_img(data_ids, 'test').astype(np.float32)
                         batch_pz_samples_test = sample_pz(opts, self.pz_params, batch_size_te)
                         test_feed_dict = {self.batch: batch_images_test,
                                           self.samples_pz: batch_pz_samples_test,
                                           self.obj_fn_coeffs: opts['obj_fn_coeffs'],
-                                          self.dropout_rate: 1.,
                                           self.is_training: False}
                         [loss, l_rec, m, divergences, z, z_mean, kl] = self.sess.run([self.objective,
                                                          self.loss_reconstruct,
@@ -506,40 +511,38 @@ class Run(object):
                         if opts['true_gen_model']:
                             codes[batch_size_te*it_:batch_size_te*(it_+1)] = z
                             codes_mean[batch_size_te*it_:batch_size_te*(it_+1)] = z_mean
-                            batch_labels_test = data.test_labels[data_ids][:,data.factor_indices]
-                            labels[batch_size_te*it_:batch_size_te*(it_+1)] = data.test_labels[data_ids][:,data.factor_indices]
+                            labels[batch_size_te*it_:batch_size_te*(it_+1)] = data.get_batch_label(data_ids,'test')[:,data.factor_indices]
                     Loss_test.append(loss_test)
                     Loss_rec_test.append(loss_rec_test)
                     MSE.append(mse)
                     Divergences_test.append(divergences_test.tolist())
                     if opts['true_gen_model']:
-                        betaVAE.append(self.compute_betaVAE(self.sess, data))
+                        # betaVAE.append(self.compute_betaVAE(data))
                         MIG.append(self.compute_mig(codes_mean, labels))
-                        factorVAE.append(self.compute_factorVAE(self.sess, data, codes))
-                        SAP.append(self.compute_SAP(self.sess, data))
+                        factorVAE.append(self.compute_factorVAE(data, codes))
+                        SAP.append(self.compute_SAP(data))
+                        betaVAE.append(0.)
 
                 if (counter+1)%opts['print_every'] == 0 or (counter+1) == 100:
                     # Plot vizualizations
                     # Auto-encoding test images & samples generated by the model
                     [reconstructions_test, latents_test, generations] = self.sess.run(
                                                 [self.recon_x,
-                                                 self.enc_z,
+                                                 self.z_samples,
                                                  self.generated_x],
-                                                feed_dict={self.batch: data.vizu_data[0:opts['plot_num_pics']],       # TODO what is this?
+                                                feed_dict={self.batch: data.get_batch_img(range(opts['plot_num_pics']), 'vizu'),
                                                            self.samples_pz: fixed_noise,
-                                                           self.dropout_rate: 1.,
                                                            self.is_training: False})
                     # Auto-encoding training images
                     reconstructions_train = self.sess.run(self.recon_x,
-                                                          feed_dict={self.batch: data.data[200:200+npics],  # TODO what is this?
-                                                                     self.dropout_rate: 1.,
+                                                          feed_dict={self.batch: data.get_batch_img(range(200,200+npics), 'train'),
                                                                      self.is_training: False})
 
                     # - Plotting embeddings, Sigma, latent interpolation, and saving
                     # Embeddings
                     if opts['vizu_embedded'] and counter > 1:
                         plot_embedded(opts, [latents_test[:npics]], [fixed_noise],
-                                      data.vizu_labels[:npics],
+                                      data.get_batch_label(range(npics), 'vizu'),
                                       exp_dir, 'embedded_e%04d_mb%05d.png' % (epoch, it))
                     # Encoded sigma
                     if opts['vizu_encSigma'] and counter > 1:
@@ -560,7 +563,6 @@ class Run(object):
                         dec_interpolation = self.sess.run(self.generated_x,
                                                           feed_dict={self.samples_pz: np.reshape(enc_interpolation,
                                                                                                  [-1, opts['zdim']]),
-                                                                     self.dropout_rate: 1.,
                                                                      self.is_training: False})
                         inter_anchors = np.reshape(dec_interpolation, [-1, opts['zdim'], num_steps]+im_shape)
                         kl_to_prior_sorted = np.argsort(kl_to_prior)[::-1]
@@ -569,7 +571,8 @@ class Run(object):
 
                     # Saving plots
                     save_train(opts,
-                              data.data[200:200+npics], data.vizu_data[:npics],     # images
+                              data.get_batch_img(range(200,200+npics), 'train'),    # train images
+                              data.get_batch_img(range(npics), 'vizu'),             # test images
                               reconstructions_train, reconstructions_test,          # reconstructions
                               generations,                                          # model samples
                               Loss, Loss_test,                                      # loss
@@ -696,9 +699,17 @@ class Run(object):
                 counter += 1
 
         # - Finale losses & scores
-        test_size = np.shape(data.test_data)[0]
-        batch_size_te = min(test_size,1000)
-        batches_num_te = int(test_size/batch_size_te)+1
+        # Feeding dictionary
+        feed_dict = {self.batch: batch_images,
+                     self.samples_pz: batch_pz_samples,
+                     self.lr_decay: decay,
+                     self.obj_fn_coeffs: opts['obj_fn_coeffs'],
+                     self.is_training: True}
+        [loss, loss_rec, divergences] = self.sess.run([
+                                    self.objective,
+                                    self.loss_reconstruct,
+                                    self.divergences],
+                                    feed_dict=feed_dict)
         # Train losses
         Loss.append(loss)
         Loss_rec.append(loss_rec)
@@ -716,12 +727,11 @@ class Run(object):
         for it_ in range(batches_num_te):
             # Sample batches of data points
             data_ids = np.random.choice(test_size, batch_size_te, replace=True)
-            batch_images_test = data.test_data[data_ids].astype(np.float32)
+            batch_images_test = data.get_batch_img(data_ids, 'test').astype(np.float32)
             batch_pz_samples_test = sample_pz(opts, self.pz_params, batch_size_te)
             test_feed_dict = {self.batch: batch_images_test,
                               self.samples_pz: batch_pz_samples_test,
                               self.obj_fn_coeffs: opts['obj_fn_coeffs'],
-                              self.dropout_rate: 1.,
                               self.is_training: False}
             [loss, l_rec, m, divergences, z, z_mean, kl] = self.sess.run([self.objective,
                                              self.loss_reconstruct,
@@ -739,8 +749,7 @@ class Run(object):
             if opts['true_gen_model']:
                 codes[batch_size_te*it_:batch_size_te*(it_+1)] = z
                 codes_mean[batch_size_te*it_:batch_size_te*(it_+1)] = z_mean
-                batch_labels_test = data.test_labels[data_ids][:,data.factor_indices]
-                labels[batch_size_te*it_:batch_size_te*(it_+1)] = data.test_labels[data_ids][:,data.factor_indices]
+                labels[batch_size_te*it_:batch_size_te*(it_+1)] = data.get_batch_label(data_ids,'test')[:,data.factor_indices]
         Loss_test.append(loss_test)
         Loss_rec_test.append(loss_rec_test)
         MSE.append(mse)
@@ -882,7 +891,6 @@ class Run(object):
             test_feed_dict = {self.batch: batch_images_test,
                               self.samples_pz: batch_pz_samples_test,
                               self.obj_fn_coeffs: opts['obj_fn_coeffs'],
-                              self.dropout_rate: 1.,
                               self.is_training: False}
             [loss, l_rec, divergences, z, z_mean, samples] = self.sess.run([self.objective,
                                              self.loss_reconstruct,
@@ -1048,23 +1056,21 @@ class Run(object):
         # - Auto-encoding test images & samples generated by the model
         [reconstructions, latents, generations] = self.sess.run(
                                     [self.recon_x,
-                                     self.enc_z,
+                                     self.z_samples,
                                      self.generated_x],
-                                    feed_dict={self.batch: data.plot_data,
+                                    feed_dict={self.batch: data.data[self.plot_data_idx],
                                                self.samples_pz: fixed_noise,
-                                               self.dropout_rate: 1.,
                                                self.is_training: False})
         # - get kl(q(z_i),p(z_i)) on test data to plot latent traversals
-        test_size = np.shape(data.test_data)[0]
+        test_size = self.test_size
         batch_size_te = min(test_size,1000)
         batches_num_te = int(test_size/batch_size_te)+1
         kl_to_prior = np.zeros(opts['zdim'])
         for it_ in range(batches_num_te):
             data_ids = np.random.choice(test_size, batch_size_te, replace=True)
-            batch_images_test = data.test_data[data_ids].astype(np.float32)
+            batch_images_test = data.get_batch_img(data_ids, 'test').astype(np.float32)
             kl = self.sess.run(self.kl_to_prior, feed_dict={
                                                 self.batch: batch_images_test,
-                                                self.dropout_rate: 1.,
                                                 self.is_training: False})
             kl_to_prior += kl / batches_num_te
 
@@ -1090,7 +1096,6 @@ class Run(object):
         # - Reconstructing latent transversals
         obs_transversal = self.sess.run(self.generated_x,
                                     feed_dict={self.samples_pz: np.reshape(latent_transversal,[-1, opts['zdim']]),
-                                               self.dropout_rate: 1.,
                                                self.is_training: False})
         obs_transversal = np.reshape(obs_transversal, [-1, opts['zdim'], num_steps]+im_shape)
         kl_to_prior_sorted = np.argsort(kl_to_prior)[::-1]
@@ -1098,13 +1103,15 @@ class Run(object):
 
         # - ploting and saving
         if opts['dataset']=='celebA' or opts['dataset']=='3Dchairs':
-            save_test_celeba(opts, data.plot_data, reconstructions,
+            save_test_celeba(opts, data.data[self.plot_data_idx],
+                                        reconstructions,
                                         obs_transversal,
                                         generations,
                                         opts['exp_dir'])
             save_dimwise_traversals(opts, obs_transversal, opts['exp_dir'])
         else:
-            save_test_smallnorb(opts, data.plot_data, reconstructions,
+            save_test_smallnorb(opts, data.data[self.plot_data_idx],
+                                        reconstructions,
                                         obs_transversal,
                                         generations,
                                         opts['exp_dir'])

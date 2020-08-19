@@ -16,47 +16,40 @@ import logging
 import pdb
 
 def encoder(opts, input, output_dim, scope=None, reuse=False,
-                                            is_training=False,
-                                            dropout_rate=1.):
+                                            is_training=False):
     with tf.variable_scope(scope, reuse=reuse):
         if opts['network']['e_arch'] == 'mlp':
             # Encoder uses only fully connected layers with ReLus
             outputs = mlp_encoder(opts, input, output_dim,
                                             reuse,
-                                            is_training,
-                                            dropout_rate)
+                                            is_training)
         elif opts['network']['e_arch'] == 'dcgan':
             # Fully convolutional architecture similar to DCGAN
             outputs = dcgan_encoder(opts, input, output_dim,
                                             reuse,
-                                            is_training,
-                                            dropout_rate)
+                                            is_training)
         elif opts['network']['e_arch'] == 'dcgan_v2':
             # Fully convolutional architecture similar to Wasserstein GAN
             outputs = dcgan_v2_encoder(opts, input, output_dim,
                                             reuse,
-                                            is_training,
-                                            dropout_rate)
+                                            is_training)
         elif opts['network']['e_arch'] == 'conv_locatello':
             # Fully convolutional architecture similar to Locatello & al.
             outputs = locatello_encoder(opts, input, output_dim,
                                             reuse,
-                                            is_training,
-                                            dropout_rate)
+                                            is_training)
         elif opts['network']['e_arch'] == 'resnet':
             assert False, 'To Do'
             # Resnet archi similar to Improved training of WAGAN
             outputs = resnet_encoder(opts, input, output_dim,
                                             reuse,
-                                            is_training,
-                                            dropout_rate)
+                                            is_training)
         elif opts['network']['e_arch'] == 'resnet_v2':
             assert False, 'To Do'
             # Full conv Resnet archi similar to Improved training of WAGAN
             outputs = resnet_v2_encoder(opts, input, output_dim,
                                             reuse,
-                                            is_training,
-                                            dropout_rate)
+                                            is_training)
         else:
             raise ValueError('%s : Unknown encoder architecture' % opts['network']['e_arch'])
 
@@ -78,47 +71,40 @@ def encoder(opts, input, output_dim, scope=None, reuse=False,
 
 
 def decoder(opts, input, output_dim, scope=None, reuse=False,
-                                            is_training=False,
-                                            dropout_rate=1.):
+                                            is_training=False):
     with tf.variable_scope(scope, reuse=reuse):
         if opts['network']['d_arch'] == 'mlp':
             # Encoder uses only fully connected layers with ReLus
             outputs = mlp_decoder(opts, input, output_dim,
                                             reuse,
-                                            is_training,
-                                            dropout_rate)
+                                            is_training)
         elif opts['network']['d_arch'] == 'dcgan':
             # Fully convolutional architecture similar to DCGAN
             outputs = dcgan_decoder(opts, input, output_dim,
                                             reuse,
-                                            is_training,
-                                            dropout_rate)
+                                            is_training)
         elif opts['network']['d_arch'] == 'dcgan_v2':
             # Fully convolutional architecture similar to improve Wasserstein nGAN
             outputs = dcgan_v2_decoder(opts, input, output_dim,
                                             reuse,
-                                            is_training,
-                                            dropout_rate)
+                                            is_training)
         elif opts['network']['d_arch'] == 'conv_locatello':
             # Fully convolutional architecture similar to Locatello & al.
             outputs = locatello_decoder(opts, input, output_dim,
                                             reuse,
-                                            is_training,
-                                            dropout_rate)
+                                            is_training)
         elif opts['network']['d_arch'] == 'resnet':
             assert False, 'To Do'
             # Fully convolutional architecture similar to improve Wasserstein nGAN
             outputs = resnet_decoder(opts, input, output_dim,
                                             reuse,
-                                            is_training,
-                                            dropout_rate)
+                                            is_training)
         elif opts['network']['d_arch'] == 'resnet_v2':
             assert False, 'To Do'
             # Fully convolutional architecture similar to improve Wasserstein nGAN
             outputs = resnet_v2_decoder(opts, input, output_dim,
                                             reuse,
-                                            is_training,
-                                            dropout_rate)
+                                            is_training)
         else:
             raise ValueError('%s Unknown encoder architecture for mixtures' % opts['network']['d_arch'])
 
@@ -140,8 +126,7 @@ def decoder(opts, input, output_dim, scope=None, reuse=False,
 
 
 def mlp_encoder(opts, input, output_dim, reuse=False,
-                                            is_training=False,
-                                            dropout_rate=1.):
+                                            is_training=False):
     layer_x = input
     for i in range(opts['network']['e_nlayers']):
         layer_x = ops.linear.Linear(opts, layer_x, np.prod(layer_x.get_shape().as_list()[1:]),
@@ -154,7 +139,6 @@ def mlp_encoder(opts, input, output_dim, reuse=False,
             layer_x = ops.layernorm.Layernorm(
                 opts, layer_x, 'hid%d/bn' % i, reuse)
         layer_x = ops._ops.non_linear(layer_x,opts['network']['e_nonlinearity'])
-        layer_x = tf.nn.dropout(layer_x, keep_prob=dropout_rate)
     outputs = ops.linear.Linear(opts, layer_x, np.prod(layer_x.get_shape().as_list()[1:]),
                 output_dim, init=opts['mlp_init'], scope='hid_final')
 
@@ -162,8 +146,7 @@ def mlp_encoder(opts, input, output_dim, reuse=False,
 
 
 def locatello_encoder(opts, input, output_dim, reuse=False,
-                                            is_training=False,
-                                            dropout_rate=1.):
+                                            is_training=False):
     """
     Archi used by Locatello & al.
     """
@@ -191,8 +174,7 @@ def locatello_encoder(opts, input, output_dim, reuse=False,
     return outputs
 
 
-def mlp_decoder(opts, input, output_dim, reuse, is_training,
-                                            dropout_rate=1.):
+def mlp_decoder(opts, input, output_dim, reuse, is_training):
     # Architecture with only fully connected layers and ReLUs
     layer_x = input
     for i in range(opts['network']['d_nlayers']):
@@ -206,7 +188,6 @@ def mlp_decoder(opts, input, output_dim, reuse, is_training,
         elif opts['normalization']=='layernorm':
             layer_x = ops.layernorm.Layernorm(
                 opts, layer_x, 'hid%d/bn' % i, reuse)
-        layer_x = tf.nn.dropout(layer_x, keep_prob=dropout_rate)
     outputs = ops.linear.Linear(opts, layer_x,np.prod(layer_x.get_shape().as_list()[1:]),
                 np.prod(output_dim), init=opts['mlp_init'], scope='hid_final')
 
@@ -214,8 +195,7 @@ def mlp_decoder(opts, input, output_dim, reuse, is_training,
 
 
 def  locatello_decoder(opts, input, output_dim, reuse,
-                                            is_training,
-                                            dropout_rate=1.):
+                                            is_training):
     """
     Archi used by Locatello & al.
     """
@@ -254,7 +234,7 @@ def  locatello_decoder(opts, input, output_dim, reuse,
     return outputs
 
 
-def discriminator(opts, input, is_training, dropout_rate=1.):
+def discriminator(opts, input, is_training):
     """
     Discriminator network for FactorVAE.
     Archtecture is the same than icml paper
@@ -269,7 +249,6 @@ def discriminator(opts, input, is_training, dropout_rate=1.):
             layer_x = ops.batchnorm.Batchnorm_layers(
                 opts, layer_x, 'hid%d/bn' % i, is_training)
         layer_x = ops._ops.non_linear(layer_x,'leaky_relu')
-        layer_x = tf.nn.dropout(layer_x, keep_prob=dropout_rate)
     logits = ops.linear.Linear(opts, layer_x, np.prod(layer_x.get_shape().as_list()[1:]),
                 2, init='glorot_uniform', scope='hid_final')
     probs = tf.nn.softmax(logits)

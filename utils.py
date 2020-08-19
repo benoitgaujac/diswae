@@ -137,9 +137,8 @@ def compute_score_matrix(mus, ys, mus_test, ys_test):
             score_matrix[i, j] = np.mean(pred == y_j_test)
     return score_matrix
 
-def sample_factors(opts, batch_size, data):
+def sample_factors(batch_size, factor_sizes):
     # sampling factors
-    factor_sizes = data.factor_sizes
     factor_num = len(factor_sizes)
     # sampling batch of factors
     factors = np.zeros((batch_size,factor_num))
@@ -147,9 +146,7 @@ def sample_factors(opts, batch_size, data):
         factors[:,i] = np.random.randint(factor_sizes[i],size=batch_size)
     return factors
 
-def sample_images(opts, dataset, data, factors):
-    # generating images from factors
-    images, labels = data.sample_observations_from_factors(dataset, factors)
-    # indices = np.dot(factors, data.factor_bases).astype(dtype=np.int32)
-    # images, labels = sample_from_factor_indices(data, indices)
-    return images
+# def sample_images(opts, dataset, data, factors):
+#     # generating images from factors
+#     images = data.sample_observations_from_factors(dataset, factors)
+#     return images

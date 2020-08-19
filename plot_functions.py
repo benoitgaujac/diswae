@@ -267,8 +267,8 @@ def save_train(opts, data_train, data_test,
     if len(mig)>0:
         ax = plt.subplot(gs[1, 2])
         # y = np.convolve(mig, np.ones((size_filter,))/size_filter, mode='valid')
-        y = betaVAE
-        plt.plot(x, y[::x_step], linewidth=4, color='green', label='betaVAE')
+        # y = betaVAE
+        # plt.plot(x, y[::x_step], linewidth=4, color='green', label='betaVAE')
         y = mig
         plt.plot(x, y[::x_step], linewidth=4, color='red', label='MIG')
         # y = np.convolve(factorVAE, np.ones((size_filter,))/size_filter, mode='valid')

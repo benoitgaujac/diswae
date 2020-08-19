@@ -28,7 +28,7 @@ parser.add_argument("--res_dir", type=str, default='res',
                     help='directory in which exp. res are saved')
 parser.add_argument("--num_it", type=int, default=300000,
                     help='iteration number')
-parser.add_argument("--net_archi", default='mlp',
+parser.add_argument("--net_archi", default='conv_locatello',
                     help='networks architecture [mlp/conv_locatello]')
 parser.add_argument("--id", type=int, default=0,
                     help='exp id corresponding to latent reg weight setup')
@@ -97,15 +97,15 @@ def main():
     opts['model'] = FLAGS.model
     if FLAGS.dataset == 'celebA':
         opts['zdim'] = 32
-        opts['batch_size'] = 128
+        # opts['batch_size'] = 128
         opts['lr'] = 0.0001
     elif FLAGS.dataset == '3Dchairs':
         opts['zdim'] = 16
-        opts['batch_size'] = 128
+        # opts['batch_size'] = 128
         opts['lr'] = 0.0001
     else:
         opts['zdim'] = 10
-        opts['batch_size'] = 64
+        # opts['batch_size'] = 64
         opts['lr'] = 0.0004
     if opts['model'][-3:]=='VAE':
         opts['input_normalize_sym'] = False
@@ -114,28 +114,41 @@ def main():
     if FLAGS.dataset == 'celebA':
         if opts['model'][-3:]=='VAE':
             beta = [1, 5, 10, 15, 20, 25, 50]
-            opts['obj_fn_coeffs'] = beta[FLAGS.id-1]
+            coef_id = (FLAGS.id-1) % len(beta)
+            opts['obj_fn_coeffs'] = beta[coef_id]
         else:
             beta = [1, 2, 5, 10, 15, 25, 50]
             gamma = [1, 2, 5, 10, 15, 25, 50]
             lmba = list(itertools.product(beta,gamma))
-            opts['obj_fn_coeffs'] = list(lmba[FLAGS.id-1])
+            coef_id = (FLAGS.id-1) % len(lmba)
+            opts['obj_fn_coeffs'] = list(lmba[coef_id])
     elif FLAGS.dataset == '3Dchairs':
         if opts['model'][-3:]=='VAE':
             beta = [1, 2, 5, 10, 20, 50, 100]
-            opts['obj_fn_coeffs'] = beta[FLAGS.id-1]
+            coef_id = (FLAGS.id-1) % len(beta)
+            opts['obj_fn_coeffs'] = beta[coef_id]
         else:
             beta = [1, 2, 5, 10, 15, 20, 25]
             gamma = [1, 2, 5, 10, 15, 20, 25]
             lmba = list(itertools.product(beta,gamma))
-            opts['obj_fn_coeffs'] = list(lmba[FLAGS.id-1])
+            coef_id = (FLAGS.id-1) % len(lmba)
+            opts['obj_fn_coeffs'] = list(lmba[coef_id])
     else:
         if opts['model'] == 'BetaVAE' or opts['model'] == 'BetaTCVAE':
             beta = [1, 2, 4, 6, 8, 10]
-            opts['obj_fn_coeffs'] = beta[FLAGS.id-1]
+            coef_id = (FLAGS.id-1) % len(beta)
+            opts['obj_fn_coeffs'] = beta[coef_id]
         elif opts['model']=='FactorVAE':
             beta = [1, 10, 25, 50, 75, 100]
-            opts['obj_fn_coeffs'] = beta[FLAGS.id-1]
+            coef_id = (FLAGS.id-1) % len(beta)
+            opts['obj_fn_coeffs'] = beta[coef_id]
+        elif opts['model']=='WAE':
+            if opts['cost'] == 'xentropy':
+                beta = [1, 5, 10, 25, 50, 100]
+            else:
+                beta = [1, 2, 4, 6, 8, 10]
+            coef_id = (FLAGS.id-1) % len(beta)
+            opts['obj_fn_coeffs'] = beta[coef_id]
         else:
             if opts['cost'] == 'xentropy':
                 beta = [1, 5, 10, 25, 50, 100]
@@ -144,20 +157,24 @@ def main():
                 beta = [1, 2, 4, 6, 8, 10]
                 gamma = [1, 2, 4, 6, 8, 10]
             lmba = list(itertools.product(beta,gamma))
-            opts['obj_fn_coeffs'] = list(lmba[FLAGS.id-1])
+            coef_id = (FLAGS.id-1) % len(lmba)
+            opts['obj_fn_coeffs'] = list(lmba[coef_id])
     # Create directories
     opts['out_dir'] = FLAGS.out_dir
+    if not tf.gfile.IsDirectory(opts['out_dir']):
+        utils.create_dir(opts['out_dir'])
+    out_subdir = os.path.join(opts['out_dir'], opts['model'])
+    if not tf.gfile.IsDirectory(out_subdir):
+        utils.create_dir(out_subdir)
     opts['exp_dir'] = FLAGS.res_dir
     if opts['model'] == 'disWAE' or opts['model'] == 'TCWAE_MWS' or opts['model'] == 'TCWAE_GAN':
-        exp_dir = os.path.join(opts['out_dir'],
-                               opts['model'],
+        exp_dir = os.path.join(out_subdir,
                                '{}_{}_{}_{:%Y_%m_%d_%H_%M}'.format(
                                     opts['exp_dir'],
                                     opts['obj_fn_coeffs'][0],
                                     opts['obj_fn_coeffs'][1],datetime.now()), )
     else :
-        exp_dir = os.path.join(opts['out_dir'],
-                               opts['model'],
+        exp_dir = os.path.join(out_subdir,
                                '{}_{}_{:%Y_%m_%d_%H_%M}'.format(
                                     opts['exp_dir'],
                                     opts['obj_fn_coeffs'],
@@ -173,11 +190,11 @@ def main():
 
     # Loading the dataset
     data = DataHandler(opts)
-    assert data.num_points >= opts['batch_size'], 'Training set too small'
+    assert data.train_size >= opts['batch_size'], 'Training set too small'
 
     # Experiemnts set up
-    opts['epoch_num'] = int(FLAGS.num_it / int(data.num_points/opts['batch_size']))
-    opts['print_every'] = int(opts['epoch_num'] / 5.) * int(data.num_points/opts['batch_size'])-1
+    opts['epoch_num'] = int(FLAGS.num_it / int(data.train_size/opts['batch_size']))
+    opts['print_every'] = int(opts['epoch_num'] / 5.) * int(data.train_size/opts['batch_size'])-1
     opts['evaluate_every'] = int(opts['print_every'] / 2.) + 1
     opts['save_every'] = 10000000000
     opts['save_final'] = FLAGS.save_model

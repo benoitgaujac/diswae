@@ -20,34 +20,31 @@ class Model(object):
         self.pz_mean = np.zeros(opts['zdim'], dtype='float32')      # TODO don't hardcode this
         self.pz_sigma = np.ones(opts['zdim'], dtype='float32')
 
-    def forward_pass(self, inputs, is_training, dropout_rate, reuse=False):
+    def forward_pass(self, inputs, is_training, reuse=False):
 
         enc_z, enc_mean, enc_Sigma = encoder(self.opts,
                                              input=inputs,
                                              output_dim=2 * self.opts['zdim'],
                                              scope='encoder',
                                              reuse=reuse,
-                                             is_training=is_training,
-                                             dropout_rate=dropout_rate)
+                                             is_training=is_training)
 
         dec_x, dec_mean, dec_Sigma = decoder(self.opts,
                                              input=enc_z,
                                              output_dim=self.output_dim,
                                              scope='decoder',
                                              reuse=reuse,
-                                             is_training=is_training,
-                                             dropout_rate=dropout_rate)
+                                             is_training=is_training)
         return enc_z, enc_mean, enc_Sigma, dec_x, dec_mean, dec_Sigma
 
     def sample_x_from_prior(self, noise):
 
         sample_x, sample_mean, sample_Sigma = decoder(self.opts,
-                                                      input=noise,
-                                                      output_dim=self.output_dim,
-                                                      scope='decoder',
-                                                      reuse=True,
-                                                      is_training=False,
-                                                      dropout_rate=1.)
+                                              input=noise,
+                                              output_dim=self.output_dim,
+                                              scope='decoder',
+                                              reuse=True,
+                                              is_training=False)
         return sample_x         #, sample_mean, sample_Sigma
 
     def dimewise_kl_to_prior(self,  z, z_mean, z_logvar):
@@ -99,13 +96,12 @@ class BetaVAE(Model):
         cross_entropy = tf.nn.sigmoid_cross_entropy_with_logits(labels=labels, logits=logits)
         return tf.reduce_mean(tf.reduce_sum(cross_entropy,axis=-1))
 
-    def loss(self, inputs, samples, loss_coeffs, is_training, dropout_rate):
+    def loss(self, inputs, samples, loss_coeffs, is_training):
 
         beta = loss_coeffs
 
-        enc_z, enc_mean, enc_Sigma, recon_x, dec_mean, _ = self.forward_pass(inputs=inputs,
-                                                                      is_training=is_training,
-                                                                      dropout_rate=dropout_rate)
+        _, enc_mean, enc_Sigma, _, dec_mean, _ = self.forward_pass(inputs=inputs,
+                                              is_training=is_training)
 
         loss_reconstruct = self.reconstruction_loss(inputs, dec_mean)
         kl = self.kl_penalty(self.pz_mean, self.pz_sigma, enc_mean, enc_Sigma)
@@ -118,7 +114,7 @@ class BetaVAE(Model):
         Smean, Svar = tf.nn.moments(Sigma_tr, axes=[0])
         encSigmas_stats = tf.stack([Smean, Svar], axis=-1)
 
-        return objective, loss_reconstruct, divergences, recon_x, enc_z, encSigmas_stats
+        return objective, loss_reconstruct, divergences, encSigmas_stats
 
 
 class BetaTCVAE(BetaVAE):
@@ -151,13 +147,12 @@ class BetaTCVAE(BetaVAE):
           keepdims=False)
       return tf.reduce_mean(log_qz - log_qz_product)
 
-    def loss(self, inputs, samples, loss_coeffs, is_training, dropout_rate):
+    def loss(self, inputs, samples, loss_coeffs, is_training):
 
         beta = loss_coeffs
 
-        enc_z, enc_mean, enc_Sigma, recon_x, dec_mean, _ = self.forward_pass(inputs=inputs,
-                                                                      is_training=is_training,
-                                                                      dropout_rate=dropout_rate)
+        enc_z, enc_mean, enc_Sigma, _, dec_mean, _ = self.forward_pass(inputs=inputs,
+                                              is_training=is_training)
 
         loss_reconstruct = self.reconstruction_loss(inputs, dec_mean)
         kl = self.kl_penalty(self.pz_mean, self.pz_sigma, enc_mean, enc_Sigma)
@@ -172,31 +167,29 @@ class BetaTCVAE(BetaVAE):
         Smean, Svar = tf.nn.moments(Sigma_tr, axes=[0])
         encSigmas_stats = tf.stack([Smean, Svar], axis=-1)
 
-        return objective, loss_reconstruct, divergences, recon_x, enc_z, encSigmas_stats
+        return objective, loss_reconstruct, divergences, encSigmas_stats
 
 
 class FactorVAE(BetaVAE):
     def __init__(self, opts):
         super().__init__(opts)
 
-    def get_discr_pred(self, inputs, reuse=False, is_training=False, dropout_rate=1.):
+    def get_discr_pred(self, inputs, reuse=False, is_training=False):
       """Build and get Dsicriminator preds.
       Based on ICML paper
       """
       with tf.variable_scope("discriminator",reuse=reuse):
-          logits, probs = discriminator(self.opts, inputs, is_training, dropout_rate)
+          logits, probs = discriminator(self.opts, inputs, is_training)
           clipped = tf.clip_by_value(probs, 1e-6, 1 - 1e-6)
       return logits, clipped
 
-
-    def loss(self, inputs, samples, loss_coeffs, is_training, dropout_rate):
+    def loss(self, inputs, samples, loss_coeffs, is_training):
 
         gamma = loss_coeffs
 
         # --- Encoding and reconstructing
-        enc_z, enc_mean, enc_Sigma, recon_x, dec_mean, _ = self.forward_pass(inputs=inputs,
-                                                                      is_training=is_training,
-                                                                      dropout_rate=dropout_rate)
+        enc_z, enc_mean, enc_Sigma, _, dec_mean, _ = self.forward_pass(inputs=inputs,
+                                                is_training=is_training)
         loss_reconstruct = self.reconstruction_loss(inputs, dec_mean)
 
         # --- Latent regularization
@@ -211,13 +204,11 @@ class FactorVAE(BetaVAE):
         # - Get discriminator preds
         logits_z, probs_z = self.get_discr_pred(
                                 inputs=enc_z,
-                                is_training=is_training,
-                                dropout_rate=dropout_rate)
+                                is_training=is_training)
         _, probs_z_shuffle = self.get_discr_pred(
                                 inputs=enc_z_shuffle,
                                 reuse=True,
-                                is_training=is_training,
-                                dropout_rate=dropout_rate)
+                                is_training=is_training)
         # - TC loss
         tc = tf.reduce_mean(logits_z[:, 0] - logits_z[:, 1], axis=0)
         # - Discr loss
@@ -235,7 +226,7 @@ class FactorVAE(BetaVAE):
         Smean, Svar = tf.nn.moments(Sigma_tr, axes=[0])
         encSigmas_stats = tf.stack([Smean, Svar], axis=-1)
 
-        return objective, loss_reconstruct, divergences, recon_x, enc_z, encSigmas_stats
+        return objective, loss_reconstruct, divergences, encSigmas_stats
 
 
 class WAE(Model):
@@ -330,14 +321,13 @@ class WAE(Model):
             assert False, 'Unknown cost function %s' % opts['obs_cost']
         return tf.reduce_mean(cost)
 
-    def loss(self, inputs, samples, loss_coeffs, is_training, dropout_rate):
+    def loss(self, inputs, samples, loss_coeffs, is_training):
 
         lmbd = loss_coeffs
 
         # --- Encoding and reconstructing
-        enc_z, enc_mean, enc_Sigma, recon_x, dec_mean, _ = self.forward_pass(inputs=inputs,
-                                                                                is_training=is_training,
-                                                                                dropout_rate=dropout_rate)
+        enc_z, _, enc_Sigma, recon_x, dec_mean, _ = self.forward_pass(inputs=inputs,
+                                                is_training=is_training)
 
         loss_reconstruct = self.reconstruction_loss(inputs, recon_x, dec_mean)
         match_penalty = lmbd*self.mmd_penalty(enc_z, samples)
@@ -354,7 +344,7 @@ class WAE(Model):
         Smean, Svar = tf.nn.moments(Sigma_tr, axes=[0])
         encSigmas_stats = tf.stack([Smean, Svar], axis=-1)
 
-        return objective, loss_reconstruct, divergences, recon_x, enc_z, encSigmas_stats
+        return objective, loss_reconstruct, divergences, encSigmas_stats
 
 
 class TCWAE_MWS(WAE):
@@ -398,14 +388,13 @@ class TCWAE_MWS(WAE):
 
       return tf.reduce_mean(log_qz), tf.reduce_mean(log_qz_product), tf.reduce_mean(log_pz_product)
 
-    def loss(self, inputs, samples, loss_coeffs, is_training, dropout_rate):
+    def loss(self, inputs, samples, loss_coeffs, is_training):
 
         (lmbd1, lmbd2) = loss_coeffs
 
         # --- Encoding and reconstructing
         enc_z, enc_mean, enc_Sigma, recon_x, dec_mean, _ = self.forward_pass(inputs=inputs,
-                                                                                is_training=is_training,
-                                                                                dropout_rate=dropout_rate)
+                                                is_training=is_training)
         loss_reconstruct = self.reconstruction_loss(inputs, recon_x, dec_mean)
 
         # --- Latent regularization
@@ -431,7 +420,7 @@ class TCWAE_MWS(WAE):
         Smean, Svar = tf.nn.moments(Sigma_tr, axes=[0])
         encSigmas_stats = tf.stack([Smean, Svar], axis=-1)
 
-        return objective, loss_reconstruct, divergences, recon_x, enc_z, encSigmas_stats
+        return objective, loss_reconstruct, divergences, encSigmas_stats
 
 
 class TCWAE_GAN(WAE):
@@ -439,23 +428,22 @@ class TCWAE_GAN(WAE):
     def __init__(self, opts):
         super().__init__(opts)
 
-    def get_discr_pred(self, inputs, scope, reuse=False, is_training=False, dropout_rate=1.):
+    def get_discr_pred(self, inputs, scope, reuse=False, is_training=False):
       """Build and get Dsicriminator preds.
       Based on ICML paper
       """
       with tf.variable_scope('discriminator/' + scope, reuse=reuse):
-          logits, probs = discriminator(self.opts, inputs, is_training, dropout_rate)
+          logits, probs = discriminator(self.opts, inputs, is_training)
           clipped = tf.clip_by_value(probs, 1e-6, 1 - 1e-6)
       return logits, clipped
 
-    def loss(self, inputs, samples, loss_coeffs, is_training, dropout_rate):
+    def loss(self, inputs, samples, loss_coeffs, is_training):
 
         (lmbd1, lmbd2) = loss_coeffs
 
         # --- Encoding and reconstructing
         enc_z, enc_mean, enc_Sigma, recon_x, dec_mean, _ = self.forward_pass(inputs=inputs,
-                                                                                is_training=is_training,
-                                                                                dropout_rate=dropout_rate)
+                                                is_training=is_training)
         loss_reconstruct = self.reconstruction_loss(inputs, recon_x, dec_mean)
 
         # --- Latent regularization
@@ -471,14 +459,12 @@ class TCWAE_GAN(WAE):
                                 inputs=enc_z,
                                 scope = 'TC',
                                 reuse = False,
-                                is_training=is_training,
-                                dropout_rate=dropout_rate)
+                                is_training=is_training)
         _, probs_z_shuffle = self.get_discr_pred(
                                 inputs=enc_z_shuffle,
                                 scope = 'TC',
                                 reuse=True,
-                                is_training=is_training,
-                                dropout_rate=dropout_rate)
+                                is_training=is_training)
         # - TC loss
         tc = tf.reduce_mean(logits_z[:, 0] - logits_z[:, 1], axis=0)
         # - Discr loss
@@ -499,14 +485,12 @@ class TCWAE_GAN(WAE):
                                     inputs=enc_z_shuffle,
                                     scope = 'dimwise',
                                     reuse = False,
-                                    is_training=is_training,
-                                    dropout_rate=dropout_rate)
+                                    is_training=is_training)
             _, probs_z_prior = self.get_discr_pred(
                                     inputs=samples,
                                     scope = 'dimwise',
                                     reuse=True,
-                                    is_training=is_training,
-                                    dropout_rate=dropout_rate)
+                                    is_training=is_training)
             # - dimwise loss
             dimwise = tf.reduce_mean(logits_z[:, 0] - logits_z[:, 1], axis=0)
             # - Discr loss
@@ -522,15 +506,13 @@ class TCWAE_GAN(WAE):
                                         inputs=tf.expand_dims(enc_z_shuffle[:,d],axis=-1),
                                         scope = 'dimwise',
                                         reuse = reuse,
-                                        is_training=is_training,
-                                        dropout_rate=dropout_rate)
+                                        is_training=is_training)
                 reuse = True
                 _, probs_z_prior = self.get_discr_pred(
                                         inputs=tf.expand_dims(samples[:,d],axis=-1),
                                         scope = 'dimwise',
                                         reuse=reuse,
-                                        is_training=is_training,
-                                        dropout_rate=dropout_rate)
+                                        is_training=is_training)
                 # - dimwise loss
                 ldimwise.append(tf.reduce_mean(logits_z[:, 0] - logits_z[:, 1], axis=0))
                 # - Discr loss
@@ -558,7 +540,7 @@ class TCWAE_GAN(WAE):
         Smean, Svar = tf.nn.moments(Sigma_tr, axes=[0])
         encSigmas_stats = tf.stack([Smean, Svar], axis=-1)
 
-        return objective, loss_reconstruct, divergences, recon_x, enc_z, encSigmas_stats
+        return objective, loss_reconstruct, divergences, encSigmas_stats
 
 
 class disWAE(WAE):
@@ -624,14 +606,13 @@ class disWAE(WAE):
         res3 = tf.reduce_sum(tf.reduce_prod(tf.reduce_sum(K, axis=1) / nf, axis=0) / nf)
         return res1 + res2 - 2. * res3
 
-    def loss(self, inputs, samples, loss_coeffs, is_training, dropout_rate):
+    def loss(self, inputs, samples, loss_coeffs, is_training):
 
         (lmbd1, lmbd2) = loss_coeffs
 
         # --- Encoding and reconstructing
         enc_z, enc_mean, enc_Sigma, recon_x, dec_mean, _ = self.forward_pass(inputs=inputs,
-                                                                                is_training=is_training,
-                                                                                dropout_rate=dropout_rate)
+                                                    is_training=is_training)
         loss_reconstruct = self.reconstruction_loss(inputs, recon_x, dec_mean)
 
         # --- Latent regularization

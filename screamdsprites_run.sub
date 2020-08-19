@@ -5,10 +5,10 @@
 #$ -wd /home/gaujac/diswae
 
 #$ -l gpu=true
-#$ -l tmem=28G
-#$ -l h_rt=10:00:00
+#$ -l tmem=8G
+#$ -l h_rt=15:00:00
 
-#$ -t 1-36
+#$ -t 1-108
 
 #$ -N l2mwsScrdsprites
 

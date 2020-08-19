@@ -75,6 +75,7 @@ config_noisydsprites['dataset'] = 'noisydsprites'
 ### Scream DSprites config
 config_screamdsprites = config_dsprites.copy()
 config_screamdsprites['dataset'] = 'screamdsprites'
+# config_screamdsprites['true_gen_model'] = False #If synthetic data with true gen. model known: True, False
 
 
 ### 3dshapes config

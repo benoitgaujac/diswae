@@ -213,11 +213,12 @@ class Data(object):
         """
         X is either np.ndarray or paths
         """
-        data_dir = _data_dir(opts)
+        self.data_dir = _data_dir(opts)
+        self.dataset_name = opts['dataset']
+        self.normalize = opts['input_normalize_sym']
         self.opts = opts
         self.X = None
         self.type = type
-        self.normalize = opts['input_normalize_sym']
         self.paths = None
         self.dict_loaded = None
         self.loaded = None
@@ -226,20 +227,20 @@ class Data(object):
             with utils.o_gfile(SCREAM_PATH, 'rb') as f:
                 scream = Image.open(f)
                 scream.thumbnail((350, 274, 3))
-                self.scream = np.array(scream) * 1. / 255.
-        
+                self.scream = np.array(scream) / 255.
+                scream.close()
+
         if isinstance(X, np.ndarray):
             self.X = X
             self.shape = X.shape
         else:
-            assert isinstance(data_dir, str), 'Data directory not provided'
+            assert isinstance(self.data_dir, str), 'Data directory not provided'
             assert paths is not None and len(paths) > 0, 'No paths provided for the data'
-            self.data_dir = data_dir
             self.paths = paths[:]
             self.dict_loaded = {} if dict_loaded is None else dict_loaded
             self.loaded = [] if loaded is None else loaded
-            self.crop_style = opts['celebA_crop']
-            self.dataset_name = opts['dataset']
+            if self.dataset_name == 'celebA':
+                self.crop_style = opts['celebA_crop']
             self.shape = (len(self.paths), None, None, None)
 
     def __len__(self):
@@ -257,12 +258,12 @@ class Data(object):
     def __getitem__(self, key):
         if isinstance(self.X, np.ndarray):
             obs = self.X[key]
-            # transforming data if needed
-            if self.opts['dataset'] == 'noisydsprites' and self.type=='data':
+            # add noise to dsprites
+            if self.dataset_name == 'noisydsprites' and self.type=='data':
                 obs = np.repeat(obs, 3, axis=-1)
                 color = np.random.uniform(0, 1, obs.shape[:-1] + (3,))
                 obs = np.minimum(obs + color, 1.)
-            elif self.opts['dataset'] == 'screamdsprites'and self.type=='data':
+            elif self.dataset_name == 'screamdsprites'and self.type=='data':
                 obs = np.repeat(obs, 3, axis=-1)
                 if len(obs.shape)==3:
                     npatch = 1
@@ -270,8 +271,8 @@ class Data(object):
                 else:
                     npatch = obs.shape[0]
                     patches = image.extract_patches_2d(self.scream, (64, 64), npatch)
-                background = (patches + np.random.uniform(0, 1, size=patches.shape)) / 2
-                mask = (obs == 1)
+                background = (patches + np.random.uniform(0, 1, size=3)) / 2
+                mask = (obs == 1.)
                 background[mask] = 1 - background[mask]
                 obs = background
             return obs
@@ -308,6 +309,20 @@ class Data(object):
                 else:
                     if self.dataset_name == 'celebA':
                         point = self._read_celeba_image(self.data_dir, self.paths[key])
+                    elif self.dataset_name[-8:] == 'dsprites':
+                        data_dir = os.path.join(self.data_dir, 'images')
+                        point = self._read_dsprites_image(data_dir, self.paths[key])
+                        if self.dataset_name == 'noisydsprites' and self.type=='data':
+                            point = np.repeat(point, 3, axis=-1)
+                            color = np.random.uniform(0, 1, point.shape[:-1] + (3,))
+                            point = np.minimum(point + color, 1.)
+                        elif self.dataset_name == 'screamdsprites'and self.type=='data':
+                            point = np.repeat(point, 3, axis=-1)
+                            patches = image.extract_patches_2d(self.scream, (64, 64), 1)[0]
+                            background = (patches + np.random.uniform(0, 1, size=3)) / 2
+                            mask = (point > .8)
+                            background[mask] = 1 - background[mask]
+                            point = background
                     else:
                         raise Exception('Disc read for this dataset not implemented yet...')
                     if self.normalize:
@@ -343,7 +358,16 @@ class Data(object):
             im = im.crop((0, 7, 64, 64 + 7))
         else:
             raise Exception('Unknown crop style specified')
-        return np.array(im).reshape(64, 64, 3) / 255.
+        im_array = np.array(im).reshape(datashapes['celebA']) / 255.
+        im.close()
+        return im_array
+
+    def _read_dsprites_image(self, data_dir, filename):
+        im = Image.open(utils.o_gfile((data_dir, filename), 'rb'))
+        im_array =np.array(im).reshape(datashapes['dsprites']).astype(np.float32) / 255.
+        im.close()
+        return im_array
+
 
 class DataHandler(object):
     """A class storing and manipulating the dataset.
@@ -356,13 +380,19 @@ class DataHandler(object):
 
 
     def __init__(self, opts):
-        self.data_shape = None
-        self.num_points = None
-        self.data = None
-        self.test_data = None
-        self.labels = None
-        self.test_labels = None
+        # load data
         self._load_data(opts)
+        # normalize if needed, else we will normalyze while reading from disk
+        if opts['input_normalize_sym']:
+            # Normalize data to [-1, 1]
+            if isinstance(self.data.X, np.ndarray):
+                self.data.X = (self.data.X - 0.5) * 2.
+        # creating random masks
+        self._data_randomization(opts)
+        # data informations
+        self.data_shape = datashapes[opts['dataset']]
+        self.train_size = len(self.rand_masks['train'])
+        self.test_size = len(self.rand_masks['test'])
 
     def _load_data(self, opts):
         """Load a dataset and fill all the necessary variables.
@@ -385,12 +415,21 @@ class DataHandler(object):
         else:
             raise ValueError('Unknown %s' % opts['dataset'])
 
-        if opts['input_normalize_sym']:
-            # Normalize data to [-1, 1]
-            if isinstance(self.data.X, np.ndarray):
-                self.data.X = (self.data.X - 0.5) * 2.
-                self.test_data.X = (self.test_data.X - 0.5) * 2.
-            # Else we will normalyze while reading from disk
+    def _data_randomization(self, opts):
+        """Create random masks to shuffle the data for ewach experience
+
+        """
+        shuffling_mask = np.arange(len(self.data))
+        seed = 123
+        np.random.seed(seed)
+        np.random.shuffle(shuffling_mask)
+        np.random.seed()
+        np.random.shuffle(shuffling_mask[:-opts['plot_num_pics']])
+        # self.data_order_idx = np.argsort(shuffling_mask)
+        self.rand_masks = {}
+        self.rand_masks['train'] = shuffling_mask[:-10000]
+        self.rand_masks['test'] = shuffling_mask[-10000:-opts['plot_num_pics']]
+        self.rand_masks['vizu'] = shuffling_mask[-opts['plot_num_pics']:]
 
     def _load_dsprites(self, opts):
         """Load data from dsprites dataset
@@ -398,40 +437,21 @@ class DataHandler(object):
         """
 
         logging.error('Loading dsprites...')
-        # Loading data
+        # Loading labels and data
         data_dir = _data_dir(opts)
         data_path = os.path.join(data_dir, 'dsprites_ndarray_co1sh3sc6or40x32y32_64x64.npz')
-        X = np.load(data_path, allow_pickle=True)['imgs'][:,:,:,None].astype(np.float32)
         Y = np.load(data_path, allow_pickle=True)['latents_classes'][:,1:]
+        self.labels = Data(opts, Y, type='label')
+        num_samples = Y.shape[0]
+        paths = np.array(['%.6d.jpg' % i for i in range(1, num_samples + 1)])
+        self.data = Data(opts, None, 'data', paths)
+        # plot set
+        self.plot_data_idx = np.arange(41488,len(Y),34816)
         # labels informations
         self.factor_indices = list(range(5))
         self.factor_sizes = np.array(np.load(data_path, allow_pickle=True, encoding="latin1")['metadata'][()]["latents_sizes"],dtype=np.int64)[1:]
         self.factor_bases = np.prod(self.factor_sizes) / np.cumprod(
             self.factor_sizes)
-        # Creating shuffling mask
-        seed = 123
-        shuffling_mask = np.arange(len(Y))
-        np.random.seed(seed)
-        np.random.shuffle(shuffling_mask)
-        np.random.seed()
-        np.random.shuffle(shuffling_mask[opts['plot_num_pics']:])
-        self.data_order_idx = np.argsort(shuffling_mask)
-        # training set
-        self.data = Data(opts, X[shuffling_mask[:-10000]])
-        self.labels = Data(opts, Y[shuffling_mask[:-10000]], type='label')
-        # testing set
-        # test_size = 10000 - opts['plot_num_pics']
-        self.test_data = Data(opts, X[shuffling_mask[-10000:-opts['plot_num_pics']]])
-        self.test_labels = Data(opts, Y[shuffling_mask[-10000:-opts['plot_num_pics']]], type='label')
-        # vizu set
-        self.vizu_data = Data(opts, X[shuffling_mask[-opts['plot_num_pics']:]])
-        self.vizu_labels = Data(opts, Y[shuffling_mask[-opts['plot_num_pics']:]], type='label')
-        # plot set
-        idx = np.arange(41488,len(Y),34816)
-        self.plot_data = Data(opts, X[idx])
-        # data informations
-        self.data_shape = datashapes[opts['dataset']]
-        self.num_points = len(self.data)
 
         logging.error('Loading Done.')
 
@@ -457,32 +477,15 @@ class DataHandler(object):
         dataset = h5py.File(data_path, 'r')
         X = np.array(dataset['images']).astype(np.float32) / 255.
         Y = np.array(dataset['labels'])
+        self.data = Data(opts, X)
+        self.labels = Data(opts, Y, type='label')
+        # plot set
+        self.plot_data_idx = np.arange(10)
         # labels informations
         self.factor_indices = list(range(6))
         self.factor_sizes = np.array([10,10,10,8,4,15])
         self.factor_bases = np.prod(self.factor_sizes) / np.cumprod(
             self.factor_sizes)
-        # Creating shuffling mask
-        seed = 123
-        shuffling_mask = np.arange(len(X))
-        np.random.seed(seed)
-        np.random.shuffle(shuffling_mask)
-        np.random.seed()
-        np.random.shuffle(shuffling_mask[opts['plot_num_pics']:])
-        self.data_order_idx = np.argsort(shuffling_mask)
-        # training set
-        self.data = Data(opts, X[shuffling_mask[:-10000]])
-        self.labels = Data(opts, Y[shuffling_mask[:-10000]], type='label')
-        # testing set
-        # test_size = 10000 - opts['plot_num_pics']
-        self.test_data = Data(opts, X[shuffling_mask[-10000:-opts['plot_num_pics']]])
-        self.test_labels = Data(opts, Y[shuffling_mask[-10000:-opts['plot_num_pics']]], type='label')
-        # vizu set
-        self.vizu_data = Data(opts, X[shuffling_mask[-opts['plot_num_pics']:]])
-        self.vizu_labels = Data(opts, Y[shuffling_mask[-opts['plot_num_pics']:]], type='label')
-        # data informations
-        self.data_shape = datashapes[opts['dataset']]
-        self.num_points = len(self.data)
 
         logging.error('Loading Done.')
 
@@ -536,38 +539,18 @@ class DataHandler(object):
                         infos[r, c] = info
             list_of_labels.append((np.column_stack((categories, infos))))
         X = np.concatenate(list_of_images, axis=0)
-        self.Y = np.concatenate(list_of_labels, axis=0)
+        Y = np.concatenate(list_of_labels, axis=0)
         X = np.expand_dims(X,axis=-1)
-        self.Y[:, 3] = self.Y[:, 3] / 2  # azimuth values are 0, 2, 4, ..., 24
+        Y[:, 3] = Y[:, 3] / 2  # azimuth values are 0, 2, 4, ..., 24
+        self.data = Data(opts, X)
+        self.labels = Data(opts, Y, type='label')
+        # plot set
+        self.plot_data_idx = np.arange(0+18*6,40+18*6,2)
         # labels informations
         self.factor_indices = [0, 2, 3, 4]
         self.factor_sizes = np.array([5, 10, 9, 18, 6])
         self.factor_bases = np.prod(self.factor_sizes) / np.cumprod(
             self.factor_sizes)
-        # Creating shuffling mask
-        seed = 123
-        shuffling_mask = np.arange(len(X))
-        np.random.seed(seed)
-        np.random.shuffle(shuffling_mask)
-        np.random.seed()
-        np.random.shuffle(shuffling_mask[opts['plot_num_pics']:])
-        self.data_order_idx = np.argsort(shuffling_mask)
-        # training set
-        self.data = Data(opts, X[shuffling_mask[:-10000]])
-        self.labels = Data(opts, self.Y[shuffling_mask[:-10000]])
-        # testing set
-        # test_size = 10000 - opts['plot_num_pics']
-        self.test_data = Data(opts, X[shuffling_mask[-10000:-opts['plot_num_pics']]])
-        self.test_labels = Data(opts, self.Y[shuffling_mask[-10000:-opts['plot_num_pics']]])
-        # vizu set
-        self.vizu_data = Data(opts, X[shuffling_mask[-opts['plot_num_pics']:]])
-        self.vizu_labels = Data(opts, self.Y[shuffling_mask[-opts['plot_num_pics']:]])
-        # plot set
-        idx = np.arange(0+18*6,40+18*6,2)
-        self.plot_data = Data(opts, X[idx])
-        # data informations
-        self.data_shape = datashapes[opts['dataset']]
-        self.num_points = len(self.data)
 
         logging.error('Loading Done.')
 
@@ -575,6 +558,7 @@ class DataHandler(object):
         """Load data from 3Dchairs dataset
 
         """
+
         logging.error('Loading 3Dchairs')
         filename = os.path.join(_data_dir(opts), 'rendered_chairs.npz')
         # Extracting data and saving as npz if necessary
@@ -595,37 +579,17 @@ class DataHandler(object):
                         im = Image.open(path_to_file)
                         im = im.resize((64, 64), Image.ANTIALIAS)
                         X.append(np.array(im.getdata()))
+                        im.close()
                         n += 1
                         if n%10000==0:
                             print('{} images unizped'.format(n))
             np.savez_compressed(filename,data=np.array(X).reshape([-1,]+datashapes['3Dchairs']) / 255.)
             shutil.rmtree(root_dir)
-
         # loading data
         X = np.load(filename,allow_pickle=True)['data']
-        seed = 123
-        shuffling_mask = np.arange(len(X))
-        np.random.seed(seed)
-        np.random.shuffle(shuffling_mask)
-        np.random.seed()
-        np.random.shuffle(shuffling_mask[opts['plot_num_pics']:])
-        np.random.shuffle(shuffling_mask[opts['plot_num_pics']:])
-        # training set
-        self.data = Data(opts, X[shuffling_mask[:-10000]])
-        # testing set
-        # test_size = 10000 - opts['plot_num_pics']
-        self.test_data = Data(opts, X[shuffling_mask[-10000:-opts['plot_num_pics']]])
-        # vizu set
-        self.vizu_data = Data(opts, X[shuffling_mask[-opts['plot_num_pics']:]])
+        self.data = Data(opts, X)
         # plot set
-        np.random.seed(456)
-        idx = np.random.randint(0, 10000, 50)
-        # idx = np.arange(100)
-        self.plot_data = Data(opts, X[idx])
-        np.random.seed()
-        # data informations
-        self.data_shape = datashapes[opts['dataset']]
-        self.num_points = len(self.data)
+        self.plot_data_idx = np.arange(10)
 
         logging.error('Loading Done.')
 
@@ -635,29 +599,11 @@ class DataHandler(object):
         logging.error('Loading CelebA dataset')
 
         num_samples = 202599
-
         paths = np.array(['%.6d.jpg' % i for i in range(1, num_samples + 1)])
-        # Creating shuffling mask
-        seed = 123
-        shuffling_mask = np.arange(num_samples)
-        np.random.seed(seed)
-        np.random.shuffle(shuffling_mask)
-        np.random.seed()
-        np.random.shuffle(shuffling_mask[opts['plot_num_pics']:])
-        # training set
-        self.data = Data(opts, None, paths[shuffling_mask[:-10000]])
-        # testing set
-        self.test_data = Data(opts, None, paths[shuffling_mask[-10000:-opts['plot_num_pics']]])
-        # vizu set
-        self.vizu_data = Data(opts, None, paths[shuffling_mask[-opts['plot_num_pics']:]])
+        self.data = Data(opts, None, 'data', paths)
         # plot set
         # idx = [5,6,14,17,39,50,60,70,80,90]
-        idx = np.arange(5,5+50)
-        plot_data = Data(opts, None, paths[idx])
-        self.plot_data = plot_data[np.arange(50)]
-        # data informations
-        self.data_shape = datashapes[opts['dataset']]
-        self.num_points = len(self.data)
+        self.plot_data = np.arange(5,5+50)
 
         logging.error('Loading Done.')
 
@@ -822,51 +768,39 @@ class DataHandler(object):
 
         logging.error('Loading Done: Train size: %d, Test size: %d' % (self.num_points,len(self.test_data)))
 
+    def get_batch_img(self,idx, type):
+        return self.data[self.rand_masks[type][idx]]
+
+    def get_batch_label(self,idx, type):
+        return self.labels[self.rand_masks[type][idx]]
+
     def sample_observations_from_factors(self, dataset, factors):
         if dataset[-8:] == 'dsprites':
             indices = np.dot(factors, self.factor_bases).astype(dtype=np.int32)
-            images, labels = self.sample_from_factor_indices(indices)
+            images = self.data[indices]
         elif dataset == '3dshapes':
             indices = np.dot(factors, self.factor_bases).astype(dtype=np.int32)
-            images, labels = self.sample_from_factor_indices(indices)
+            images = self.data[indices]
         elif dataset == 'smallNORB':
-            feature_state_space_index = np.array(np.dot(self.Y, self.factor_bases), dtype=np.int32)
+            feature_state_space_index = np.array(np.dot(self.labels.X, self.factor_bases), dtype=np.int32)
             num_total_atoms = np.prod(self.factor_sizes)
             state_space_to_save_space_index = np.zeros(num_total_atoms, dtype=np.int32)
             state_space_to_save_space_index[feature_state_space_index] = np.arange(num_total_atoms)
             state_space_index = np.dot(factors, self.factor_bases).astype(dtype=np.int32)
             indices = state_space_to_save_space_index[state_space_index]
-            images, labels = self.sample_from_factor_indices(indices)
+            images = self.data[indices]
         elif dataset == '3Dchairs':
-            assert False, 'to do'
+            assert False, 'No factors for {}'.format(dataset)
         elif dataset == 'celebA':
-            assert False, 'to do'
+            assert False, 'No factors for {}'.format(dataset)
         elif dataset == 'mnist':
-            assert False, 'to do'
+            assert False, 'No factors for {}'.format(dataset)
         elif dataset == 'svhn':
-            assert False, 'to do'
+            assert False, 'No factors for {}'.format(dataset)
         else:
-            raise ValueError('Unknown %s' % opts['dataset'])
+            raise ValueError('Unknown {}'.format(opts['dataset']))
 
-        return images, labels
-
-    def sample_from_factor_indices(self, indices):
-        indices_to_order = self.data_order_idx[indices]
-        images = np.zeros([len(indices)]+self.data_shape)
-        labels = np.zeros([len(indices),len(self.factor_sizes)])
-        for i, idx in enumerate(list(indices_to_order)):
-            if idx<self.num_points:
-                images[i] = self.data[idx]
-                labels[i] = self.labels[idx]
-            elif idx>=self.num_points and idx<(self.num_points+len(self.test_data)):
-                images[i] = self.test_data[idx-self.num_points]
-                labels[i] = self.test_labels[idx-self.num_points]
-            else:
-                images[i] = self.vizu_data[idx-(self.num_points+len(self.test_data))]
-                labels[i] = self.vizu_labels[idx-(self.num_points+len(self.test_data))]
-
-        return images, labels
-
+        return images
 
 def matrix_type_from_magic(magic_number):
     """
