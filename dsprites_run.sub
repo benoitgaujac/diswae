@@ -2,7 +2,7 @@
 
 #$ -S /bin/bash
 
-#$ -wd /home/gaujac/diswae
+#$ -wd /home/bgaujac/diswae
 
 #$ -l gpu=true
 #$ -l tmem=8G
