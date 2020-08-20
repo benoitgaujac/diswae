@@ -20,6 +20,7 @@ def save_train(opts, data_train, data_test,
                      samples,
                      loss, loss_test,
                      loss_rec, loss_rec_test,
+                     mse,
                      betaVAE, mig, factorVAE, SAP,
                      loss_match, loss_match_test,
                      exp_dir,
@@ -153,8 +154,8 @@ def save_train(opts, data_train, data_test,
     color_list = base(np.linspace(0, 1, 6))
     ax = plt.subplot(gs[1, 1])
     losses, losses_test = [], []
+    labels = ['rec',]
     # Test
-    # y = np.convolve(loss_rec_test, np.ones((size_filter,))/size_filter, mode='valid')
     y = loss_rec_test
     y = np.log(y[::x_step])
     losses_test.append(list(y))
@@ -163,43 +164,48 @@ def save_train(opts, data_train, data_test,
         y = loss_match_test
         y = np.log(y[::x_step])
         losses_test.append(list(y))
-        labels = ['rec',r'$\beta$KL']
+        labels.append(r'$\beta$KL')
     elif opts['model'] == 'BetaTCVAE':
         for l in zip(*loss_match_test):
             # y = np.convolve(l, np.ones((size_filter,))/size_filter, mode='valid')
             y = l
             y = np.log(y[::x_step])
             losses_test.append(list(y))
-        labels = ['rec',r'$\beta$TC', 'KL']
+        labels += [r'$\beta$TC', 'KL']
     elif opts['model'] == 'FactorVAE':
         for l in zip(*loss_match_test):
             # y = np.convolve(l, np.ones((size_filter,))/size_filter, mode='valid')
             y = l
             y = np.log(y[::x_step])
             losses_test.append(list(y))
-        labels = ['rec',r'$\beta$KL', r'$\gamma$TC']
+        labels += [r'$\beta$KL', r'$\gamma$TC']
     elif opts['model'] == 'WAE':
         # y = np.convolve(loss_match_test, np.ones((size_filter,))/size_filter, mode='valid')
         y = loss_match_test
         y = np.log(np.abs(y[::x_step]))
         losses_test.append(list(y))
-        labels = ['rec',r'$\lambda$|mmd|']
+        labels.append(r'$\lambda$|mmd|')
     elif opts['model'] == 'disWAE':
         for l in zip(*loss_match_test):
             # y = np.convolve(l, np.ones((size_filter,))/size_filter, mode='valid')
             y = l
             y = np.log(np.abs(y[::x_step]))
             losses_test.append(list(y))
-        labels = ['rec', r"$\lambda_1$|hsci|",r"$\lambda_2$|dimwise|",'|wae|']
+        labels += [r"$\lambda_1$|hsci|",r"$\lambda_2$|dimwise|",'|wae|']
     elif opts['model'] == 'TCWAE_MWS' or opts['model'] == 'TCWAE_GAN':
         for l in zip(*loss_match_test):
             # y = np.convolve(l, np.ones((size_filter,))/size_filter, mode='valid')
             y = l
             y = np.log(np.abs(y[::x_step]))
             losses_test.append(list(y))
-        labels = ['rec', r"$\lambda_1$|TC|",r"$\lambda_2$|dimwise|",'|wae|']
+        labels += [r"$\lambda_1$|TC|",r"$\lambda_2$|dimwise|",'|wae|']
     else:
         raise NotImplementedError('Model type not recognised')
+    if opts['cost']!='l2sq':
+        y = mse
+        y = np.log(y[::x_step])
+        losses_test.append(list(y))
+        labels.append('mse')
     # Train
     # y = np.convolve(loss_rec, np.ones((size_filter,))/size_filter, mode='valid')
     y = loss_rec
@@ -222,7 +228,6 @@ def save_train(opts, data_train, data_test,
             y = l
             y = np.log(y[::x_step])
             losses.append(list(y))
-        labels = ['rec',r'$\beta$KL', r'$\gamma$TC']
     elif opts['model'] == 'WAE':
         # y = np.convolve(loss_match, np.ones((size_filter,))/size_filter, mode='valid')
         y = loss_match
@@ -236,7 +241,8 @@ def save_train(opts, data_train, data_test,
             losses.append(list(y))
     for i in range(len(labels)):
         plt.plot(x, losses_test[i], linewidth=4, color=color_list[i], label=labels[i]+r' test')
-        plt.plot(x, losses[i], linewidth=2, color=color_list[i], linestyle='--', label=labels[i])
+        if labels[i]!='mse':
+            plt.plot(x, losses[i], linewidth=2, color=color_list[i], linestyle='--', label=labels[i])
 
     plt.grid(axis='y')
     plt.legend(loc='upper right')

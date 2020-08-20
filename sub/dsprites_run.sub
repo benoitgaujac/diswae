@@ -1,0 +1,18 @@
+#!/bin/bash
+
+#$ -S /bin/bash
+
+#$ -wd /home/bgaujac/diswae
+
+#$ -l gpu=true
+#$ -l tmem=8G
+#$ -l h_rt=15:00:00
+
+#$ -t 1-36
+
+#$ -N l2mwsdsprites
+
+source /share/apps/examples/source_files/python/python-3.6.4.source
+source /share/apps/examples/source_files/cuda/cuda-9.0.source
+
+python3 run_array.py --num_it 300000 --id $SGE_TASK_ID --dataset dsprites --save_model --out_dir dSprites_l2sq --model TCWAE_MWS --cost l2sq

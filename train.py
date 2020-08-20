@@ -577,6 +577,7 @@ class Run(object):
                               generations,                                          # model samples
                               Loss, Loss_test,                                      # loss
                               Loss_rec, Loss_rec_test,                              # rec loss
+                              MSE,                                                  # mse
                               betaVAE, MIG, factorVAE, SAP,                         # disentangle metrics
                               Divergences, Divergences_test,                        # divergence terms
                               exp_dir,                                              # working directory
@@ -867,33 +868,30 @@ class Run(object):
         self.saver.restore(self.sess, WEIGHTS_PATH)
 
         # - Set up
-        # test_size = np.shape(data.test_data)[0]
-        # batch_size_te = min(test_size,1000)
-        test_size = 1000
-        batch_size_te = min(test_size,100)
+        test_size = data.test_size
+        batch_size_te = min(test_size,1000)
         batches_num_te = int(test_size/batch_size_te)+1
-
         # - Init all monitoring variables
-        Loss, Loss_rec = 0., 0.
+        Loss, Loss_rec, MSE = 0., 0., 0.
         Divergences = []
-        betaVAE, MIG, factorVAE, SAP = 0., 0., 0., 0.
+        MIG, factorVAE, SAP = 0., 0., 0.
         real_blurr, blurr, fid_scores = 0., 0., 0.
         if opts['true_gen_model']:
             codes, codes_mean = np.zeros((batches_num_te*batch_size_te,opts['zdim'])), np.zeros((batches_num_te*batch_size_te,opts['zdim']))
             labels = np.zeros((batches_num_te*batch_size_te,len(data.factor_indices)))
-
         # - Testing loop
         for it_ in range(batches_num_te):
             # Sample batches of data points
             data_ids = np.random.choice(test_size, batch_size_te, replace=True)
-            batch_images_test = data.test_data[data_ids].astype(np.float32)
+            batch_images_test = data.get_batch_img(data_ids, 'test').astype(np.float32)
             batch_pz_samples_test = sample_pz(opts, self.pz_params, batch_size_te)
             test_feed_dict = {self.batch: batch_images_test,
                               self.samples_pz: batch_pz_samples_test,
                               self.obj_fn_coeffs: opts['obj_fn_coeffs'],
                               self.is_training: False}
-            [loss, l_rec, divergences, z, z_mean, samples] = self.sess.run([self.objective,
+            [loss, l_rec, mse, divergences, z, z_mean, samples] = self.sess.run([self.objective,
                                              self.loss_reconstruct,
+                                             self.mse,
                                              self.divergences,
                                              self.z_samples,
                                              self.z_mean,
@@ -901,7 +899,16 @@ class Run(object):
                                             feed_dict=test_feed_dict)
             Loss += loss / batches_num_te
             Loss_rec += l_rec / batches_num_te
-            Divergences.append(divergences)
+            MSE += mse / batches_num_te
+            if len(Divergences)>0:
+                Divergences[-1] += np.array(divergences) / batches_num_te
+            else:
+                Divergences.append(np.array(divergences) / batches_num_te)
+            # storing labels and factors
+            if opts['true_gen_model']:
+                    codes[batch_size_te*it_:batch_size_te*(it_+1)] = z
+                    codes_mean[batch_size_te*it_:batch_size_te*(it_+1)] = z_mean
+                    labels[batch_size_te*it_:batch_size_te*(it_+1)] = data.get_batch_label(data_ids,'test')[:,data.factor_indices]
             # fid score
             if opts['fid']:
                 # Load inception mean samples for train set
@@ -933,21 +940,12 @@ class Run(object):
                                             self.sigma_train,
                                             eps=1e-6)
                 fid_scores += fid_score / batches_num_te
-
-            # storing labels and factors
-            if opts['true_gen_model']:
-                codes[batch_size_te*it_:batch_size_te*(it_+1)] = z
-                codes_mean[batch_size_te*it_:batch_size_te*(it_+1)] = z_mean
-                batch_labels_test = data.test_labels[data_ids][:,data.factor_indices]
-                labels[batch_size_te*it_:batch_size_te*(it_+1)] = data.test_labels[data_ids][:,data.factor_indices]
-        Divergences = np.mean(Divergences, axis=0)
-
-        # - Compute metrics
+        # - Compute disentanglment metrics
         if opts['true_gen_model']:
-            # betaVAE = self.compute_betaVAE(self.sess, data)
-            MIG = self.compute_mig(codes_mean, labels)
-            factorVAE = self.compute_factorVAE(self.sess, data, codes)
-            SAP = self.compute_SAP(self.sess, data)
+            # betaVAE.append(self.compute_betaVAE(data))
+            MIG.append(self.compute_mig(codes_mean, labels))
+            factorVAE.append(self.compute_factorVAE(data, codes))
+            SAP.append(self.compute_SAP(data))
 
         # - Printing various loss values
         if verbose=='high':
@@ -955,7 +953,6 @@ class Run(object):
             logging.error(debug_str)
             if opts['true_gen_model']:
                 debug_str = 'betaVAE=%.3f, MIG=%.3f, factorVAE=%.3f, SAP=%.3f' % (
-                                            betaVAE,
                                             MIG,
                                             factorVAE,
                                             SAP)
@@ -968,43 +965,49 @@ class Run(object):
                 logging.error(debug_str)
 
             if opts['model'] == 'BetaVAE':
-                debug_str = 'LOSS=%.3f, REC=%.3f, beta*KL=%10.3e \n '  % (
+                debug_str = 'LOSS=%.3f, REC=%.3f, MSE=%.3f, beta*KL=%10.3e \n '  % (
                                             Loss,
                                             Loss_rec,
+                                            MSE,
                                             Divergences)
                 logging.error(debug_str)
             elif opts['model'] == 'BetaTCVAE':
-                debug_str = 'LOSS=%.3f, REC=%.3f, b*TC=%10.3e, KL=%10.3e \n '  % (
+                debug_str = 'LOSS=%.3f, REC=%.3f, MSE=%.3f, b*TC=%10.3e, KL=%10.3e \n '  % (
                                             Loss,
                                             Loss_rec,
+                                            MSE,
                                             Divergences[0],
                                             Divergences[1])
                 logging.error(debug_str)
             elif opts['model'] == 'FactorVAE':
-                debug_str = 'LOSS=%.3f, REC=%.3f, b*KL=%10.3e, g*TC=%10.3e, \n '  % (
+                debug_str = 'LOSS=%.3f, REC=%.3f, MSE=%.3f, b*KL=%10.3e, g*TC=%10.3e, \n '  % (
                                             Loss,
                                             Loss_rec,
+                                            MSE,
                                             Divergences[0],
                                             Divergences[1])
                 logging.error(debug_str)
             elif opts['model'] == 'WAE':
-                debug_str = 'LOSS=%.3f, REC=%.3f, b*MMD=%10.3e \n ' % (
+                debug_str = 'LOSS=%.3f, REC=%.3f, MSE=%.3f, b*MMD=%10.3e \n ' % (
                                             Loss,
                                             Loss_rec,
+                                            MSE,
                                             Divergences)
                 logging.error(debug_str)
             elif opts['model'] == 'disWAE':
-                debug_str = 'LOSS=%.3f, REC=%.3f, b*HSIC=%10.3e, g*DIMWISE=%10.3e, WAE=%10.3e' % (
+                debug_str = 'LOSS=%.3f, REC=%.3f, MSE=%.3f, b*HSIC=%10.3e, g*DIMWISE=%10.3e, WAE=%10.3e' % (
                                             Loss,
                                             Loss_rec,
+                                            MSE,
                                             Divergences[0],
                                             Divergences[1],
                                             Divergences[2])
                 logging.error(debug_str)
             elif opts['model'] == 'TCWAE_MWS' or opts['model'] == 'TCWAE_GAN':
-                debug_str = 'LOSS=%.3f, REC=%.3f,l1*TC=%10.3e, l2*DIMWISE=%10.3e, WAE=%10.3e' % (
+                debug_str = 'LOSS=%.3f, REC=%.3f,l1*TC=%10.3e, MSE=%.3f, l2*DIMWISE=%10.3e, WAE=%10.3e' % (
                                             Loss,
                                             Loss_rec,
+                                            MSE,
                                             Divergences[0],
                                             Divergences[1],
                                             Divergences[2])
@@ -1021,6 +1024,7 @@ class Run(object):
         np.savez(os.path.join(save_path, name),
                 loss=np.array(Loss),
                 loss_rec=np.array(Loss_rec),
+                mse = np.array(MSE),
                 divergences=Divergences,
                 betavae=np.array(betaVAE),
                 mig=np.array(MIG),

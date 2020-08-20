@@ -1,0 +1,18 @@
+#!/bin/bash
+
+#$ -S /bin/bash
+
+#$ -wd /home/bgaujac/diswae
+
+#$ -l gpu=1
+#$ -l tmem=10G
+#$ -l h_rt=16:00:00
+
+#$ -t 1-15
+
+#$ -N mwschairs3d
+
+source /share/apps/examples/source_files/python/python-3.6.4.source
+source /share/apps/examples/source_files/cuda/cuda-9.0.source
+
+python3 run_array.py --num_it 900000 --id $SGE_TASK_ID --dataset 3Dchairs --cost l2sq  --save_data --save_model --out_dir 3Dchairs --model TCWAE_MWS
