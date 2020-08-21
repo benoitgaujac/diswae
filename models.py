@@ -303,6 +303,9 @@ class WAE(Model):
 
     def reconstruction_loss(self, x1, x2, logits):
         opts = self.opts
+        # Flatten last dim input
+        x1 = tf.layers.flatten(x1)
+        x2 = tf.layers.flatten(x2)
         # - Compute chosen cost
         if opts['cost'] == 'l2':
             cost = l2_cost(x1, x2)
