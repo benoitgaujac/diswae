@@ -29,7 +29,7 @@ import pdb
 
 class Run(object):
 
-    def __init__(self, opts):
+    def __init__(self, opts, WEIGHTS_FILE):
 
         logging.error('Building the Tensorflow Graph')
 
@@ -107,6 +107,17 @@ class Run(object):
         self.add_optimizers()
         self.add_savers()
         self.initializer = tf.global_variables_initializer()
+
+        # - Init sess and load trained weights if needed
+        self.sess = tf.Session()
+        if opts['use_trained']:
+            if not tf.gfile.Exists(WEIGHTS_FILE+".meta"):
+                raise Exception("weights file doesn't exist")
+            self.saver.restore(self.sess, WEIGHTS_FILE)
+        else:
+            self.sess.run(self.initializer)
+        self.sess.graph.finalize()
+
 
     def add_model_placeholders(self):
         opts = self.opts
@@ -383,7 +394,7 @@ class Run(object):
             # with tf.control_dependencies(update_ops):
             #     self.opt = opt.minimize(loss=self.objective,var_list=encoder_vars + decoder_vars)
 
-    def train(self, data, WEIGHTS_FILE):
+    def train(self, data):
         """
         Train top-down model with chosen method
         """
@@ -392,16 +403,6 @@ class Run(object):
         exp_dir = opts['exp_dir']
 
         # writer = tf.summary.FileWriter(exp_dir)
-
-        # - Init sess and load trained weights if needed
-        self.sess = tf.Session()
-        if opts['use_trained']:
-            if not tf.gfile.Exists(WEIGHTS_FILE+".meta"):
-                raise Exception("weights file doesn't exist")
-            self.saver.restore(self.sess, WEIGHTS_FILE)
-        else:
-            self.sess.run(self.initializer)
-        self.sess.graph.finalize()
 
         # - Set up for training
         train_size = data.train_size

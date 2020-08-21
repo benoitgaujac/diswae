@@ -205,7 +205,7 @@ def main():
     #Reset tf graph
     tf.reset_default_graph()
 
-    run = Run(opts)
+    run = Run(opts, FLAGS.weights_file)
 
     # Training/testing/vizu
     if FLAGS.mode=="train":
@@ -214,7 +214,7 @@ def main():
             text.write('Parameters:\n')
             for key in opts:
                 text.write('%s : %s\n' % (key, opts[key]))
-        run.train(data, FLAGS.weights_file)
+        run.train(data)
     else:
         assert False, 'Unknown mode %s' % FLAGS.mode
 
