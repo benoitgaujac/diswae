@@ -50,10 +50,10 @@ class ArraySaver(object):
             assert False, 'Unknown save / load mode'
 
 def create_dir(d):
-    if not tf.gfile.IsDirectory(d):
-        tf.gfile.MakeDirs(d)
+    if not tf.io.gfile.isdir(d):
+        tf.io.gfile.makedirs(d)
 
-class File(tf.gfile.GFile):
+class File(tf.io.gfile.GFile):
     """Wrapper on GFile extending seek, to support what python file supports."""
     def __init__(self, *args):
         super(File, self).__init__(*args)
@@ -111,7 +111,7 @@ def discrete_entropy(ys):
 
 def gaussian_log_density(samples, mean, log_var):
   pi = tf.constant(math.pi)
-  normalization = tf.log(2. * pi)
+  normalization = tf.math.log(2. * pi)
   inv_sigma = tf.exp(-log_var)
   tmp = (samples - mean)
   return -0.5 * (tmp * tmp * inv_sigma + log_var + normalization)

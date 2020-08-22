@@ -122,7 +122,7 @@ def decoder(opts, input, output_dim, scope=None, reuse=False,
 
     x = tf.reshape(x, [-1] + datashapes[opts['dataset']])
 
-    return x, mean, Sigma
+    return x, mean
 
 
 def mlp_encoder(opts, input, output_dim, reuse=False,

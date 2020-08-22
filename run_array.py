@@ -161,10 +161,10 @@ def main():
             opts['obj_fn_coeffs'] = list(lmba[coef_id])
     # Create directories
     opts['out_dir'] = FLAGS.out_dir
-    if not tf.gfile.IsDirectory(opts['out_dir']):
+    if not tf.io.gfile.isdir(opts['out_dir']):
         utils.create_dir(opts['out_dir'])
     out_subdir = os.path.join(opts['out_dir'], opts['model'])
-    if not tf.gfile.IsDirectory(out_subdir):
+    if not tf.io.gfile.isdir(out_subdir):
         utils.create_dir(out_subdir)
     opts['exp_dir'] = FLAGS.res_dir
     if opts['model'] == 'disWAE' or opts['model'] == 'TCWAE_MWS' or opts['model'] == 'TCWAE_GAN':
@@ -180,7 +180,7 @@ def main():
                                     opts['obj_fn_coeffs'],
                                     datetime.now()), )
     opts['exp_dir'] = exp_dir
-    if not tf.gfile.IsDirectory(exp_dir):
+    if not tf.io.gfile.isdir(exp_dir):
         utils.create_dir(exp_dir)
         utils.create_dir(os.path.join(exp_dir, 'checkpoints'))
 

@@ -49,46 +49,46 @@ def _data_dir(opts):
 
 def maybe_download(opts):
     """Download the data from url, unless it's already here."""
-    if not tf.gfile.Exists(opts['data_dir']):
-        tf.gfile.MakeDirs(opts['data_dir'])
+    if not tf.io.gfile.exists(opts['data_dir']):
+        tf.io.gfile.makedirs(opts['data_dir'])
     if opts['dataset']=='noisydsprites' or opts['dataset']=='screamdsprites':
         data_path = os.path.join(opts['data_dir'], opts['dataset'][-8:])
     else:
         data_path = os.path.join(opts['data_dir'], opts['dataset'])
-    if not tf.gfile.Exists(data_path):
-        tf.gfile.MakeDirs(data_path)
+    if not tf.io.gfile.exists(data_path):
+        tf.io.gfile.makedirs(data_path)
     if opts['dataset'][-8:]=='dsprites':
         filename = 'dsprites_ndarray_co1sh3sc6or40x32y32_64x64.npz?raw=true'
         file_path = os.path.join(data_path, filename[:-9])
-        if not tf.gfile.Exists(file_path):
+        if not tf.io.gfile.exists(file_path):
             download_file(file_path,filename,opts['DSprites_data_source_url'])
     elif opts['dataset']=='3dshapes':
         filename = '3dshapes.h5'
         file_path = os.path.join(data_path, filename)
-        if not tf.gfile.Exists(file_path):
+        if not tf.io.gfile.exists(file_path):
             assert False, 'To implement'
             download_file(file_path,filename,opts['3dshapes_data_source_url'])
     elif opts['dataset']=='smallNORB':
         filename = 'smallnorb-5x46789x9x18x6x2x96x96-training-dat.mat.gz'
         file_path = os.path.join(data_path, filename)
-        if not tf.gfile.Exists(file_path):
+        if not tf.io.gfile.exists(file_path):
             download_file(file_path,filename,opts['smallNORB_data_source_url'])
         filename = 'smallnorb-5x01235x9x18x6x2x96x96-testing-dat.mat.gz'
         file_path = os.path.join(data_path, filename)
-        if not tf.gfile.Exists(file_path):
+        if not tf.io.gfile.exists(file_path):
             download_file(file_path,filename,opts['smallNORB_data_source_url'])
     elif opts['dataset']=='3Dchairs':
         filename = 'rendered_chairs.tar'
         file_path = os.path.join(data_path, filename)
-        if not tf.gfile.Exists(file_path):
+        if not tf.io.gfile.exists(file_path):
             download_file(file_path,filename,opts['3Dchairs_data_source_url'])
     elif opts['dataset']=='celebA':
         filename = 'img_align_celeba'
         file_path = os.path.join(data_path, filename)
-        if not tf.gfile.Exists(file_path):
+        if not tf.io.gfile.exists(file_path):
             filename = 'img_align_celeba.zip'
             file_path = os.path.join(data_path, filename)
-            if not tf.gfile.Exists(file_path):
+            if not tf.io.gfile.exists(file_path):
                 assert False, '{} dataset does not exist'.format(opts['dataset'])
                 download_file_from_google_drive(file_path,filename,opts['celebA_data_source_url'])
             # Unzipping
@@ -336,6 +336,10 @@ class Data(object):
                 self.dict_loaded[key] = n + cnt
                 cnt += 1
             self.loaded.extend(new_points)
+            if len(self.loaded)>30000:
+                # droping loaded images every 50000
+                self.drop_loaded()
+
             return np.array(res)
 
     def _read_celeba_image(self, data_dir, filename):
@@ -562,7 +566,7 @@ class DataHandler(object):
         logging.error('Loading 3Dchairs')
         filename = os.path.join(_data_dir(opts), 'rendered_chairs.npz')
         # Extracting data and saving as npz if necessary
-        if not tf.gfile.Exists(filename):
+        if not tf.io.gfile.exists(filename):
             tar = tarfile.open(filename[:-4] +'.tar')
             tar.extractall(path=_data_dir(opts))
             tar.close()

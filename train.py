@@ -76,25 +76,38 @@ class Run(object):
             raise NotImplementedError()
 
         # --- Define Objective
-        self.objective, self.loss_reconstruct, self.divergences, self.enc_sigmastats \
-            = self.model.loss(inputs=self.batch,
-                              samples=self.samples_pz,
-                              loss_coeffs=self.obj_fn_coeffs,
-                              is_training=self.is_training)
-
-        self.z_samples, self.z_mean, self.z_logvar, self.recon_x, _, _ = self.model.forward_pass(inputs=self.batch,
-                                                                          is_training=self.is_training,
-                                                                          reuse=True)
-
+        self.loss_reconstruct, self.divergences = self.model.loss(
+                            inputs=self.batch,
+                            samples=self.samples_pz,
+                            loss_coeffs=self.obj_fn_coeffs,
+                            is_training=self.is_training)
+        if opts['model'] == 'BetaVAE' or opts['model'] == 'WAE':
+            self.objective = self.loss_reconstruct + self.divergences
+        else:
+            self.objective = self.loss_reconstruct\
+                            + self.divergences[0] + self.divergences[1]
+        # --- encode & decode pass
+        self.z_samples, self.z_mean, self.z_sigma, self.recon_x, _\
+            = self.model.forward_pass(inputs=self.batch,
+                            is_training=self.is_training,
+                            reuse=True)
+        # --- Pen Encoded Sigma &  stats
+        Sigma_tr = tf.reduce_mean(self.z_sigma, axis=-1)
+        Smean, Svar = tf.nn.moments(Sigma_tr, axes=[0])
+        self.encSigmas_stats = tf.stack([Smean, Svar], axis=-1)
+        if self.opts['pen_enc_sigma'] and self.opts['encoder'] == 'gauss':
+            pen_enc_sigma = self.opts['lambda_pen_enc_sigma'] * tf.reduce_mean(
+                tf.reduce_sum(tf.abs(tf.math.log(self.z_sigma)), axis=-1))
+            self.objective+= pen_enc_sigma
+        # --- Sampling
         self.generated_x = self.model.sample_x_from_prior(noise=self.samples_pz)
-
+        # --- kl
         self.kl_to_prior = self.model.dimewise_kl_to_prior(self.z_samples,
                                                     self.z_mean,
-                                                    self.z_logvar)
-
+                                                    self.z_sigma)
+        # --- MSE
         self.mse = self.model.MSE(self.batch, self.recon_x)
-
-        # FID score
+        # --- FID score
         if opts['fid']:
             self.blurriness = self.compute_blurriness()
             self.inception_graph = tf.Graph()
@@ -108,7 +121,7 @@ class Run(object):
         self.add_savers()
         self.initializer = tf.global_variables_initializer()
 
-        # - Init sess and load trained weights if needed
+        # --- Init sess and load trained weights if needed
         self.sess = tf.Session()
         if opts['use_trained']:
             if not tf.gfile.Exists(WEIGHTS_FILE+".meta"):
@@ -386,7 +399,7 @@ class Run(object):
             discr_vars = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES,
                                                     scope='discriminator')
             vae_opt = opt.minimize(loss=self.objective,var_list=encoder_vars + decoder_vars)
-            discriminator_opt = discr_opt.minimize(loss=-self.model.discr_loss,var_list=discr_vars)
+            discriminator_opt = discr_opt.minimize(loss=self.model.discr_loss,var_list=discr_vars)
             # self.opt = tf.group(vae_opt, discriminator_opt, update_ops)
             self.opt = tf.group(vae_opt, discriminator_opt)
         else:
@@ -432,7 +445,6 @@ class Run(object):
                 self.saver.save(self.sess,
                                 os.path.join(exp_dir, 'checkpoints', 'trained-wae'),
                                 global_step=counter)
-
             #####  TRAINING LOOP #####
             for it in range(batches_num):
                 # Sample batches of data points and Pz noise
@@ -446,7 +458,6 @@ class Run(object):
                              self.obj_fn_coeffs: opts['obj_fn_coeffs'],
                              self.is_training: True}
                 _ = self.sess.run(self.opt, feed_dict=feed_dict)
-
                 ##### TESTING LOOP #####
                 if (counter+1)%opts['evaluate_every'] == 0 or (counter+1) == 100:
                     print("Epoch {}, Iteration {}".format(epoch, it+1))
@@ -460,11 +471,10 @@ class Run(object):
                                  self.lr_decay: decay,
                                  self.obj_fn_coeffs: opts['obj_fn_coeffs'],
                                  self.is_training: True}
-                    [loss, loss_rec, divergences, enc_sigmastats] = self.sess.run([
+                    [loss, loss_rec, divergences] = self.sess.run([
                                                 self.objective,
                                                 self.loss_reconstruct,
-                                                self.divergences,
-                                                self.enc_sigmastats],
+                                                self.divergences],
                                                 feed_dict=feed_dict)
                     Loss.append(loss)
                     Loss_rec.append(loss_rec)
@@ -472,6 +482,8 @@ class Run(object):
 
                     # Encoded Sigma
                     if opts['vizu_encSigma']:
+                        enc_sigmastats = self.sess.run(self.encSigmas_stats,
+                                                feed_dict=feed_dict)
                         enc_Sigmas.append(enc_sigmastats)
 
                     # Test losses

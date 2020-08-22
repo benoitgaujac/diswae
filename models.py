@@ -29,23 +29,19 @@ class Model(object):
                                              reuse=reuse,
                                              is_training=is_training)
 
-        dec_x, dec_mean, dec_Sigma = decoder(self.opts,
-                                             input=enc_z,
-                                             output_dim=self.output_dim,
+        dec_x, dec_mean = decoder(self.opts,input=enc_z, output_dim=self.output_dim,
                                              scope='decoder',
                                              reuse=reuse,
                                              is_training=is_training)
-        return enc_z, enc_mean, enc_Sigma, dec_x, dec_mean, dec_Sigma
+        return enc_z, enc_mean, enc_Sigma, dec_x, dec_mean
 
     def sample_x_from_prior(self, noise):
 
-        sample_x, sample_mean, sample_Sigma = decoder(self.opts,
-                                              input=noise,
-                                              output_dim=self.output_dim,
+        sample_x, _ = decoder(self.opts, input=noise, output_dim=self.output_dim,
                                               scope='decoder',
                                               reuse=True,
                                               is_training=False)
-        return sample_x         #, sample_mean, sample_Sigma
+        return sample_x
 
     def dimewise_kl_to_prior(self,  z, z_mean, z_logvar):
       """Estimate dimension-wise KL(q(z_i),p(z_i)) to plot latent traversals.
@@ -83,7 +79,7 @@ class BetaVAE(Model):
         """
         kl = encoded_sigma / pz_sigma \
             + tf.square(pz_mean - encoded_mean) / pz_sigma - 1. \
-            + tf.log(pz_sigma) - tf.log(encoded_sigma)
+            + tf.math.log(pz_sigma) - tf.math.log(encoded_sigma)
         kl = 0.5 * tf.reduce_sum(kl, axis=-1)
         return tf.reduce_mean(kl)
 
@@ -100,21 +96,14 @@ class BetaVAE(Model):
 
         beta = loss_coeffs
 
-        _, enc_mean, enc_Sigma, _, dec_mean, _ = self.forward_pass(inputs=inputs,
+        _, enc_mean, enc_Sigma, _, dec_mean = self.forward_pass(inputs=inputs,
                                               is_training=is_training)
 
         loss_reconstruct = self.reconstruction_loss(inputs, dec_mean)
         kl = self.kl_penalty(self.pz_mean, self.pz_sigma, enc_mean, enc_Sigma)
-        matching_penalty = beta * kl
-        divergences = matching_penalty
-        objective = loss_reconstruct + matching_penalty
+        divergences = beta * kl
 
-        # - Enc Sigma stats
-        Sigma_tr = tf.reduce_mean(enc_Sigma, axis=-1)
-        Smean, Svar = tf.nn.moments(Sigma_tr, axes=[0])
-        encSigmas_stats = tf.stack([Smean, Svar], axis=-1)
-
-        return objective, loss_reconstruct, divergences, encSigmas_stats
+        return loss_reconstruct
 
 
 class BetaTCVAE(BetaVAE):
@@ -151,23 +140,15 @@ class BetaTCVAE(BetaVAE):
 
         beta = loss_coeffs
 
-        enc_z, enc_mean, enc_Sigma, _, dec_mean, _ = self.forward_pass(inputs=inputs,
+        enc_z, enc_mean, enc_Sigma, _, dec_mean = self.forward_pass(inputs=inputs,
                                               is_training=is_training)
 
         loss_reconstruct = self.reconstruction_loss(inputs, dec_mean)
         kl = self.kl_penalty(self.pz_mean, self.pz_sigma, enc_mean, enc_Sigma)
-        tc = self.total_correlation(enc_z, enc_mean, tf.log(enc_Sigma))
-
-        matching_penalty = (beta - 1.) * tc + kl
+        tc = self.total_correlation(enc_z, enc_mean, tf.math.log(enc_Sigma))
         divergences = (beta*tc, kl-tc)
-        objective = loss_reconstruct + matching_penalty
 
-        # - Enc Sigma stats
-        Sigma_tr = tf.reduce_mean(enc_Sigma, axis=-1)
-        Smean, Svar = tf.nn.moments(Sigma_tr, axes=[0])
-        encSigmas_stats = tf.stack([Smean, Svar], axis=-1)
-
-        return objective, loss_reconstruct, divergences, encSigmas_stats
+        return loss_reconstruct, divergences
 
 
 class FactorVAE(BetaVAE):
@@ -188,7 +169,7 @@ class FactorVAE(BetaVAE):
         gamma = loss_coeffs
 
         # --- Encoding and reconstructing
-        enc_z, enc_mean, enc_Sigma, _, dec_mean, _ = self.forward_pass(inputs=inputs,
+        enc_z, enc_mean, enc_Sigma, _, dec_mean = self.forward_pass(inputs=inputs,
                                                 is_training=is_training)
         loss_reconstruct = self.reconstruction_loss(inputs, dec_mean)
 
@@ -212,21 +193,12 @@ class FactorVAE(BetaVAE):
         # - TC loss
         tc = tf.reduce_mean(logits_z[:, 0] - logits_z[:, 1], axis=0)
         # - Discr loss
-        self.discr_loss = tf.add(
-                            0.5 * tf.reduce_mean(tf.log(probs_z[:, 0])),
-                            0.5 * tf.reduce_mean(tf.log(probs_z_shuffle[:, 1])))
-        matching_penalty = kl + gamma*tc
+        self.discr_loss = - tf.add(
+                            0.5 * tf.reduce_mean(tf.math.log(probs_z[:, 0])),
+                            0.5 * tf.reduce_mean(tf.math.log(probs_z_shuffle[:, 1])))
         divergences = (kl, gamma*tc)
 
-        # -- Obj
-        objective = loss_reconstruct + matching_penalty
-
-        # - Enc Sigma stats
-        Sigma_tr = tf.reduce_mean(enc_Sigma, axis=-1)
-        Smean, Svar = tf.nn.moments(Sigma_tr, axes=[0])
-        encSigmas_stats = tf.stack([Smean, Svar], axis=-1)
-
-        return objective, loss_reconstruct, divergences, encSigmas_stats
+        return loss_reconstruct, divergences
 
 
 class WAE(Model):
@@ -326,25 +298,13 @@ class WAE(Model):
         lmbd = loss_coeffs
 
         # --- Encoding and reconstructing
-        enc_z, _, enc_Sigma, recon_x, dec_mean, _ = self.forward_pass(inputs=inputs,
+        enc_z, _, enc_Sigma, recon_x, dec_mean = self.forward_pass(inputs=inputs,
                                                 is_training=is_training)
 
         loss_reconstruct = self.reconstruction_loss(inputs, recon_x, dec_mean)
-        match_penalty = lmbd*self.mmd_penalty(enc_z, samples)
-        divergences = match_penalty
-        objective = loss_reconstruct + match_penalty
+        divergences = lmbd*self.mmd_penalty(enc_z, samples)
 
-        # - Pen Encoded Sigma
-        if self.opts['pen_enc_sigma'] and self.opts['encoder'] == 'gauss':
-            pen_enc_sigma = self.opts['lambda_pen_enc_sigma'] * tf.reduce_mean(
-                tf.reduce_sum(tf.abs(tf.log(enc_Sigma)), axis=-1))
-            objective += pen_enc_sigma
-        # - Enc Sigma stats
-        Sigma_tr = tf.reduce_mean(enc_Sigma, axis=-1)
-        Smean, Svar = tf.nn.moments(Sigma_tr, axes=[0])
-        encSigmas_stats = tf.stack([Smean, Svar], axis=-1)
-
-        return objective, loss_reconstruct, divergences, encSigmas_stats
+        return loss_reconstruct, divergences
 
 
 class TCWAE_MWS(WAE):
@@ -382,7 +342,7 @@ class TCWAE_MWS(WAE):
       # [batch_size,].
       pi = tf.constant(math.pi)
       log_pz_product = tf.reduce_sum(
-          -0.5 * (tf.log(2*pi) + tf.square(z)),
+          -0.5 * (tf.math.log(2*pi) + tf.square(z)),
           axis=1,
           keepdims=False)
 
@@ -393,34 +353,19 @@ class TCWAE_MWS(WAE):
         (lmbd1, lmbd2) = loss_coeffs
 
         # --- Encoding and reconstructing
-        enc_z, enc_mean, enc_Sigma, recon_x, dec_mean, _ = self.forward_pass(inputs=inputs,
+        enc_z, enc_mean, enc_Sigma, recon_x, dec_mean = self.forward_pass(inputs=inputs,
                                                 is_training=is_training)
         loss_reconstruct = self.reconstruction_loss(inputs, recon_x, dec_mean)
 
         # --- Latent regularization
-        log_qz, log_qz_product, log_pz_product = self.total_correlation(enc_z, enc_mean, tf.log(enc_Sigma))
+        log_qz, log_qz_product, log_pz_product = self.total_correlation(enc_z, enc_mean, tf.math.log(enc_Sigma))
         # - WAE latent reg
         tc = log_qz-log_qz_product
         kl = log_qz_product-log_pz_product
-        matching_penalty = lmbd1*tc + lmbd2*kl
-        # matching_penalty = lmbd1*log_qz + (lmbd2-lmbd1)*log_qz_product + lmbd2*log_pz_product
         wae_match_penalty = self.mmd_penalty(enc_z, samples)
         divergences = (lmbd1*tc, lmbd2*kl, wae_match_penalty)
 
-        # -- Obj
-        objective = loss_reconstruct + matching_penalty
-
-        # - Pen Encoded Sigma
-        if self.opts['pen_enc_sigma'] and self.opts['encoder'] == 'gauss':
-            pen_enc_sigma = self.opts['lambda_pen_enc_sigma'] * tf.reduce_mean(
-                tf.reduce_sum(tf.abs(tf.log(enc_Sigma)), axis=-1))
-            objective += pen_enc_sigma
-        # - Enc Sigma stats
-        Sigma_tr = tf.reduce_mean(enc_Sigma, axis=-1)
-        Smean, Svar = tf.nn.moments(Sigma_tr, axes=[0])
-        encSigmas_stats = tf.stack([Smean, Svar], axis=-1)
-
-        return objective, loss_reconstruct, divergences, encSigmas_stats
+        return loss_reconstruct, divergences
 
 
 class TCWAE_GAN(WAE):
@@ -442,7 +387,7 @@ class TCWAE_GAN(WAE):
         (lmbd1, lmbd2) = loss_coeffs
 
         # --- Encoding and reconstructing
-        enc_z, enc_mean, enc_Sigma, recon_x, dec_mean, _ = self.forward_pass(inputs=inputs,
+        enc_z, enc_mean, enc_Sigma, recon_x, dec_mean = self.forward_pass(inputs=inputs,
                                                 is_training=is_training)
         loss_reconstruct = self.reconstruction_loss(inputs, recon_x, dec_mean)
 
@@ -469,8 +414,8 @@ class TCWAE_GAN(WAE):
         tc = tf.reduce_mean(logits_z[:, 0] - logits_z[:, 1], axis=0)
         # - Discr loss
         discr_TC_loss = tf.add(
-                            0.5 * tf.reduce_mean(tf.log(probs_z[:, 0])),
-                            0.5 * tf.reduce_mean(tf.log(probs_z_shuffle[:, 1])))
+                            0.5 * tf.reduce_mean(tf.math.log(probs_z[:, 0])),
+                            0.5 * tf.reduce_mean(tf.math.log(probs_z_shuffle[:, 1])))
         # Dimwise term
         # - shuffling latent codes
         enc_z_shuffle = []
@@ -495,8 +440,8 @@ class TCWAE_GAN(WAE):
             dimwise = tf.reduce_mean(logits_z[:, 0] - logits_z[:, 1], axis=0)
             # - Discr loss
             discr_dimwise_loss = tf.add(
-                                0.5 * tf.reduce_mean(tf.log(probs_z_shuffle[:, 0])),
-                                0.5 * tf.reduce_mean(tf.log(probs_z_prior[:, 1])))
+                                0.5 * tf.reduce_mean(tf.math.log(probs_z_shuffle[:, 0])),
+                                0.5 * tf.reduce_mean(tf.math.log(probs_z_prior[:, 1])))
         else:
             # estimate kl(prod_d q_Z(z_d), p(Z)) = sum_d kl(q_Z(z_d), p(z_d)), weight sharring
             ldimwise, ldiscr_dimwise_loss = [], []
@@ -517,30 +462,18 @@ class TCWAE_GAN(WAE):
                 ldimwise.append(tf.reduce_mean(logits_z[:, 0] - logits_z[:, 1], axis=0))
                 # - Discr loss
                 ldiscr_dimwise_loss.append(tf.add(
-                                    0.5 * tf.reduce_mean(tf.log(probs_z_shuffle[:, 0])),
-                                    0.5 * tf.reduce_mean(tf.log(probs_z_prior[:, 1]))))
+                                    0.5 * tf.reduce_mean(tf.math.log(probs_z_shuffle[:, 0])),
+                                    0.5 * tf.reduce_mean(tf.math.log(probs_z_prior[:, 1]))))
             dimwise = tf.reduce_sum(tf.stack(ldimwise))
             discr_dimwise_loss = tf.reduce_sum(tf.stack(ldiscr_dimwise_loss))
         # - WAE latent reg
-        matching_penalty = lmbd1*tc + lmbd2*dimwise
         wae_match_penalty = self.mmd_penalty(enc_z, samples)
         divergences = (lmbd1*tc, lmbd2*dimwise, wae_match_penalty)
 
         # -- Obj
-        objective = loss_reconstruct + matching_penalty
-        self.discr_loss = lmbd1*discr_TC_loss + lmbd2*discr_dimwise_loss
+        self.discr_loss = - (lmbd1*discr_TC_loss + lmbd2*discr_dimwise_loss)
 
-        # - Pen Encoded Sigma
-        if self.opts['pen_enc_sigma'] and self.opts['encoder'] == 'gauss':
-            pen_enc_sigma = self.opts['lambda_pen_enc_sigma'] * tf.reduce_mean(
-                tf.reduce_sum(tf.abs(tf.log(enc_Sigma)), axis=-1))
-            objective += pen_enc_sigma
-        # - Enc Sigma stats
-        Sigma_tr = tf.reduce_mean(enc_Sigma, axis=-1)
-        Smean, Svar = tf.nn.moments(Sigma_tr, axes=[0])
-        encSigmas_stats = tf.stack([Smean, Svar], axis=-1)
-
-        return objective, loss_reconstruct, divergences, encSigmas_stats
+        return loss_reconstruct, divergences
 
 
 class disWAE(WAE):
@@ -611,7 +544,7 @@ class disWAE(WAE):
         (lmbd1, lmbd2) = loss_coeffs
 
         # --- Encoding and reconstructing
-        enc_z, enc_mean, enc_Sigma, recon_x, dec_mean, _ = self.forward_pass(inputs=inputs,
+        enc_z, enc_mean, enc_Sigma, recon_x, dec_mean = self.forward_pass(inputs=inputs,
                                                     is_training=is_training)
         loss_reconstruct = self.reconstruction_loss(inputs, recon_x, dec_mean)
 
@@ -639,11 +572,7 @@ class disWAE(WAE):
         # - Pen Encoded Sigma
         if self.opts['pen_enc_sigma'] and self.opts['encoder'] == 'gauss':
             pen_enc_sigma = self.opts['lambda_pen_enc_sigma'] * tf.reduce_mean(
-                tf.reduce_sum(tf.abs(tf.log(enc_Sigma)), axis=-1))
+                tf.reduce_sum(tf.abs(tf.math.log(enc_Sigma)), axis=-1))
             objective += pen_enc_sigma
-        # - Enc Sigma stats
-        Sigma_tr = tf.reduce_mean(enc_Sigma, axis=-1)
-        Smean, Svar = tf.nn.moments(Sigma_tr, axes=[0])
-        encSigmas_stats = tf.stack([Smean, Svar], axis=-1)
 
-        return objective, loss_reconstruct, divergences, recon_x, enc_z, encSigmas_stats
+        return objective, loss_reconstruct, divergences
