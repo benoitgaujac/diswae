@@ -194,7 +194,7 @@ def main():
 
     # Experiemnts set up
     opts['epoch_num'] = int(FLAGS.num_it / int(data.train_size/opts['batch_size']))
-    opts['print_every'] = int(opts['epoch_num'] / 5.) * int(data.train_size/opts['batch_size'])-1
+    opts['print_every'] = int(opts['epoch_num'] / 3.) * int(data.train_size/opts['batch_size'])-1
     opts['evaluate_every'] = int(opts['print_every'] / 2.) + 1
     opts['save_every'] = 10000000000
     opts['save_final'] = FLAGS.save_model
