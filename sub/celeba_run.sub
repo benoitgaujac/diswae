@@ -13,6 +13,6 @@
 #$ -N betacelebA
 
 source /share/apps/examples/source_files/python/python-3.6.4.source
-source /share/apps/examples/source_files/cuda/cuda-9.0.source
+source /share/apps/examples/source_files/cuda/cuda-10.1.source
 
 python3 run_array.py --num_it 900000 --id $SGE_TASK_ID --dataset celebA --cost l2sq --save_data --save_model --out_dir celebA --model TCWAE_MWS

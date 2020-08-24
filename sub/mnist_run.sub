@@ -11,6 +11,6 @@
 #$ -N v1_mnist
 
 source /share/apps/examples/source_files/python/python-3.6.4.source
-source /share/apps/examples/source_files/cuda/cuda-9.0.source
+source /share/apps/examples/source_files/cuda/cuda-10.1.source
 
 python3 run.py --out_dir mnist_1/1  --lmba0 1 --lmba1 1
