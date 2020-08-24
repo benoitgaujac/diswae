@@ -488,7 +488,7 @@ class Run(object):
 
                     # Test losses
                     test_size = data.test_size
-                    batch_size_te = min(test_size,500)
+                    batch_size_te = min(test_size,1000)
                     batches_num_te = int(test_size/batch_size_te)+1
                     loss_test, loss_rec_test, mse = 0., 0., 0.
                     if opts['true_gen_model']:
