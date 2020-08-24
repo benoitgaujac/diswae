@@ -13,6 +13,6 @@
 #$ -N l2mwsdsprites
 
 source /share/apps/examples/source_files/python/python-3.6.4.source
-source /share/apps/examples/source_files/cuda/cuda-10.1.source
+source /share/apps/examples/source_files/cuda/cuda-10.0.source
 
 python3 run_array.py --num_it 300000 --id $SGE_TASK_ID --dataset dsprites --save_model --out_dir dSprites_l2sq --model TCWAE_MWS --cost l2sq
