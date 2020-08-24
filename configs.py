@@ -8,8 +8,8 @@ config['verbose'] = False
 config['save_every'] = 1000
 config['save_final'] = True
 config['save_train_data'] = True
-config['evaluate_every'] = 100
-config['plot_every'] = 100
+config['print_every'] = 100
+config['evaluate_every'] = int(config['print_every'] / 2)
 config['vizu_embedded'] = False
 config['embedding'] = 'umap' #vizualisation method of the embeddings: pca, umap
 config['vizu_encSigma'] = False
@@ -75,7 +75,7 @@ config_noisydsprites['dataset'] = 'noisydsprites'
 ### Scream DSprites config
 config_screamdsprites = config_dsprites.copy()
 config_screamdsprites['dataset'] = 'screamdsprites'
-# config_screamdsprites['true_gen_model'] = False #If synthetic data with true gen. model known: True, False
+config_screamdsprites['true_gen_model'] = False #If synthetic data with true gen. model known: True, False
 
 
 ### 3dshapes config

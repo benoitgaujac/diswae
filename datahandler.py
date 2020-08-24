@@ -336,7 +336,7 @@ class Data(object):
                 self.dict_loaded[key] = n + cnt
                 cnt += 1
             self.loaded.extend(new_points)
-            if len(self.loaded)>40000:
+            if len(self.loaded)>60000:
                 # droping loaded images every 50000
                 self.drop_loaded()
 
