@@ -222,6 +222,14 @@ class Data(object):
         self.paths = None
         self.dict_loaded = None
         self.loaded = None
+        # get random seed for noisy background
+        if type=='data':
+            if opts['dataset']=='screamdsprites' or opts['dataset']=='noisydsprites':
+                max = 2**32 - 1
+                seed = random.randrange(max - len(paths))
+                self.seed = seed
+        else:
+            self.seed = None
         # Load scream for screamdSprites
         if opts['dataset']=='screamdsprites':
             with utils.o_gfile(SCREAM_PATH, 'rb') as f:
@@ -257,25 +265,26 @@ class Data(object):
 
     def __getitem__(self, key):
         if isinstance(self.X, np.ndarray):
-            obs = self.X[key]
-            # add noise to dsprites
-            if self.dataset_name == 'noisydsprites' and self.type=='data':
-                obs = np.repeat(obs, 3, axis=-1)
-                color = np.random.uniform(0, 1, obs.shape[:-1] + (3,))
-                obs = np.minimum(obs + color, 1.)
-            elif self.dataset_name == 'screamdsprites'and self.type=='data':
-                obs = np.repeat(obs, 3, axis=-1)
-                if len(obs.shape)==3:
-                    npatch = 1
-                    patches = image.extract_patches_2d(self.scream, (64, 64), npatch)[0]
-                else:
-                    npatch = obs.shape[0]
-                    patches = image.extract_patches_2d(self.scream, (64, 64), npatch)
-                background = (patches + np.random.uniform(0, 1, size=3)) / 2
-                mask = (obs == 1.)
-                background[mask] = 1 - background[mask]
-                obs = background
-            return obs
+            return self.X[key]
+            # obs = self.X[key]
+            # # add noise to dsprites
+            # if self.dataset_name == 'noisydsprites' and self.type=='data':
+            #     obs = np.repeat(obs, 3, axis=-1)
+            #     color = np.random.uniform(0, 1, obs.shape[:-1] + (3,))
+            #     obs = np.minimum(obs + color, 1.)
+            # elif self.dataset_name == 'screamdsprites'and self.type=='data':
+            #     obs = np.repeat(obs, 3, axis=-1)
+            #     if len(obs.shape)==3:
+            #         npatch = 1
+            #         patches = image.extract_patches_2d(self.scream, (64, 64), npatch)[0]
+            #     else:
+            #         npatch = obs.shape[0]
+            #         patches = image.extract_patches_2d(self.scream, (64, 64), npatch)
+            #     background = (patches + np.random.uniform(0, 1, size=3)) / 2
+            #     mask = (obs == 1.)
+            #     background[mask] = 1 - background[mask]
+            #     obs = background
+            # return obs
         else:
             # Our dataset was too large to fit in the memory
             if isinstance(key, int):
@@ -314,12 +323,16 @@ class Data(object):
                         point = self._read_dsprites_image(data_dir, self.paths[key])
                         if self.dataset_name == 'noisydsprites' and self.type=='data':
                             point = np.repeat(point, 3, axis=-1)
+                            np.random.seed(self.seed + key)
                             color = np.random.uniform(0, 1, point.shape[:-1] + (3,))
+                            np.random.seed()
                             point = np.minimum(point + color, 1.)
                         elif self.dataset_name == 'screamdsprites'and self.type=='data':
                             point = np.repeat(point, 3, axis=-1)
                             patches = image.extract_patches_2d(self.scream, (64, 64), 1)[0]
+                            np.random.seed(self.seed + key)
                             background = (patches + np.random.uniform(0, 1, size=3)) / 2
+                            np.random.seed()
                             mask = (point > .8)
                             background[mask] = 1 - background[mask]
                             point = background
