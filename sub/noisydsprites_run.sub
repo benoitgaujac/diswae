@@ -5,8 +5,8 @@
 #$ -wd /home/bgaujac/diswae
 
 #$ -l gpu=true
-#$ -l tmem=8G
-#$ -l h_rt=28:00:00
+#$ -l tmem=10G
+#$ -l h_rt=24:00:00
 
 #$ -t 1-144
 
