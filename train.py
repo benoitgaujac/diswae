@@ -769,10 +769,11 @@ class Run(object):
         MSE.append(mse)
         Divergences_test.append(divergences_test.tolist())
         if opts['true_gen_model']:
-            betaVAE.append(self.compute_betaVAE(self.sess, data))
+            # betaVAE.append(self.compute_betaVAE(self.sess, data))
             MIG.append(self.compute_mig(codes_mean, labels))
             factorVAE.append(self.compute_factorVAE(self.sess, data, codes))
             SAP.append(self.compute_SAP(self.sess, data))
+            betaVAE.append(0.)
         # Printing various loss values
         logging.error(' \n Training done.')
         debug_str = 'EPOCH: %d/%d, BATCH:%d/%d' % (epoch,
