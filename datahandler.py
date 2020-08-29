@@ -784,10 +784,13 @@ class DataHandler(object):
         self.rand_masks['full'] = shuffling_mask
         self.rand_masks['vizu'] = shuffling_mask[:opts['plot_num_pics']]
         self.rand_masks['test'] = shuffling_mask[opts['plot_num_pics']:opts['plot_num_pics']+10000]
-        if opts['plot_num_pics']+10000 + opts['train_dataset_size']<len(shuffling_mask):
-            tr_stop = opts['plot_num_pics']+10000 + opts['train_dataset_size']
+        if opts['train_dataset_size']<0:
+            tr_stop = opts['train_dataset_size']
         else:
-            tr_stop = -1
+            if opts['plot_num_pics']+10000 + opts['train_dataset_size']<len(shuffling_mask):
+                tr_stop = opts['plot_num_pics']+10000 + opts['train_dataset_size']
+            else:
+                tr_stop = -1
         self.rand_masks['train'] = shuffling_mask[opts['plot_num_pics']+10000:tr_stop]
 
     def load_data_from_disk(self, start, stop):
