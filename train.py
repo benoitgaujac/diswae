@@ -540,7 +540,8 @@ class Run(object):
                         MSE.append(mse)
                         Divergences_test.append(divergences_test.tolist())
                         if opts['true_gen_model']:
-                            betaVAE.append(self.compute_betaVAE(data))
+                            # betaVAE.append(self.compute_betaVAE(data))
+                            betaVAE.append(0.)
                             MIG.append(self.compute_mig(codes_mean, labels))
                             factorVAE.append(self.compute_factorVAE(data, codes))
                             SAP.append(self.compute_SAP(data))
@@ -782,7 +783,8 @@ class Run(object):
         MSE.append(mse)
         Divergences_test.append(divergences_test.tolist())
         if opts['true_gen_model']:
-            betaVAE.append(self.compute_betaVAE(data))
+            # betaVAE.append(self.compute_betaVAE(data))
+            betaVAE.append(0.)
             MIG.append(self.compute_mig(codes_mean, labels))
             factorVAE.append(self.compute_factorVAE(data, codes))
             SAP.append(self.compute_SAP(data))
