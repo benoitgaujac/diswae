@@ -451,6 +451,8 @@ class Run(object):
                 start = buff*opts['trbuffer_size']
                 stop = start+opts['trbuffer_size'] if start+opts['trbuffer_size']<=train_size else train_size
                 data.load_data_from_disk(n+start, n+stop)
+                print(len(data.data.dict_loaded.keys()))
+                print(data.labels.X.shape)
                 buffer_size = int(stop-start)
                 batch_size_tr = min(opts['batch_size'],buffer_size)
                 batches_num = ceil(buffer_size / opts['batch_size'])
