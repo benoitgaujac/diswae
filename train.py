@@ -722,7 +722,7 @@ class Run(object):
                     if (counter+1)%50000 ==0 :
                         logging.error('Train it.: {}/{} \n'.format(counter+1,opts['epoch_num']*batches_num*data.trbuffer_num))
                     counter += 1
-                data.flush_data_from_memory(start, stop)
+                data.flush_data_from_memory(n+start, n+stop)
 
         # - Finale losses & scores
         # Sample batches of data points and Pz noise
