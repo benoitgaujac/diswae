@@ -25,6 +25,7 @@ from PIL import Image
 import sys
 import tarfile
 import h5py
+from math import ceil
 
 import utils
 
@@ -204,12 +205,10 @@ class Data(object):
     If the dataset can be quickly loaded to memory self.X will contain np.ndarray
     Otherwise we will be reading files as we train. In this case self.X is a structure:
         self.X.paths        list of paths to the files containing pictures
-        self.X.dict_loaded  dictionary of (key, val), where key is the index of the
-                            already loaded datapoint and val is the corresponding index
-                            in self.X.loaded
-        self.X.loaded       list containing already loaded pictures
+        self.X.dict_loaded  dictionary of (key, point), where key is the index of the
+                            already loaded datapoint in the order dataset
     """
-    def __init__(self, opts, X, type='data', paths=None, dict_loaded=None, loaded=None):
+    def __init__(self, opts, X, type='data', paths=None):
         """
         X is either np.ndarray or paths
         """
@@ -221,7 +220,7 @@ class Data(object):
         self.type = type
         self.paths = None
         self.dict_loaded = None
-        self.loaded = None
+
         # get random seed for noisy background
         if type=='data':
             if opts['dataset']=='screamdsprites' or opts['dataset']=='noisydsprites':
@@ -240,16 +239,13 @@ class Data(object):
 
         if isinstance(X, np.ndarray):
             self.X = X
-            self.shape = X.shape
         else:
             assert isinstance(self.data_dir, str), 'Data directory not provided'
             assert paths is not None and len(paths) > 0, 'No paths provided for the data'
             self.paths = paths[:]
-            self.dict_loaded = {} if dict_loaded is None else dict_loaded
-            self.loaded = [] if loaded is None else loaded
+            self.dict_loaded = {}
             if self.dataset_name == 'celebA':
                 self.crop_style = opts['celebA_crop']
-            self.shape = (len(self.paths), None, None, None)
 
     def __len__(self):
         if isinstance(self.X, np.ndarray):
@@ -257,11 +253,6 @@ class Data(object):
         else:
             # Our dataset was too large to fit in the memory
             return len(self.paths)
-
-    def drop_loaded(self):
-        if not isinstance(self.X, np.ndarray):
-            self.dict_loaded = {}
-            self.loaded = []
 
     def __getitem__(self, key):
         if isinstance(self.X, np.ndarray):
@@ -290,51 +281,75 @@ class Data(object):
                 print(type(key))
                 raise Exception('This type of indexing yet not supported for the dataset')
             res = []
-            new_keys = []
-            new_points = []
             for key in keys:
                 if key in self.dict_loaded:
-                    idx = self.dict_loaded[key]
-                    res.append(self.loaded[idx])
+                    res.append(self.dict_loaded[key])
                 else:
-                    if self.dataset_name == 'celebA':
-                        point = self._read_celeba_image(self.data_dir, self.paths[key])
-                    elif self.dataset_name[-8:] == 'dsprites':
-                        data_dir = os.path.join(self.data_dir, 'images')
-                        point = self._read_dsprites_image(data_dir, self.paths[key])
-                        if self.dataset_name == 'noisydsprites' and self.type=='data':
-                            point = np.repeat(point, 3, axis=-1)
-                            np.random.seed(self.seed + key)
-                            color = np.random.uniform(0, 1, point.shape[:-1] + (3,))
-                            np.random.seed()
-                            point = np.minimum(point + color, 1.)
-                        elif self.dataset_name == 'screamdsprites'and self.type=='data':
-                            point = np.repeat(point, 3, axis=-1)
-                            patches = image.extract_patches_2d(self.scream, (64, 64), 1)[0]
-                            np.random.seed(self.seed + key)
-                            background = (patches + np.random.uniform(0, 1, size=3)) / 2
-                            np.random.seed()
-                            mask = (point > .8)
-                            background[mask] = 1 - background[mask]
-                            point = background
-                    else:
-                        raise Exception('Disc read for this dataset not implemented yet...')
+                    point = self._read_image(key)
                     if self.normalize:
                         point = (point - 0.5) * 2.
                     res.append(point)
-                    new_points.append(point)
-                    new_keys.append(key)
-            n = len(self.loaded)
-            cnt = 0
-            for key in new_keys:
-                self.dict_loaded[key] = n + cnt
-                cnt += 1
-            self.loaded.extend(new_points)
-            if len(self.loaded)>100000:
-                # droping loaded images every 50000
-                self.drop_loaded()
 
             return np.array(res)
+
+    def _load_buffer(self, keys):
+            if isinstance(keys, int):
+                keys = [keys]
+            elif isinstance(keys, list):
+                keys = keys
+            elif isinstance(keys, np.ndarray):
+                keys = list(keys)
+            else:
+                assert False, '{}  indexing yet not supported for the dataset'.format(type(keys))
+            for key in keys:
+                if key not in self.dict_loaded:
+                    point = self._read_image(key)
+                    if self.normalize:
+                        point = (point - 0.5) * 2.
+                    self.dict_loaded[key] = point
+
+    def _drop_loaded(self, keys=None):
+        if not isinstance(self.X, np.ndarray):
+            if keys is not None:
+                if isinstance(keys, int):
+                    keys = [keys]
+                elif isinstance(keys, list):
+                    keys = keys
+                elif isinstance(keys, np.ndarray):
+                    keys = list(keys)
+                else:
+                    assert False, '{}  indexing yet not supported for the dataset'.format(type(keys))
+                for key in keys:
+                    self.dict_loaded.pop(key)
+            else:
+                self.dict_loaded = {}
+
+    def _read_image(self, key):
+        assert key==int(self.paths[key][:-4])-1, 'Mismatch between key and img_file_name'
+        if self.dataset_name == 'celebA':
+            point = self._read_celeba_image(self.data_dir, self.paths[key])
+        elif self.dataset_name[-8:] == 'dsprites':
+            data_dir = os.path.join(self.data_dir, 'images')
+            point = self._read_dsprites_image(data_dir, self.paths[key])
+            if self.dataset_name == 'noisydsprites' and self.type=='data':
+                point = np.repeat(point, 3, axis=-1)
+                np.random.seed(self.seed + key)
+                color = np.random.uniform(0, 1, point.shape[:-1] + (3,))
+                np.random.seed()
+                point = np.minimum(point + color, 1.)
+            elif self.dataset_name == 'screamdsprites'and self.type=='data':
+                point = np.repeat(point, 3, axis=-1)
+                patches = image.extract_patches_2d(self.scream, (64, 64), 1)[0]
+                np.random.seed(self.seed + key)
+                background = (patches + np.random.uniform(0, 1, size=3)) / 2
+                np.random.seed()
+                mask = (point > .8)
+                background[mask] = 1 - background[mask]
+                point = background
+        else:
+            raise Exception('Disc read for this dataset not implemented yet...')
+
+        return point
 
     def _read_celeba_image(self, data_dir, filename):
         width = 178
@@ -390,7 +405,11 @@ class DataHandler(object):
         # data informations
         self.data_shape = datashapes[opts['dataset']]
         self.train_size = len(self.rand_masks['train'])
+        self.trbuffer_num = ceil(self.train_size / opts['trbuffer_size'])
         self.test_size = len(self.rand_masks['test'])
+        self.vizu_size = len(self.rand_masks['vizu'])
+        # load test and vizu img_buffer if reading from disk
+        self.load_data_from_disk(0,self.test_size+self.vizu_size)
 
     def _load_data(self, opts):
         """Load a dataset and fill all the necessary variables.
@@ -412,22 +431,6 @@ class DataHandler(object):
             self._load_svhn(opts)
         else:
             raise ValueError('Unknown %s' % opts['dataset'])
-
-    def _data_randomization(self, opts):
-        """Create random masks to shuffle the data for ewach experience
-
-        """
-        shuffling_mask = np.arange(len(self.data))
-        seed = 123
-        np.random.seed(seed)
-        np.random.shuffle(shuffling_mask)
-        np.random.seed()
-        np.random.shuffle(shuffling_mask[:-opts['plot_num_pics']])
-        # self.data_order_idx = np.argsort(shuffling_mask)
-        self.rand_masks = {}
-        self.rand_masks['train'] = shuffling_mask[:-10000]
-        self.rand_masks['test'] = shuffling_mask[-10000:-opts['plot_num_pics']]
-        self.rand_masks['vizu'] = shuffling_mask[-opts['plot_num_pics']:]
 
     def _load_dsprites(self, opts):
         """Load data from dsprites dataset
@@ -766,10 +769,64 @@ class DataHandler(object):
 
         logging.error('Loading Done: Train size: %d, Test size: %d' % (self.num_points,len(self.test_data)))
 
-    def get_batch_img(self,idx, type):
+    def _data_randomization(self, opts):
+        """Create random masks to shuffle the data for ewach experience
+
+        """
+        shuffling_mask = np.arange(len(self.data))
+        seed = 123
+        np.random.seed(seed)
+        np.random.shuffle(shuffling_mask)
+        np.random.seed()
+        np.random.shuffle(shuffling_mask[opts['plot_num_pics']:])
+        # self.data_order_idx = np.argsort(shuffling_mask)
+        self.rand_masks = {}
+        self.rand_masks['full'] = shuffling_mask
+        self.rand_masks['vizu'] = shuffling_mask[:opts['plot_num_pics']]
+        self.rand_masks['test'] = shuffling_mask[opts['plot_num_pics']:opts['plot_num_pics']+10000]
+        if opts['plot_num_pics']+10000 + opts['train_dataset_size']<len(shuffling_mask):
+            tr_stop = opts['plot_num_pics']+10000 + opts['train_dataset_size']
+        else:
+            tr_stop = -1
+        self.rand_masks['train'] = shuffling_mask[opts['plot_num_pics']+10000:tr_stop]
+
+    def load_data_from_disk(self, start, stop):
+        """Read and loading_buffer from disk
+        start: idx (on the randomized order) of first img to be read
+        stop: idx (on the randomized order) of last img to be read
+
+        """
+        start = start if start is not None else 0
+        if start < 0:
+            start += len(self.data)
+        stop = stop if stop is not None else len(self.data) - 1
+        if stop < 0:
+            stop += len(self.data)
+        keys = np.arange(start, stop, 1)
+        randomized_idx = self.rand_masks['full'][keys]
+        self.data._load_buffer(randomized_idx)
+
+    def flush_data_from_memory(self, start, stop):
+        """Flush data from memory
+        start: idx (on the randomized order) of first img to be flush
+        stop: idx (on the randomized order) of last img to be flush
+
+        """
+        start = start if start is not None else 0
+        if start < 0:
+            start += len(self.data)
+        stop = stop if stop is not None else len(self.data) - 1
+        if stop < 0:
+            stop += len(self.data)
+        keys = range(start, stop, 1)
+        randomized_idx = self.rand_masks['full'][keys]
+        self.data._drop_loaded(randomized_idx)
+
+
+    def get_batch_img(self, idx, type):
         return self.data[self.rand_masks[type][idx]]
 
-    def get_batch_label(self,idx, type):
+    def get_batch_label(self, idx, type):
         return self.labels[self.rand_masks[type][idx]]
 
     def sample_observations_from_factors(self, dataset, factors):

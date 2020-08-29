@@ -21,7 +21,8 @@ config['plot_num_cols'] = 10
 # Experiment set up
 config['train_dataset_size'] = -1
 config['batch_size'] = 100
-config['epoch_num'] = 101
+config['trbuffer_size'] = 90000
+config['epoch_num'] = 100
 config['model'] = 'TCWAE_MWS' #WAE, BetaVAE
 config['use_trained'] = False #train from pre-trained model
 # Opt set up
@@ -75,7 +76,9 @@ config_noisydsprites['dataset'] = 'noisydsprites'
 ### Scream DSprites config
 config_screamdsprites = config_dsprites.copy()
 config_screamdsprites['dataset'] = 'screamdsprites'
-config_screamdsprites['true_gen_model'] = False #If synthetic data with true gen. model known: True, False
+# config_screamdsprites['true_gen_model'] = False #If synthetic data with true gen. model known: True, False
+# config_screamdsprites['train_dataset_size'] = 1000
+# config_screamdsprites['trbuffer_size'] = 500
 
 
 ### 3dshapes config

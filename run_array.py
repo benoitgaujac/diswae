@@ -97,15 +97,12 @@ def main():
     opts['model'] = FLAGS.model
     if FLAGS.dataset == 'celebA':
         opts['zdim'] = 32
-        # opts['batch_size'] = 128
         opts['lr'] = 0.0001
     elif FLAGS.dataset == '3Dchairs':
         opts['zdim'] = 16
-        # opts['batch_size'] = 128
         opts['lr'] = 0.0001
     else:
         opts['zdim'] = 10
-        # opts['batch_size'] = 64
         opts['lr'] = 0.0004
     if opts['model'][-3:]=='VAE':
         opts['input_normalize_sym'] = False
@@ -194,7 +191,7 @@ def main():
 
     # Experiemnts set up
     opts['epoch_num'] = int(FLAGS.num_it / int(data.train_size/opts['batch_size']))
-    opts['print_every'] = int(opts['epoch_num'] / 2.) * int(data.train_size/opts['batch_size'])-1
+    opts['print_every'] = int(opts['epoch_num'] / 3.) * int(data.train_size/opts['batch_size'])-1
     opts['evaluate_every'] = int(opts['print_every'] / 2.) + 1
     opts['save_every'] = 10000000000
     opts['save_final'] = FLAGS.save_model
