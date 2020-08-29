@@ -410,6 +410,7 @@ class DataHandler(object):
         self.vizu_size = len(self.rand_masks['vizu'])
         # load test and vizu img_buffer if reading from disk
         self.load_data_from_disk(0,self.test_size+self.vizu_size)
+        logging.error('Loading Done.')
 
     def _load_data(self, opts):
         """Load a dataset and fill all the necessary variables.
@@ -454,8 +455,6 @@ class DataHandler(object):
         self.factor_bases = np.prod(self.factor_sizes) / np.cumprod(
             self.factor_sizes)
 
-        logging.error('Loading Done.')
-
     def _load_3dshapes(self, opts):
         """Load data from 3Dshapes dataset
 
@@ -487,8 +486,6 @@ class DataHandler(object):
         self.factor_sizes = np.array([10,10,10,8,4,15])
         self.factor_bases = np.prod(self.factor_sizes) / np.cumprod(
             self.factor_sizes)
-
-        logging.error('Loading Done.')
 
     def _load_smallNORB(self, opts):
         """Load data from smallNORB dataset
@@ -553,8 +550,6 @@ class DataHandler(object):
         self.factor_bases = np.prod(self.factor_sizes) / np.cumprod(
             self.factor_sizes)
 
-        logging.error('Loading Done.')
-
     def _load_3Dchairs(self, opts):
         """Load data from 3Dchairs dataset
 
@@ -592,8 +587,6 @@ class DataHandler(object):
         # plot set
         self.plot_data_idx = np.arange(10)
 
-        logging.error('Loading Done.')
-
     def _load_celebA(self, opts):
         """Load CelebA
         """
@@ -605,8 +598,6 @@ class DataHandler(object):
         # plot set
         # idx = [5,6,14,17,39,50,60,70,80,90]
         self.plot_data = np.arange(5,5+50)
-
-        logging.error('Loading Done.')
 
     def _load_mnist(self, opts, zalando=False, modified=False):
         """Load data from MNIST or ZALANDO files.
@@ -688,8 +679,6 @@ class DataHandler(object):
         self.test_labels = y[-test_size:]
         self.num_points = len(self.data)
 
-        logging.error('Loading Done: Train size: %d, Test size: %d' % (self.num_points,len(self.test_data)))
-
     def _load_svhn(self, opts):
         """Load data from SVHN files.
 
@@ -766,8 +755,6 @@ class DataHandler(object):
         self.test_data = Data(opts, te_X)
         self.test_labels = te_Y
         self.num_points = len(self.data)
-
-        logging.error('Loading Done: Train size: %d, Test size: %d' % (self.num_points,len(self.test_data)))
 
     def _data_randomization(self, opts):
         """Create random masks to shuffle the data for ewach experience
