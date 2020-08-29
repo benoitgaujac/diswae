@@ -450,6 +450,8 @@ class Run(object):
                 n = data.test_size + data.vizu_size
                 start = buff*opts['trbuffer_size']
                 stop = start+opts['trbuffer_size'] if start+opts['trbuffer_size']<=train_size else train_size
+                print(len(data.data.dict_loaded.keys()))
+                print(data.labels.X.shape)
                 data.load_data_from_disk(n+start, n+stop)
                 print(len(data.data.dict_loaded.keys()))
                 print(data.labels.X.shape)
