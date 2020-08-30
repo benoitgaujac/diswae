@@ -724,8 +724,13 @@ class Run(object):
                 data.flush_data_from_memory(n+start, n+stop)
 
         # - Finale losses & scores
+        # load training data buffer on memory
+        n = data.test_size + data.vizu_size
+        start = 0
+        stop = 80000
+        data.load_data_from_disk(n+start, n+stop)
         # Sample batches of data points and Pz noise
-        data_ids = np.random.choice(train_size, 500, replace=True)
+        data_ids = np.random.choice(80000, 500, replace=True)
         batch_images = data.get_batch_img(data_ids,'train').astype(np.float32)
         batch_pz_samples = sample_pz(opts, self.pz_params, 500)
         # Feeding dictionary
