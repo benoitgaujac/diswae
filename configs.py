@@ -77,8 +77,8 @@ config_noisydsprites['dataset'] = 'noisydsprites'
 config_screamdsprites = config_dsprites.copy()
 config_screamdsprites['dataset'] = 'screamdsprites'
 # config_screamdsprites['true_gen_model'] = False #If synthetic data with true gen. model known: True, False
-# config_screamdsprites['train_dataset_size'] = 1000
-# config_screamdsprites['trbuffer_size'] = 500
+# config_screamdsprites['train_dataset_size'] = 1000 #140000
+# config_screamdsprites['trbuffer_size'] = 500 #70000
 
 
 ### 3dshapes config

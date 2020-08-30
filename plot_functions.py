@@ -20,8 +20,8 @@ def save_train(opts, data_train, data_test,
                      samples,
                      loss, loss_test,
                      loss_rec, loss_rec_test,
-                     mse,
-                     betaVAE, mig, factorVAE, SAP,
+                     mse, mse_test,
+                     # betaVAE, mig, factorVAE, SAP,
                      loss_match, loss_match_test,
                      exp_dir,
                      filename):
@@ -35,7 +35,8 @@ def save_train(opts, data_train, data_test,
         img3    -   samples
         img4    -   loss curves
         img5    -   split loss curves
-        img6    -   dis. metrics curves
+        # img6    -   dis. metrics curves
+        img6    -   mse curves
 
     """
     num_pics = opts['plot_num_pics']
@@ -269,24 +270,34 @@ def save_train(opts, data_train, data_test,
     #     plt.text(0.47, 1., 'Latent Reg. curves', ha="center", va="bottom",
     #                                 size=20, transform=ax.transAxes)
 
-    ### The disentangle metrics curves
-    if len(mig)>0:
-        ax = plt.subplot(gs[1, 2])
-        # y = np.convolve(mig, np.ones((size_filter,))/size_filter, mode='valid')
-        # y = betaVAE
-        # plt.plot(x, y[::x_step], linewidth=4, color='green', label='betaVAE')
-        y = mig
-        plt.plot(x, y[::x_step], linewidth=4, color='red', label='MIG')
-        # y = np.convolve(factorVAE, np.ones((size_filter,))/size_filter, mode='valid')
-        y = factorVAE
-        plt.plot(x, y[::x_step], linewidth=4, color='blue', label='factorVAE')
-        y = SAP
-        plt.plot(x, y[::x_step], linewidth=4, color='purple', label='SAP')
-        plt.grid(axis='y')
-        plt.legend(loc='upper right')
-        plt.text(0.47, 1., 'Disentanglement metrics', ha="center", va="bottom",
-                                    size=20, transform=ax.transAxes)
+    # ### The disentangle metrics curves
+    # if len(mig)>0:
+    #     ax = plt.subplot(gs[1, 2])
+    #     # y = np.convolve(mig, np.ones((size_filter,))/size_filter, mode='valid')
+    #     # y = betaVAE
+    #     # plt.plot(x, y[::x_step], linewidth=4, color='green', label='betaVAE')
+    #     y = mig
+    #     plt.plot(x, y[::x_step], linewidth=4, color='red', label='MIG')
+    #     # y = np.convolve(factorVAE, np.ones((size_filter,))/size_filter, mode='valid')
+    #     y = factorVAE
+    #     plt.plot(x, y[::x_step], linewidth=4, color='blue', label='factorVAE')
+    #     y = SAP
+    #     plt.plot(x, y[::x_step], linewidth=4, color='purple', label='SAP')
+    #     plt.grid(axis='y')
+    #     plt.legend(loc='upper right')
+    #     plt.text(0.47, 1., 'Disentanglement metrics', ha="center", va="bottom",
+    #                                 size=20, transform=ax.transAxes)
 
+    ### MSE curves
+    ax = plt.subplot(gs[1, 2])
+    y = mse_test
+    plt.plot(x, np.log(y[::x_step]), linewidth=4, color=color_list[0], label='test MSE')
+    y = mse
+    plt.plot(x, np.log(y[::x_step]), linewidth=4, color=color_list[0], linestyle='--', label='train MSE')
+    plt.grid(axis='y')
+    plt.legend(loc='upper right')
+    plt.text(0.47, 1., 'log MSE', ha="center", va="bottom",
+                                size=20, transform=ax.transAxes)
 
     ### Saving plots and data
     # Plot

@@ -394,6 +394,7 @@ class DataHandler(object):
 
     def __init__(self, opts):
         # load data
+        logging.error('\n Loading {}.'.format(opts['dataset']))        
         self._load_data(opts)
         # normalize if needed, else we will normalyze while reading from disk
         if opts['input_normalize_sym']:
@@ -438,7 +439,6 @@ class DataHandler(object):
 
         """
 
-        logging.error('Loading dsprites...')
         # Loading labels and data
         data_dir = _data_dir(opts)
         data_path = os.path.join(data_dir, 'dsprites_ndarray_co1sh3sc6or40x32y32_64x64.npz')
@@ -470,7 +470,6 @@ class DataHandler(object):
                 factors.append(factor)
             return np.stack(factors,axis=-1)
 
-        logging.error('Loading 3Dshapes...')
         # Loading data
         data_dir = _data_dir(opts)
         data_path = os.path.join(data_dir, '3dshapes.h5')
@@ -492,7 +491,6 @@ class DataHandler(object):
 
         """
 
-        logging.error('Loading smallNORB...')
         # Loading data
         data_dir = _data_dir(opts)
         SMALLNORB_CHUNKS = ['smallnorb-5x46789x9x18x6x2x96x96-training-{0}.mat.gz',
@@ -555,7 +553,6 @@ class DataHandler(object):
 
         """
 
-        logging.error('Loading 3Dchairs')
         filename = os.path.join(_data_dir(opts), 'rendered_chairs.npz')
         # Extracting data and saving as npz if necessary
         if not tf.io.gfile.exists(filename):
@@ -590,7 +587,6 @@ class DataHandler(object):
     def _load_celebA(self, opts):
         """Load CelebA
         """
-        logging.error('Loading CelebA dataset')
 
         num_samples = 202599
         paths = np.array(['%.6d.jpg' % i for i in range(1, num_samples + 1)])
@@ -603,12 +599,7 @@ class DataHandler(object):
         """Load data from MNIST or ZALANDO files.
 
         """
-        if zalando:
-            logging.error('Loading Fashion MNIST')
-        elif modified:
-            logging.error('Loading modified MNIST')
-        else:
-            logging.error('Loading MNIST')
+
         data_dir = _data_dir(opts)
         # pylint: disable=invalid-name
         # Let us use all the bad variable names!

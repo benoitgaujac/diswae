@@ -412,7 +412,7 @@ class Run(object):
         Train top-down model with chosen method
         """
         opts = self.opts
-        logging.error('Training {}'.format(self.opts['model']))
+        logging.error('\nTraining {}'.format(self.opts['model']))
         exp_dir = opts['exp_dir']
 
         # writer = tf.summary.FileWriter(exp_dir)
@@ -429,8 +429,7 @@ class Run(object):
         # - Init all monitoring variables
         Loss, Loss_test, Loss_rec, Loss_rec_test = [], [], [], []
         Divergences, Divergences_test = [], []
-        betaVAE, MIG, factorVAE, SAP = [], [], [], []
-        MSE = []
+        MSE, MSE_test = [], []
         if opts['vizu_encSigma']:
             enc_Sigmas = []
 
@@ -450,11 +449,9 @@ class Run(object):
                 n = data.test_size + data.vizu_size
                 start = buff*opts['trbuffer_size']
                 stop = start+opts['trbuffer_size'] if start+opts['trbuffer_size']<=train_size else train_size
-                print(len(data.data.dict_loaded.keys()))
-                print(data.labels.X.shape)
                 data.load_data_from_disk(n+start, n+stop)
-                print(len(data.data.dict_loaded.keys()))
-                print(data.labels.X.shape)
+                if counter==0:
+                    logging.error('{} img loaded'.format(len(data.data.dict_loaded.keys())))
                 buffer_size = int(stop-start)
                 batch_size_tr = min(opts['batch_size'],buffer_size)
                 batches_num = ceil(buffer_size / opts['batch_size'])
@@ -472,7 +469,7 @@ class Run(object):
                     _ = self.sess.run(self.opt, feed_dict=feed_dict)
                     ##### TESTING LOOP #####
                     if (counter+1)%opts['evaluate_every'] == 0:
-                        print("Epoch {}, Iteration {}".format(epoch, buff*batches_num+it+1))
+                        logging.error('\nEpoch {}, Iteration {}'.format(epoch, buff*batches_num+it+1))
                         # Train losses
                         data_ids = np.random.choice(buffer_size, batch_size_tr, replace=True)
                         batch_images = data.get_batch_img(data_ids,'train').astype(np.float32)
@@ -483,13 +480,15 @@ class Run(object):
                                      self.lr_decay: decay,
                                      self.obj_fn_coeffs: opts['obj_fn_coeffs'],
                                      self.is_training: True}
-                        [loss, loss_rec, divergences] = self.sess.run([
+                        [loss, loss_rec, m, divergences] = self.sess.run([
                                                     self.objective,
                                                     self.loss_reconstruct,
+                                                    self.mse,
                                                     self.divergences],
                                                     feed_dict=feed_dict)
                         Loss.append(loss)
                         Loss_rec.append(loss_rec)
+                        MSE.append(m)
                         Divergences.append(divergences)
 
                         # Encoded Sigma
@@ -503,9 +502,9 @@ class Run(object):
                         batch_size_te = min(test_size,1000)
                         batches_num_te = int(test_size/batch_size_te)+1
                         loss_test, loss_rec_test, mse = 0., 0., 0.
-                        if opts['true_gen_model']:
-                            codes, codes_mean = np.zeros((batches_num_te*batch_size_te,opts['zdim'])), np.zeros((batches_num_te*batch_size_te,opts['zdim']))
-                            labels = np.zeros((batches_num_te*batch_size_te,len(data.factor_indices)))
+                        # if opts['true_gen_model']:
+                        #     codes, codes_mean = np.zeros((batches_num_te*batch_size_te,opts['zdim'])), np.zeros((batches_num_te*batch_size_te,opts['zdim']))
+                        #     labels = np.zeros((batches_num_te*batch_size_te,len(data.factor_indices)))
                         if type(divergences)==list:
                             divergences_test = np.zeros(len(divergences))
                         else:
@@ -533,20 +532,20 @@ class Run(object):
                             mse += m / batches_num_te
                             divergences_test += np.array(divergences) / batches_num_te
                             kl_to_prior += kl / batches_num_te
-                            if opts['true_gen_model']:
-                                codes[batch_size_te*it_:batch_size_te*(it_+1)] = z
-                                codes_mean[batch_size_te*it_:batch_size_te*(it_+1)] = z_mean
-                                labels[batch_size_te*it_:batch_size_te*(it_+1)] = data.get_batch_label(data_ids,'test')[:,data.factor_indices]
+                            # if opts['true_gen_model']:
+                            #     codes[batch_size_te*it_:batch_size_te*(it_+1)] = z
+                            #     codes_mean[batch_size_te*it_:batch_size_te*(it_+1)] = z_mean
+                            #     labels[batch_size_te*it_:batch_size_te*(it_+1)] = data.get_batch_label(data_ids,'test')[:,data.factor_indices]
                         Loss_test.append(loss_test)
                         Loss_rec_test.append(loss_rec_test)
-                        MSE.append(mse)
+                        MSE_test.append(mse)
                         Divergences_test.append(divergences_test.tolist())
-                        if opts['true_gen_model']:
-                            # betaVAE.append(self.compute_betaVAE(data))
-                            betaVAE.append(0.)
-                            MIG.append(self.compute_mig(codes_mean, labels))
-                            factorVAE.append(self.compute_factorVAE(data, codes))
-                            SAP.append(self.compute_SAP(data))
+                        # if opts['true_gen_model']:
+                        #     # betaVAE.append(self.compute_betaVAE(data))
+                        #     betaVAE.append(0.)
+                        #     MIG.append(self.compute_mig(codes_mean, labels))
+                        #     factorVAE.append(self.compute_factorVAE(data, codes))
+                        #     SAP.append(self.compute_SAP(data))
 
                     if (counter+1)%opts['print_every'] == 0:
                         # Plot vizualizations
@@ -602,8 +601,8 @@ class Run(object):
                                   generations,                                          # model samples
                                   Loss, Loss_test,                                      # loss
                                   Loss_rec, Loss_rec_test,                              # rec loss
-                                  MSE,                                                  # mse
-                                  betaVAE, MIG, factorVAE, SAP,                         # disentangle metrics
+                                  MSE, MSE_test,                                        # mse
+                                  # betaVAE, MIG, factorVAE, SAP,                         # disentangle metrics
                                   Divergences, Divergences_test,                        # divergence terms
                                   exp_dir,                                              # working directory
                                   'res_e%04d_mb%05d.png' % (epoch, buff*batches_num+it+1))                 # filename
@@ -617,13 +616,13 @@ class Run(object):
                         logging.error(debug_str)
                         debug_str = 'TRAIN LOSS=%.3f, TEST LOSS=%.3f' % (Loss[-1],Loss_test[-1])
                         logging.error(debug_str)
-                        if opts['true_gen_model']:
-                            debug_str = 'betaVAE=%.3f, MIG=%.3f, factorVAE=%.3f, SAP=%.3f' % (
-                                                        betaVAE[-1],
-                                                        MIG[-1],
-                                                        factorVAE[-1],
-                                                        SAP[-1])
-                            logging.error(debug_str)
+                        # if opts['true_gen_model']:
+                        #     debug_str = 'betaVAE=%.3f, MIG=%.3f, factorVAE=%.3f, SAP=%.3f' % (
+                        #                                 betaVAE[-1],
+                        #                                 MIG[-1],
+                        #                                 factorVAE[-1],
+                        #                                 SAP[-1])
+                        #     logging.error(debug_str)
                         if opts['model'] == 'BetaVAE':
                             debug_str = 'REC=%.3f, TEST REC=%.3f, beta*KL=%10.3e, beta*TEST KL=%10.3e, \n '  % (
                                                         Loss_rec[-1],
@@ -735,14 +734,16 @@ class Run(object):
                      self.lr_decay: decay,
                      self.obj_fn_coeffs: opts['obj_fn_coeffs'],
                      self.is_training: True}
-        [loss, loss_rec, divergences] = self.sess.run([
+        [loss, loss_rec, m, divergences] = self.sess.run([
                                     self.objective,
                                     self.loss_reconstruct,
+                                    self.mse,
                                     self.divergences],
                                     feed_dict=feed_dict)
         # Train losses
         Loss.append(loss)
         Loss_rec.append(loss_rec)
+        MSE.append(m)
         Divergences.append(divergences)
         # Test losses
         loss_test, loss_rec_test, mse = 0., 0., 0.
@@ -782,34 +783,33 @@ class Run(object):
                 labels[batch_size_te*it_:batch_size_te*(it_+1)] = data.get_batch_label(data_ids,'test')[:,data.factor_indices]
         Loss_test.append(loss_test)
         Loss_rec_test.append(loss_rec_test)
-        MSE.append(mse)
+        MSE_test.append(mse)
         Divergences_test.append(divergences_test.tolist())
         if opts['true_gen_model']:
-            # betaVAE.append(self.compute_betaVAE(data))
-            betaVAE.append(0.)
-            MIG.append(self.compute_mig(codes_mean, labels))
-            factorVAE.append(self.compute_factorVAE(data, codes))
-            SAP.append(self.compute_SAP(data))
+            betaVAE=self.compute_betaVAE(data)
+            MIG=self.compute_mig(codes_mean, labels)
+            factorVAE=self.compute_factorVAE(data, codes)
+            SAP=self.compute_SAP(data)
         # Printing various loss values
         logging.error(' \n Training done.')
         debug_str = 'TRAIN LOSS=%.3f, TEST LOSS=%.3f' % (Loss[-1],Loss_test[-1])
         logging.error(debug_str)
         if opts['true_gen_model']:
             debug_str = 'betaVAE=%.3f, MIG=%.3f, factorVAE=%.3f, SAP=%.3f' % (
-                                        betaVAE[-1],
-                                        MIG[-1],
-                                        factorVAE[-1],
-                                        SAP[-1])
+                                        betaVAE,
+                                        MIG,
+                                        factorVAE,
+                                        SAP)
             logging.error(debug_str)
         if opts['model'] == 'BetaVAE':
-            debug_str = 'REC=%.3f, TEST REC=%.3f, beta*KL=%10.3e, beta*TEST KL=%10.3e, \n '  % (
+            debug_str = 'REC=%.3f, TEST REC=%.3f, beta*KL=%10.3e, beta*TEST KL=%10.3e'  % (
                                         Loss_rec[-1],
                                         Loss_rec_test[-1],
                                         Divergences[-1],
                                         Divergences_test[-1])
             logging.error(debug_str)
         elif opts['model'] == 'BetaTCVAE':
-            debug_str = 'REC=%.3f, TEST REC=%.3f, b*TC=%10.3e, TEST b*TC=%10.3e, KL=%10.3e, TEST KL=%10.3e, \n '  % (
+            debug_str = 'REC=%.3f, TEST REC=%.3f, b*TC=%10.3e, TEST b*TC=%10.3e, KL=%10.3e, TEST KL=%10.3e'  % (
                                         Loss_rec[-1],
                                         Loss_rec_test[-1],
                                         Divergences[-1][0],
@@ -818,7 +818,7 @@ class Run(object):
                                         Divergences_test[-1][1])
             logging.error(debug_str)
         elif opts['model'] == 'FactorVAE':
-            debug_str = 'REC=%.3f, TEST REC=%.3f, b*KL=%10.3e, TEST b*KL=%10.3e, g*TC=%10.3e, TEST g*TC=%10.3e, \n '  % (
+            debug_str = 'REC=%.3f, TEST REC=%.3f, b*KL=%10.3e, TEST b*KL=%10.3e, g*TC=%10.3e, TEST g*TC=%10.3e'  % (
                                         Loss_rec[-1],
                                         Loss_rec_test[-1],
                                         Divergences[-1][0],
@@ -827,7 +827,7 @@ class Run(object):
                                         Divergences_test[-1][1])
             logging.error(debug_str)
         elif opts['model'] == 'WAE':
-            debug_str = 'REC=%.3f, TEST REC=%.3f, l*MMD=%10.3e, l*TEST MMD=%10.3e \n ' % (
+            debug_str = 'REC=%.3f, TEST REC=%.3f, l*MMD=%10.3e, l*TEST MMD=%10.3e' % (
                                         Loss_rec[-1],
                                         Loss_rec_test[-1],
                                         Divergences[-1],
@@ -840,7 +840,7 @@ class Run(object):
                                         Divergences[-1][1],
                                         Divergences[-1][2])
             logging.error(debug_str)
-            debug_str = 'TEST : REC=%.3f, l1*HSIC=%10.3e, l2*DIMWISE=%10.3e, WAE=%10.3e \n ' % (
+            debug_str = 'TEST : REC=%.3f, l1*HSIC=%10.3e, l2*DIMWISE=%10.3e, WAE=%10.3e' % (
                                         Loss_rec_test[-1],
                                         Divergences_test[-1][0],
                                         Divergences_test[-1][1],
@@ -853,7 +853,7 @@ class Run(object):
                                         Divergences[-1][1],
                                         Divergences[-1][2])
             logging.error(debug_str)
-            debug_str = 'TEST : REC=%.3f, l1*TC=%10.3e, l2*DIMWISE=%10.3e, WAE=%10.3e \n ' % (
+            debug_str = 'TEST : REC=%.3f, l1*TC=%10.3e, l2*DIMWISE=%10.3e, WAE=%10.3e' % (
                                         Loss_rec_test[-1],
                                         Divergences_test[-1][0],
                                         Divergences_test[-1][1],
@@ -876,9 +876,10 @@ class Run(object):
             name = 'res_train_final'
             np.savez(os.path.join(save_path, name),
                     loss=np.array(Loss[-1]), loss_test=np.array(Loss_test[-1]),
-                    loss_rec=np.array(Loss_rec[-1]), loss_rec_test=np.array(Loss_rec_test[-1]), mse = np.array(MSE[-1]),
+                    loss_rec=np.array(Loss_rec[-1]), loss_rec_test=np.array(Loss_rec_test[-1]),
+                    mse = np.array(MSE[-1]), mse_test = np.array(MSE_test[-1]),
                     divergences=np.array(Divergences[-1]), divergences_test=np.array(Divergences_test[-1]),
-                    mig=np.array(MIG[-1]), factorVAE=np.array(factorVAE[-1]), sap=np.array(SAP[-1]))
+                    betavae=np.array(betaVAE), mig=np.array(MIG), factorVAE=np.array(factorVAE), sap=np.array(SAP))
 
     def test(self, data, WEIGHTS_PATH, verbose):
         """
