@@ -21,7 +21,7 @@ config['plot_num_cols'] = 10
 # Experiment set up
 config['train_dataset_size'] = -1
 config['batch_size'] = 100
-config['trbuffer_size'] = 70000
+config['trbuffer_size'] = 80000
 config['epoch_num'] = 100
 config['model'] = 'TCWAE_MWS' #WAE, BetaVAE
 config['use_trained'] = False #train from pre-trained model
