@@ -20,6 +20,7 @@ class Model(object):
         self.pz_mean = np.zeros(opts['zdim'], dtype='float32')      # TODO don't hardcode this
         self.pz_sigma = np.ones(opts['zdim'], dtype='float32')
 
+
     def forward_pass(self, inputs, is_training, reuse=False):
 
         enc_z, enc_mean, enc_Sigma = encoder(self.opts,
@@ -92,7 +93,7 @@ class BetaVAE(Model):
         cross_entropy = tf.nn.sigmoid_cross_entropy_with_logits(labels=labels, logits=logits)
         return tf.reduce_mean(tf.reduce_sum(cross_entropy,axis=-1))
 
-    def loss(self, inputs, samples, loss_coeffs, is_training):
+    def loss(self, inputs, loss_coeffs, is_training):
 
         beta = loss_coeffs
 
@@ -136,7 +137,7 @@ class BetaTCVAE(BetaVAE):
           keepdims=False)
       return tf.reduce_mean(log_qz - log_qz_product)
 
-    def loss(self, inputs, samples, loss_coeffs, is_training):
+    def loss(self, inputs, loss_coeffs, is_training):
 
         beta = loss_coeffs
 
@@ -164,7 +165,7 @@ class FactorVAE(BetaVAE):
           clipped = tf.clip_by_value(probs, 1e-6, 1 - 1e-6)
       return logits, clipped
 
-    def loss(self, inputs, samples, loss_coeffs, is_training):
+    def loss(self, inputs, loss_coeffs, is_training):
 
         gamma = loss_coeffs
 
@@ -293,7 +294,7 @@ class WAE(Model):
             assert False, 'Unknown cost function %s' % opts['obs_cost']
         return tf.reduce_mean(cost)
 
-    def loss(self, inputs, samples, loss_coeffs, is_training):
+    def loss(self, inputs, loss_coeffs, is_training):
 
         lmbd = loss_coeffs
 
@@ -302,7 +303,9 @@ class WAE(Model):
                                                 is_training=is_training)
 
         loss_reconstruct = self.reconstruction_loss(inputs, recon_x, dec_mean)
-        divergences = lmbd*self.mmd_penalty(enc_z, samples)
+        noise = tf.random_normal(shape=tf.shape(enc_z))
+        pz_sample = tf.add(self.pz_mean, (noise * self.pz_sigma))
+        divergences = lmbd*self.mmd_penalty(enc_z, pz_sample)
 
         return loss_reconstruct, divergences
 
@@ -348,7 +351,7 @@ class TCWAE_MWS(WAE):
 
       return tf.reduce_mean(log_qz), tf.reduce_mean(log_qz_product), tf.reduce_mean(log_pz_product)
 
-    def loss(self, inputs, samples, loss_coeffs, is_training):
+    def loss(self, inputs, loss_coeffs, is_training):
 
         (lmbd1, lmbd2) = loss_coeffs
 
@@ -362,7 +365,9 @@ class TCWAE_MWS(WAE):
         # - WAE latent reg
         tc = log_qz-log_qz_product
         kl = log_qz_product-log_pz_product
-        wae_match_penalty = self.mmd_penalty(enc_z, samples)
+        noise = tf.random_normal(shape=tf.shape(enc_z))
+        pz_sample = tf.add(self.pz_mean, (noise * self.pz_sigma))
+        wae_match_penalty = self.mmd_penalty(enc_z, pz_sample)
         divergences = (lmbd1*tc, lmbd2*kl, wae_match_penalty)
 
         return loss_reconstruct, divergences
@@ -382,7 +387,7 @@ class TCWAE_GAN(WAE):
           clipped = tf.clip_by_value(probs, 1e-6, 1 - 1e-6)
       return logits, clipped
 
-    def loss(self, inputs, samples, loss_coeffs, is_training):
+    def loss(self, inputs, loss_coeffs, is_training):
 
         (lmbd1, lmbd2) = loss_coeffs
 
@@ -423,6 +428,9 @@ class TCWAE_GAN(WAE):
         for d in range(enc_z.get_shape()[1]):
             enc_z_shuffle.append(tf.gather(enc_z[:, d], tf.random.shuffle(tf.range(tf.shape(enc_z[:, d])[0]))))
         enc_z_shuffle = tf.stack(enc_z_shuffle, axis=-1, name="encoded_shuffled")
+        # - sample from prior
+        noise = tf.random_normal(shape=tf.shape(enc_z))
+        pz_sample = tf.add(self.pz_mean, (noise * self.pz_sigma))
         # - Get discriminator preds
         if True:
             # estimate kl(prod_d q_Z(z_d), p(z)), no weight sharring
@@ -432,7 +440,7 @@ class TCWAE_GAN(WAE):
                                     reuse = False,
                                     is_training=is_training)
             _, probs_z_prior = self.get_discr_pred(
-                                    inputs=samples,
+                                    inputs=pz_sample,
                                     scope = 'dimwise',
                                     reuse=True,
                                     is_training=is_training)
@@ -454,7 +462,7 @@ class TCWAE_GAN(WAE):
                                         is_training=is_training)
                 reuse = True
                 _, probs_z_prior = self.get_discr_pred(
-                                        inputs=tf.expand_dims(samples[:,d],axis=-1),
+                                        inputs=tf.expand_dims(pz_sample[:,d],axis=-1),
                                         scope = 'dimwise',
                                         reuse=reuse,
                                         is_training=is_training)
@@ -467,7 +475,7 @@ class TCWAE_GAN(WAE):
             dimwise = tf.reduce_sum(tf.stack(ldimwise))
             discr_dimwise_loss = tf.reduce_sum(tf.stack(ldiscr_dimwise_loss))
         # - WAE latent reg
-        wae_match_penalty = self.mmd_penalty(enc_z, samples)
+        wae_match_penalty = self.mmd_penalty(enc_z, z_sample)
         divergences = (lmbd1*tc, lmbd2*dimwise, wae_match_penalty)
 
         # -- Obj

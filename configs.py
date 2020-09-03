@@ -18,11 +18,12 @@ config['fid'] = False
 config['out_dir'] = 'code_outputs'
 config['plot_num_pics'] = 100
 config['plot_num_cols'] = 10
+config['evaluate_num_pics'] = 5
+# Data set up
+config['celebA_crop'] = 'closecrop' # closecrop, resizecrop
 # Experiment set up
 config['train_dataset_size'] = -1
 config['batch_size'] = 100
-config['trbuffer_size'] = 80000
-config['epoch_num'] = 100
 config['model'] = 'TCWAE_MWS' #WAE, BetaVAE
 config['use_trained'] = False #train from pre-trained model
 # Opt set up
@@ -71,11 +72,13 @@ config_dsprites['lambda'] = [100,10]
 ### Noisy DSprites config
 config_noisydsprites = config_dsprites.copy()
 config_noisydsprites['dataset'] = 'noisydsprites'
+config_noisydsprites['input_normalize_sym'] = True
 
 
 ### Scream DSprites config
 config_screamdsprites = config_dsprites.copy()
 config_screamdsprites['dataset'] = 'screamdsprites'
+config_screamdsprites['input_normalize_sym'] = True
 # config_screamdsprites['true_gen_model'] = False #If synthetic data with true gen. model known: True, False
 # config_screamdsprites['train_dataset_size'] = 1000 #140000
 # config_screamdsprites['trbuffer_size'] = 500 #70000
@@ -128,7 +131,6 @@ config_celebA = config.copy()
 # Data set up
 config_celebA['dataset'] = 'celebA'
 config_celebA['celebA_data_source_url'] = 'https://docs.google.com/uc?export=download'
-config_celebA['celebA_crop'] = 'closecrop' # closecrop, resizecrop
 config_celebA['input_normalize_sym'] = True
 config_celebA['true_gen_model'] = False #If synthetic data with true gen. model known: True, False
 config_celebA['dataset_size'] = 202599

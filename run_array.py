@@ -151,8 +151,8 @@ def main():
                 beta = [1, 5, 10, 25, 50, 100]
                 gamma = [1, 5, 10, 25, 50, 100]
             else:
-                beta = [.1, .5, 1, 2, 4, 6]
-                gamma = [.1, .5, 1, 2, 4]
+                beta = [.01, .1, 1, 2, 4]
+                gamma = [.01, .1, 1, 2, 4]
             lmba = list(itertools.product(beta,gamma))
             coef_id = (FLAGS.id-1) % len(lmba)
             opts['obj_fn_coeffs'] = list(lmba[coef_id])
@@ -185,24 +185,24 @@ def main():
     logging.basicConfig(filename=os.path.join(exp_dir,'outputs.log'),
         level=logging.INFO, format='%(asctime)s - %(message)s')
 
-    # Loading the dataset
-    data = DataHandler(opts)
-    assert data.train_size >= opts['batch_size'], 'Training set too small'
-
     # Experiemnts set up
-    opts['epoch_num'] = int(FLAGS.num_it / int(data.train_size/opts['batch_size']))
-    opts['print_every'] = int(opts['epoch_num'] / 3.) * int(data.train_size/opts['batch_size'])-1
+    opts['it_num'] = FLAGS.num_it
+    opts['print_every'] = int(opts['it_num'] / 5.)
     opts['evaluate_every'] = int(opts['print_every'] / 2.) + 1
     opts['save_every'] = 10000000000
     opts['save_final'] = FLAGS.save_model
     opts['save_train_data'] = FLAGS.save_data
     opts['vizu_encSigma'] = False
 
-
     #Reset tf graph
     tf.reset_default_graph()
 
-    run = Run(opts, FLAGS.weights_file)
+    # Loading the dataset
+    data = DataHandler(opts)
+    assert data.train_size >= opts['batch_size'], 'Training set too small'
+
+    # inti method
+    run = Run(opts, data, FLAGS.weights_file)
 
     # Training/testing/vizu
     if FLAGS.mode=="train":
@@ -211,7 +211,7 @@ def main():
             text.write('Parameters:\n')
             for key in opts:
                 text.write('%s : %s\n' % (key, opts[key]))
-        run.train(data)
+        run.train()
     else:
         assert False, 'Unknown mode %s' % FLAGS.mode
 
