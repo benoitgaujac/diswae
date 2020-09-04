@@ -103,7 +103,7 @@ def main():
         opts['lr'] = 0.0001
     else:
         opts['zdim'] = 10
-        opts['lr'] = 0.001
+        opts['lr'] = 0.0004
     if opts['model'][-3:]=='VAE':
         opts['input_normalize_sym'] = False
 
@@ -151,8 +151,8 @@ def main():
                 beta = [1, 5, 10, 25, 50, 100]
                 gamma = [1, 5, 10, 25, 50, 100]
             else:
-                beta = [.01, .1, 1, 2, 4]
-                gamma = [.01, .1, 1, 2, 4]
+                beta = [1, 2, 4, 6 ,8 ,10]
+                gamma = [1, 2, 4, 6 ,8 ,10]
             lmba = list(itertools.product(beta,gamma))
             coef_id = (FLAGS.id-1) % len(lmba)
             opts['obj_fn_coeffs'] = list(lmba[coef_id])

@@ -5,10 +5,10 @@
 #$ -wd /home/bgaujac/diswae
 
 #$ -l gpu=true
-#$ -l tmem=10G
-#$ -l h_rt=24:00:00
+#$ -l tmem=24G
+#$ -l h_rt=5:00:00
 
-#$ -t 1-144
+#$ -t 1-36
 
 #$ -N l2mwsNdsprites
 

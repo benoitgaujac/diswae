@@ -244,7 +244,7 @@ class Run(object):
         global_variances = np.var(codes, axis=0, ddof=1)
         active_dims = np.sqrt(global_variances)>=threshold
         # Generate classifier training set and build classifier
-        training_size = 2000
+        training_size = 4000
         # training_size = 100
         votes = np.zeros((len(self.data.factor_sizes), opts['zdim']),dtype=np.int32)
         for i in range(training_size):
@@ -255,7 +255,7 @@ class Run(object):
         classifier = np.argmax(votes, axis=0)
         other_index = np.arange(votes.shape[1])
         # Generate classifier eval set and get eval accuracy
-        eval_size = 1000
+        eval_size = 2000
         # eval_size = 50
         votes = np.zeros((len(self.data.factor_sizes), opts['zdim']),dtype=np.int32)
         for i in range(eval_size):
@@ -297,11 +297,11 @@ class Run(object):
         """Compute SAP metric"""
         opts = self.opts
         # Generate training set
-        training_size = 2000
+        training_size = 4000
         # training_size = 100
         mus, ys = self.generate_SAP_minibatch(training_size)
         # Generate testing set
-        testing_size = 1000
+        testing_size = 2000
         # testing_size = 50
         mus_test, ys_test = self.generate_SAP_minibatch(testing_size)
         # Computing score matrix
