@@ -207,8 +207,6 @@ def transform_mnist(pic, mode='n'):
     return pic
 
 def add_color_noise(x):
-    # # repeat BW input
-    # x_repeat = tf.repeat(x, repeats=[3,], axis=-1)
     # sample noise
     noise = tf.random.uniform(datashapes['noisydsprites'],0,1, dtype=tf.dtypes.float32)
 
@@ -304,7 +302,9 @@ class DataHandler(object):
         # map files paths to image with tf.io.decode_jpeg
         def process_path(file_path):
             image_file = tf.read_file(file_path)
-            return tf.cast(tf.image.decode_jpeg(image_file, channels=0), dtype=tf.dtypes.float32) / 255.
+            img_decoded = tf.cast(tf.image.decode_jpeg(image_file, channels=0), dtype=tf.dtypes.float32) / 255.
+            # tf.cast(tf.image.decode_jpeg(image_file, channels=0), dtype=tf.dtypes.float32) / 255.
+            return tf.reshape(img_decoded, datashapes['dsprites'])
         dataset_train = dataset_train.map(process_path,
                                 num_parallel_calls=tf.data.experimental.AUTOTUNE)
         dataset_test = dataset_test.map(process_path,
@@ -386,7 +386,7 @@ class DataHandler(object):
         """
 
         # Loading data
-        data_dir = _data_dir(opts)
+        self.data_dir = _data_dir(opts)
         SMALLNORB_CHUNKS = ['smallnorb-5x46789x9x18x6x2x96x96-training-{0}.mat.gz',
                             'smallnorb-5x01235x9x18x6x2x96x96-testing-{0}.mat.gz']
         list_of_images = []
@@ -432,15 +432,76 @@ class DataHandler(object):
         Y = np.concatenate(list_of_labels, axis=0)
         X = np.expand_dims(X,axis=-1)
         Y[:, 3] = Y[:, 3] / 2  # azimuth values are 0, 2, 4, ..., 24
-        self.data = Data(opts, X)
-        self.labels = Data(opts, Y, type='label')
-        # plot set
-        self.plot_data_idx = np.arange(0+18*6,40+18*6,2)
-        # labels informations
+        num_data = Y.shape[0]
+        # data
+        self.all_data = X
+        # labels
+        self.all_labels = Y
         self.factor_indices = [0, 2, 3, 4]
         self.factor_sizes = np.array([5, 10, 9, 18, 6])
         self.factor_bases = np.prod(self.factor_sizes) / np.cumprod(
             self.factor_sizes)
+        # plot set
+        idx = np.random.randint(self.all_data.shape[0],size=opts['evaluate_num_pics'])
+        self.data_plot = self._sample_observations(idx)
+        # shuffling data
+        np.random.seed()
+        idx_random = np.random.permutation(num_data)
+        if opts['train_dataset_size']==-1 or opts['train_dataset_size']>num_data-10000:
+            tr_stop = num_data - 10000
+        else:
+            tr_stop = opts['train_dataset_size']
+        data_train = self.all_data[idx_random[:tr_stop]]
+        data_test = self.all_data[idx_random[-10000:]]
+        # dataset size
+        self.train_size = data_train.shape[0]
+        self.test_size = data_test.shape[0]
+        # data for vizualisation
+        seed = 123
+        np.random.seed(seed)
+        idx = np.random.randint(self.test_size, size=opts['plot_num_pics'])
+        self.data_vizu = self._sample_observations(idx)
+        # datashape
+        self.data_shape = datashapes[self.dataset]
+        # Create tf.dataset
+        dataset_train = tf.data.Dataset.from_tensor_slices(data_train)
+        dataset_test = tf.data.Dataset.from_tensor_slices(data_test)
+        # # map files paths to image with tf.io.decode_jpeg
+        # def process_path(file_path):
+        #     image_file = tf.read_file(file_path)
+        #     return tf.cast(tf.image.decode_jpeg(image_file, channels=0), dtype=tf.dtypes.float32) / 255.
+        # dataset_train = dataset_train.map(process_path,
+        #                         num_parallel_calls=tf.data.experimental.AUTOTUNE)
+        # dataset_test = dataset_test.map(process_path,
+        #                         num_parallel_calls=tf.data.experimental.AUTOTUNE)
+        # normalize data if needed
+        if opts['input_normalize_sym']:
+            dataset_train = dataset_train.map(lambda x: (x - 0.5) * 2.,
+                                    num_parallel_calls=tf.data.experimental.AUTOTUNE)
+            dataset_test = dataset_test.map(lambda x: (x - 0.5) * 2.,
+                                    num_parallel_calls=tf.data.experimental.AUTOTUNE)
+            self.data_vizu = (self.data_vizu - 0.5) * 2.
+            self.data_plot = (self.data_plot - 0.5) * 2.
+        # Shuffle dataset
+        dataset_train = dataset_train.shuffle(buffer_size=50*opts['batch_size'])
+        dataset_test = dataset_test.shuffle(buffer_size=50*opts['batch_size'])
+        # repeat for multiple epochs
+        dataset_train = dataset_train.repeat()
+        dataset_test = dataset_test.repeat()
+        # Random batching
+        dataset_train = dataset_train.batch(batch_size=opts['batch_size'])
+        dataset_test = dataset_test.batch(batch_size=opts['batch_size'])
+        # Prefetch
+        self.dataset_train = dataset_train.prefetch(buffer_size=4*opts['batch_size'])
+        self.dataset_test = dataset_test.prefetch(buffer_size=4*opts['batch_size'])
+        # Iterator for each split
+        self.iterator_train = dataset_train.make_initializable_iterator()
+        self.iterator_test = dataset_test.make_initializable_iterator()
+
+        # Global iterator
+        self.handle = tf.placeholder(tf.string, shape=[])
+        self.next_element = tf.data.Iterator.from_string_handle(
+            self.handle, dataset_train.output_types, dataset_train.output_shapes).get_next()
 
     def _load_3Dchairs(self, opts):
         """Load data from 3Dchairs dataset
@@ -481,13 +542,94 @@ class DataHandler(object):
     def _load_celebA(self, opts):
         """Load CelebA
         """
-
-        num_samples = 202599
-        paths = np.array(['%.6d.jpg' % i for i in range(1, num_samples + 1)])
-        self.data = Data(opts, None, 'data', paths)
+        num_data = 202599
+        self.data_dir = _data_dir(opts)
+        self.all_data = np.array([os.path.join(self.data_dir,'%.6d.jpg') % i for i in range(1, num_data + 1)])
         # plot set
-        # idx = [5,6,14,17,39,50,60,70,80,90]
-        self.plot_data = np.arange(5,5+50)
+        idx = np.random.randint(self.all_data.shape[0],size=opts['evaluate_num_pics'])
+        self.data_plot = self._sample_observations(idx)
+        # shuffling data
+        np.random.seed()
+        idx_random = np.random.permutation(num_data)
+        if opts['train_dataset_size']==-1 or opts['train_dataset_size']>num_data-10000:
+            tr_stop = num_data - 10000
+        else:
+            tr_stop = opts['train_dataset_size']
+        data_train = self.all_data[idx_random[:tr_stop]]
+        data_test = self.all_data[idx_random[-10000:]]
+        # dataset size
+        self.train_size = data_train.shape[0]
+        self.test_size = data_test.shape[0]
+        # data for vizualisation
+        seed = 123
+        np.random.seed(seed)
+        idx = np.random.randint(self.test_size, size=opts['plot_num_pics'])
+        self.data_vizu = self._sample_observations(idx)
+        # datashape
+        self.data_shape = datashapes[self.dataset]
+        # Create tf.dataset
+        dataset_train = tf.data.Dataset.from_tensor_slices(data_train)
+        dataset_test = tf.data.Dataset.from_tensor_slices(data_test)
+        # map files paths to image with tf.io.decode_jpeg
+        def process_path(file_path):
+            # reading .jpg file
+            image_file = tf.read_file(file_path)
+            im_decoded = tf.cast(tf.image.decode_jpeg(image_file, channels=3), dtype=tf.dtypes.float32)
+            # crop and resize
+            width = 178
+            height = 218
+            new_width = 140
+            new_height = 140
+            if self.crop_style == 'closecrop':
+                # This method was used in DCGAN, pytorch-gan-collection, AVB, ...
+                left = (width - new_width) / 2
+                top = (height - new_height) / 2
+                right = (width + new_width) / 2
+                bottom = (height + new_height) / 2
+                im = tf.image.crop_and_resize(tf.expand_dims(im_decoded,axis=0),
+                                        np.array([[top / height, right / width, bottom / height, left / width]]),
+                                        [0,],
+                                        (64,64),
+                                        method='bilinear', extrapolation_value=0)
+            # elif self.crop_style == 'resizecrop':
+            #     # This method was used in ALI, AGE, ...
+            #     im = im.resize((64, 78), Image.ANTIALIAS)
+            #     im = im.crop((0, 7, 64, 64 + 7))
+            else:
+                assert False, '{} not implemented.'.format(self.crop_style)
+            return tf.reshape(im, datashapes['celebA']) / 255.
+        dataset_train = dataset_train.map(process_path,
+                                num_parallel_calls=tf.data.experimental.AUTOTUNE)
+        dataset_test = dataset_test.map(process_path,
+                                num_parallel_calls=tf.data.experimental.AUTOTUNE)
+        # normalize data if needed
+        if opts['input_normalize_sym']:
+            dataset_train = dataset_train.map(lambda x: (x - 0.5) * 2.,
+                                    num_parallel_calls=tf.data.experimental.AUTOTUNE)
+            dataset_test = dataset_test.map(lambda x: (x - 0.5) * 2.,
+                                    num_parallel_calls=tf.data.experimental.AUTOTUNE)
+            self.data_vizu = (self.data_vizu - 0.5) * 2.
+            self.data_plot = (self.data_plot - 0.5) * 2.
+        # Shuffle dataset
+        dataset_train = dataset_train.shuffle(buffer_size=50*opts['batch_size'])
+        dataset_test = dataset_test.shuffle(buffer_size=50*opts['batch_size'])
+        # repeat for multiple epochs
+        dataset_train = dataset_train.repeat()
+        dataset_test = dataset_test.repeat()
+        # Random batching
+        dataset_train = dataset_train.batch(batch_size=opts['batch_size'])
+        dataset_test = dataset_test.batch(batch_size=opts['batch_size'])
+        # Prefetch
+        self.dataset_train = dataset_train.prefetch(buffer_size=4*opts['batch_size'])
+        self.dataset_test = dataset_test.prefetch(buffer_size=4*opts['batch_size'])
+        # Iterator for each split
+        self.iterator_train = dataset_train.make_initializable_iterator()
+        self.iterator_test = dataset_test.make_initializable_iterator()
+
+        # Global iterator
+        self.handle = tf.placeholder(tf.string, shape=[])
+        self.next_element = tf.data.Iterator.from_string_handle(
+            self.handle, dataset_train.output_types, dataset_train.output_shapes).get_next()
 
     def _load_mnist(self, opts, zalando=False, modified=False):
         """Load data from MNIST or ZALANDO files.
@@ -655,7 +797,7 @@ class DataHandler(object):
             indices = np.dot(factors, self.factor_bases).astype(dtype=np.int32)
             images = self._sample_observations(indices)
         elif self.dataset == 'smallNORB':
-            feature_state_space_index = np.array(np.dot(self.labels.X, self.factor_bases), dtype=np.int32)
+            feature_state_space_index = np.array(np.dot(self.all_labels, self.factor_bases), dtype=np.int32)
             num_total_atoms = np.prod(self.factor_sizes)
             state_space_to_save_space_index = np.zeros(num_total_atoms, dtype=np.int32)
             state_space_to_save_space_index[feature_state_space_index] = np.arange(num_total_atoms)
@@ -710,10 +852,10 @@ class DataHandler(object):
                 mask = (point > .85)
                 background[mask] = 1 - background[mask]
                 point = background
-            else:
-                raise Exception('Disc read for {} not implemented yet...'.format(self.dataset))
+        else:
+            raise Exception('Disc read for {} not implemented yet...'.format(self.dataset))
 
-            return point
+        return point
 
     def _read_celeba_image(self, file_path):
         width = 178

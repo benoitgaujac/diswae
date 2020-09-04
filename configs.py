@@ -79,9 +79,6 @@ config_noisydsprites['input_normalize_sym'] = True
 config_screamdsprites = config_dsprites.copy()
 config_screamdsprites['dataset'] = 'screamdsprites'
 config_screamdsprites['input_normalize_sym'] = True
-# config_screamdsprites['true_gen_model'] = False #If synthetic data with true gen. model known: True, False
-# config_screamdsprites['train_dataset_size'] = 1000 #140000
-# config_screamdsprites['trbuffer_size'] = 500 #70000
 
 
 ### 3dshapes config
@@ -136,6 +133,8 @@ config_celebA['true_gen_model'] = False #If synthetic data with true gen. model 
 config_celebA['dataset_size'] = 202599
 # Model set up
 config_celebA['zdim'] = 32
+# Opt set up
+config_celebA['normalization'] = 'batchnorm' #batchnorm, layernorm, none
 # lambda set up
 config_celebA['lambda'] = [10,2]
 
