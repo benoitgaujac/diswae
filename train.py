@@ -573,7 +573,7 @@ class Run(object):
                 # if self.opts['vizu_embedded'] and it > 1:
                 #     plot_embedded(self.opts, [latents_vizu[:npics]], [fixed_noise],
                 #                             self.data.data_vizu,
-                #                             exp_dir, 'embedded_it%06d.png' % (it))
+                #                             exp_dir, 'embedded_it%07d.png' % (it))
 
                 # # Encoded sigma
                 # if self.opts['vizu_encSigma'] and it > 1:
@@ -599,7 +599,7 @@ class Run(object):
                     inter_anchors = np.reshape(dec_interpolation, [-1, self.opts['zdim'], num_steps]+self.data.data_shape)
                     kl_to_prior_sorted = np.argsort(kl)[::-1]
                     plot_interpolation(self.opts, inter_anchors[:,kl_to_prior_sorted],
-                                            exp_dir, 'inter_it%06d.png' % (it))
+                                            exp_dir, 'inter_it%07d.png' % (it))
                     # Auto-encoding training images
                     inputs_tr =  self.sess.run(self.data.next_element, feed_dict={self.data.handle: self.train_handle}) # Make sure size is correct
                     reconstructions_train = self.sess.run(self.decoded,
@@ -617,7 +617,7 @@ class Run(object):
                           MSE, MSE_test,                                        # mse
                           Divergences, Divergences_test,                        # divergence terms
                           exp_dir,                                              # working directory
-                          'res_it%06d.png' % (it))                              # filename
+                          'res_it%07d.png' % (it))                              # filename
 
             # - Update learning rate if necessary and it
             # if False:
@@ -707,7 +707,7 @@ class Run(object):
         if self.opts['true_gen_model']:
             codes = np.zeros((self.data.test_size, self.opts['zdim']))
             codes_mean = np.zeros((self.data.test_size, self.opts['zdim']))
-            labels = np.zeros((self.data.test_size,len(self.data.factor_indices)))
+            labels = np.zeros((self.data.test_size,len(self.data.factor_sizes)))
             batch_size_te = 100
             batches_num_te = int(self.data.test_size / batch_size_te)
             for it_ in range(batches_num_te):
