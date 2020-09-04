@@ -103,7 +103,7 @@ def main():
         opts['lr'] = 0.0001
     else:
         opts['zdim'] = 10
-        opts['lr'] = 0.0004
+        opts['lr'] = 0.0005
     if opts['model'][-3:]=='VAE':
         opts['input_normalize_sym'] = False
 

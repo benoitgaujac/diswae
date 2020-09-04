@@ -381,7 +381,6 @@ class Run(object):
                                                 scope='encoder')
         decoder_vars = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES,
                                                 scope='decoder')
-        # update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
         # discriminator opt if needed
         if self.opts['model']=='FactorVAE' or self.opts['model']=='TCWAE_GAN':
             if opts['dataset']=='celebA' or opts['dataset']=='3Dchairs':
@@ -395,9 +394,10 @@ class Run(object):
             # self.opt = tf.group(vae_opt, discriminator_opt, update_ops)
             self.opt = tf.group(vae_opt, discriminator_opt)
         else:
-            self.opt = opt.minimize(loss=self.objective,var_list=encoder_vars + decoder_vars)
-            # with tf.control_dependencies(update_ops):
-            #     self.opt = opt.minimize(loss=self.objective,var_list=encoder_vars + decoder_vars)
+            # self.opt = opt.minimize(loss=self.objective,var_list=encoder_vars + decoder_vars)
+            extra_update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
+            with tf.control_dependencies(extra_update_ops):
+                self.opt = opt.minimize(loss=self.objective,var_list=encoder_vars + decoder_vars)
 
     def train(self):
         """
@@ -600,11 +600,12 @@ class Run(object):
                     kl_to_prior_sorted = np.argsort(kl)[::-1]
                     plot_interpolation(self.opts, inter_anchors[:,kl_to_prior_sorted],
                                             exp_dir, 'inter_it%07d.png' % (it))
-                    # Auto-encoding training images
-                    inputs_tr =  self.sess.run(self.data.next_element, feed_dict={self.data.handle: self.train_handle}) # Make sure size is correct
-                    reconstructions_train = self.sess.run(self.decoded,
-                                                feed_dict={self.inputs_img: inputs_tr,
-                                                           self.is_training: False})
+
+                # Auto-encoding training images
+                inputs_tr =  self.sess.run(self.data.next_element, feed_dict={self.data.handle: self.train_handle}) # Make sure size is correct
+                reconstructions_train = self.sess.run(self.decoded,
+                                            feed_dict={self.inputs_img: inputs_tr,
+                                                       self.is_training: False})
 
 
                 # Saving plots
