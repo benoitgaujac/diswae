@@ -491,10 +491,10 @@ class Run(object):
                 Loss_test.append(loss)
                 Loss_rec_test.append(loss_rec)
                 MSE_test.append(mse)
-                Divergences_test.append(divergences.tolist())
+                Divergences_test.append(divergences)
 
                 # Printing various loss values
-                debug_str = '\n ITER: %d/%d, ' % (it, self.opts['it_num'])
+                debug_str = 'ITER: %d/%d, ' % (it, self.opts['it_num'])
                 logging.error(debug_str)
                 debug_str = 'TRAIN LOSS=%.3f, TEST LOSS=%.3f' % (Loss[-1],Loss_test[-1])
                 logging.error(debug_str)
@@ -502,8 +502,8 @@ class Run(object):
                     debug_str = 'REC=%.3f, TEST REC=%.3f, beta*KL=%10.3e, beta*TEST KL=%10.3e, \n '  % (
                                                 Loss_rec[-1],
                                                 Loss_rec_test[-1],
-                                                Divergences[-1],
-                                                Divergences_test[-1])
+                                                Divergences[-1][0],
+                                                Divergences_test[-1][0])
                     logging.error(debug_str)
                 elif self.opts['model'] == 'BetaTCVAE':
                     debug_str = 'REC=%.3f, TEST REC=%.3f, b*TC=%10.3e, TEST b*TC=%10.3e, KL=%10.3e, TEST KL=%10.3e, \n '  % (
@@ -703,7 +703,7 @@ class Run(object):
         Loss_test.append(loss)
         Loss_rec_test.append(loss_rec)
         MSE_test.append(mse)
-        Divergences_test.append(divergences.tolist())
+        Divergences_test.append(divergences)
         # Disentanglment metrics
         if self.opts['true_gen_model']:
             codes = np.zeros((self.data.test_size, self.opts['zdim']))
@@ -729,7 +729,7 @@ class Run(object):
             SAP=self.compute_SAP()
 
         # Printing various loss values
-        logging.error(' \n Training done.')
+        logging.error('Training done.')
         debug_str = 'TRAIN LOSS=%.3f, TEST LOSS=%.3f' % (Loss[-1],Loss_test[-1])
         logging.error(debug_str)
         if self.opts['true_gen_model']:

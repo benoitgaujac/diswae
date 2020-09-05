@@ -475,7 +475,7 @@ class TCWAE_GAN(WAE):
             dimwise = tf.reduce_sum(tf.stack(ldimwise))
             discr_dimwise_loss = tf.reduce_sum(tf.stack(ldiscr_dimwise_loss))
         # - WAE latent reg
-        wae_match_penalty = self.mmd_penalty(enc_z, z_sample)
+        wae_match_penalty = self.mmd_penalty(enc_z, pz_sample)
         divergences = (lmbd1*tc, lmbd2*dimwise, wae_match_penalty)
 
         # -- Obj
