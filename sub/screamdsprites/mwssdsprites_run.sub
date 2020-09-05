@@ -6,11 +6,11 @@
 
 #$ -l gpu=true
 #$ -l tmem=24G
-#$ -l h_rt=5:00:00
+#$ -l h_rt=3:00:00
 
-#$ -t 1-36
+#$ -t 1-108
 
-#$ -N l2mwsScrdsprites
+#$ -N mwsScrdsprites
 
 source /share/apps/examples/source_files/python/python-3.6.4.source
 source /share/apps/examples/source_files/cuda/cuda-10.0.source

@@ -95,6 +95,8 @@ def main():
 
     # Model set up
     opts['model'] = FLAGS.model
+    if opts['model'][-3:]=='VAE':
+        opts['input_normalize_sym']=False
     if FLAGS.dataset == 'celebA':
         opts['zdim'] = 32
         opts['lr'] = 0.0001
@@ -127,6 +129,32 @@ def main():
         else:
             beta = [1, 2, 5, 10, 15, 20, 25]
             gamma = [1, 2, 5, 10, 15, 20, 25]
+            lmba = list(itertools.product(beta,gamma))
+            coef_id = (FLAGS.id-1) % len(lmba)
+            opts['obj_fn_coeffs'] = list(lmba[coef_id])
+    elif FLAGS.dataset == 'dsprites':
+        if opts['model'] == 'BetaVAE' or opts['model'] == 'BetaTCVAE':
+            beta = [1, 2, 4, 6, 8, 10]
+            coef_id = (FLAGS.id-1) % len(beta)
+            opts['obj_fn_coeffs'] = beta[coef_id]
+        elif opts['model']=='FactorVAE':
+            beta = [1, 10, 25, 50, 75, 100]
+            coef_id = (FLAGS.id-1) % len(beta)
+            opts['obj_fn_coeffs'] = beta[coef_id]
+        elif opts['model']=='WAE':
+            if opts['cost'] == 'xentropy':
+                beta = [1, 5, 10, 25, 50, 100]
+            else:
+                beta = [0.1, 0.5, 1, 2, 4, 8]
+            coef_id = (FLAGS.id-1) % len(beta)
+            opts['obj_fn_coeffs'] = beta[coef_id]
+        else:
+            if opts['cost'] == 'xentropy':
+                beta = [1, 5, 10, 25, 50, 100]
+                gamma = [1, 5, 10, 25, 50, 100]
+            else:
+                beta = [0.1, 0.5, 1, 2, 4, 8]
+                gamma = [0.1, 0.5, 1, 2, 4, 8]
             lmba = list(itertools.product(beta,gamma))
             coef_id = (FLAGS.id-1) % len(lmba)
             opts['obj_fn_coeffs'] = list(lmba[coef_id])

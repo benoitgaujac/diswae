@@ -1,0 +1,19 @@
+#!/bin/bash
+
+#$ -S /bin/bash
+
+#$ -wd /home/bgaujac/diswae
+
+#$ -l gpu=true
+#$ -l tmem=24G
+#$ -l h_rt=3:00:00
+
+#$ -t 1-108
+
+#$ -N mwsNdsprites
+
+source /share/apps/examples/source_files/python/python-3.6.4.source
+source /share/apps/examples/source_files/cuda/cuda-10.0.source
+
+python3 run_array.py --num_it 300000 --id $SGE_TASK_ID --dataset noisydsprites --save_model --out_dir NoidSprites_l2sq --model TCWAE_MWS --cost l2sq
+# python3 run_array.py --num_it 300000 --id 1 --dataset noisydsprites --save_data --save_model --out_dir NoidSprites_test --model TCWAE_MWS --cost l2sq
