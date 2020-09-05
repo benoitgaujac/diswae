@@ -587,7 +587,7 @@ class DataHandler(object):
                 right = (width + new_width) / 2
                 bottom = (height + new_height) / 2
                 im = tf.image.crop_and_resize(tf.expand_dims(im_decoded,axis=0),
-                                        np.array([[top / height, right / width, bottom / height, left / width]]),
+                                        np.array([[top / (height-1), right / (width-1), bottom / (height-1), left / (width-1)]]),
                                         [0,],
                                         (64,64),
                                         method='bilinear', extrapolation_value=0)
