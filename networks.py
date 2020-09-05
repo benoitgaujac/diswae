@@ -213,7 +213,7 @@ def  locatello_decoder(opts, input, output_dim, reuse,
                 4*4*64, scope='hid0/lin1')
     if opts['normalization']=='batchnorm':
         h1 = ops.batchnorm.Batchnorm_layers(
-            opts, h1, 'hid0/bn0', is_training, reuse)
+            opts, h1, 'hid0/bn1', is_training, reuse)
     h1 = ops._ops.non_linear(h1,'relu')
     h1 = tf.reshape(h1, [-1, 4, 4, 64])
     layer_x = h1
