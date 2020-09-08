@@ -96,6 +96,9 @@ class Run(object):
         # --- MSE
         self.mse = self.model.MSE(self.data.next_element, self.recon_x)
 
+        # --- Get batchnorm ops for training only
+        self.extra_update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
+
         # # --- Pen Encoded Sigma &  stats
         # Sigma_tr = tf.reduce_mean(self.z_sigma, axis=-1)
         # Smean, Svar = tf.nn.moments(Sigma_tr, axes=[0])
@@ -389,14 +392,13 @@ class Run(object):
                 discr_opt = self.discr_optimizer()
             discr_vars = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES,
                                                     scope='discriminator')
-            vae_opt = opt.minimize(loss=self.objective,var_list=encoder_vars + decoder_vars)
-            discriminator_opt = discr_opt.minimize(loss=self.model.discr_loss,var_list=discr_vars)
-            # self.opt = tf.group(vae_opt, discriminator_opt, update_ops)
+            with tf.control_dependencies(self.extra_update_ops):
+                vae_opt = opt.minimize(loss=self.objective,var_list=encoder_vars + decoder_vars)
+                discriminator_opt = discr_opt.minimize(loss=self.model.discr_loss,var_list=discr_vars)
             self.opt = tf.group(vae_opt, discriminator_opt)
         else:
             # self.opt = opt.minimize(loss=self.objective,var_list=encoder_vars + decoder_vars)
-            extra_update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
-            with tf.control_dependencies(extra_update_ops):
+            with tf.control_dependencies(self.extra_update_ops):
                 self.opt = opt.minimize(loss=self.objective,var_list=encoder_vars + decoder_vars)
 
     def train(self):
@@ -783,7 +785,7 @@ class Run(object):
                                         Divergences_test[-1][1],
                                         Divergences_test[-1][2])
             logging.error(debug_str)
-        elif self.opts['model'] == 'TCWAE_MWS' or opts['model'] == 'TCWAE_GAN':
+        elif self.opts['model'] == 'TCWAE_MWS' or self.opts['model'] == 'TCWAE_GAN':
             debug_str = 'TRAIN: REC=%.3f,l1*TC=%10.3e, l2*DIMWISE=%10.3e, WAE=%10.3e' % (
                                         Loss_rec[-1],
                                         Divergences[-1][0],
