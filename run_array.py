@@ -229,8 +229,7 @@ def main():
     assert data.train_size >= opts['batch_size'], 'Training set too small'
 
     # inti method
-    # run = Run(opts, data)
-    run = Run(opts, data, FLAGS.weights_file)
+    run = Run(opts, data)
 
     # Training/testing/vizu
     if FLAGS.mode=="train":
