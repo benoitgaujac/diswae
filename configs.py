@@ -72,13 +72,13 @@ config_dsprites['lambda'] = [100,10]
 ### Noisy DSprites config
 config_noisydsprites = config_dsprites.copy()
 config_noisydsprites['dataset'] = 'noisydsprites'
-config_noisydsprites['input_normalize_sym'] = True
+config_noisydsprites['input_normalize_sym'] = False
 
 
 ### Scream DSprites config
 config_screamdsprites = config_dsprites.copy()
 config_screamdsprites['dataset'] = 'screamdsprites'
-config_screamdsprites['input_normalize_sym'] = True
+config_screamdsprites['input_normalize_sym'] = False
 
 
 ### 3dshapes config
@@ -128,7 +128,7 @@ config_celebA = config.copy()
 # Data set up
 config_celebA['dataset'] = 'celebA'
 config_celebA['celebA_data_source_url'] = 'https://docs.google.com/uc?export=download'
-config_celebA['input_normalize_sym'] = True
+config_celebA['input_normalize_sym'] = False
 config_celebA['true_gen_model'] = False #If synthetic data with true gen. model known: True, False
 config_celebA['dataset_size'] = 202599
 # Model set up

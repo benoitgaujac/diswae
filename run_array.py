@@ -95,8 +95,6 @@ def main():
 
     # Model set up
     opts['model'] = FLAGS.model
-    if opts['model'][-3:]=='VAE':
-        opts['input_normalize_sym']=False
     if FLAGS.dataset == 'celebA':
         opts['zdim'] = 32
         opts['lr'] = 0.0001
@@ -105,9 +103,7 @@ def main():
         opts['lr'] = 0.0001
     else:
         opts['zdim'] = 10
-        opts['lr'] = 0.0005
-    if opts['model'][-3:]=='VAE':
-        opts['input_normalize_sym'] = False
+        opts['lr'] = 0.0008
 
     # Objective Function Coefficients
     if FLAGS.dataset == 'celebA':
@@ -230,6 +226,7 @@ def main():
     assert data.train_size >= opts['batch_size'], 'Training set too small'
 
     # inti method
+    # run = Run(opts, data)
     run = Run(opts, data, FLAGS.weights_file)
 
     # Training/testing/vizu
