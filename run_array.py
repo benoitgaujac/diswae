@@ -56,11 +56,16 @@ FLAGS = parser.parse_args()
 mlp_config = { 'e_arch': 'mlp' , 'e_nlayers': 2, 'e_nfilters': [1200, 1200], 'e_nonlinearity': 'relu',
         'd_arch': 'mlp' , 'd_nlayers': 3, 'd_nfilters': [1200, 1200, 1200], 'd_nonlinearity': 'tanh'}
 
-conv_config = { 'e_arch': 'conv_locatello' , 'e_nlayers': 4, 'e_nfilters': [32,32,64,64], 'e_nonlinearity': 'relu',
+conv_locatello = { 'e_arch': 'conv_locatello' , 'e_nlayers': 4, 'e_nfilters': [32,32,64,64], 'e_nonlinearity': 'relu',
         'd_arch': 'conv_locatello' , 'd_nlayers': 4, 'd_nfilters': [32,32,32,64], 'd_nonlinearity': 'relu',
         'filter_size': [4,4,4,4]}
+conv_rae = { 'e_arch': 'conv_rae' , 'e_nlayers': 4, 'e_nfilters': [128,256,512,1024], 'e_nonlinearity': 'relu',
+        'd_arch': 'conv_rae' , 'd_nlayers': 4, 'd_nfilters': [128,256,512,1024], 'd_nonlinearity': 'relu',
+        'filter_size': [5,5,5,5]}
 
-net_configs = {'mlp': mlp_config, 'conv_locatello': conv_config}
+net_configs = { 'mlp': mlp_config,
+                'conv_locatello': conv_locatello,
+                'conv_rae': conv_rae}
 
 
 def main():
@@ -101,8 +106,10 @@ def main():
     elif FLAGS.dataset == '3Dchairs':
         opts['zdim'] = 16
         opts['lr'] = 0.0001
-    else:
+    elif FLAGS.dataset == 'dSprites':
         opts['zdim'] = 10
+        opts['lr'] = 0.0001
+    else:
         if opts['model'][-3:]=='VAE':
             opts['lr'] = 0.0005
         else:
@@ -152,8 +159,8 @@ def main():
                 beta = [1, 5, 10, 25, 50, 100]
                 gamma = [1, 5, 10, 25, 50, 100]
             else:
-                beta = [0.1, 0.5, 1, 2, 4, 8]
-                gamma = [0.1, 0.5, 1, 2, 4, 8]
+                beta = [0.1, 0.5, 1, 2, 4]
+                gamma = [0.1, 0.5, 1, 2, 4]
             lmba = list(itertools.product(beta,gamma))
             coef_id = (FLAGS.id-1) % len(lmba)
             opts['obj_fn_coeffs'] = list(lmba[coef_id])
