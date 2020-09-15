@@ -59,8 +59,8 @@ mlp_config = { 'e_arch': 'mlp' , 'e_nlayers': 2, 'e_nfilters': [1200, 1200], 'e_
 conv_locatello = { 'e_arch': 'conv_locatello' , 'e_nlayers': 4, 'e_nfilters': [32,32,64,64], 'e_nonlinearity': 'relu',
         'd_arch': 'conv_locatello' , 'd_nlayers': 4, 'd_nfilters': [32,32,32,64], 'd_nonlinearity': 'relu',
         'filter_size': [4,4,4,4]}
-conv_rae = { 'e_arch': 'conv_rae' , 'e_nlayers': 4, 'e_nfilters': [128,256,512,1024], 'e_nonlinearity': 'relu',
-        'd_arch': 'conv_rae' , 'd_nlayers': 3, 'd_nfilters': [128,256,512], 'd_nonlinearity': 'relu',
+conv_rae = { 'e_arch': 'conv_rae' , 'e_nlayers': 4, 'e_nfilters': [128,128,256,256], 'e_nonlinearity': 'relu',
+        'd_arch': 'conv_rae' , 'd_nlayers': 3, 'd_nfilters': [128,128,256], 'd_nonlinearity': 'relu',
         'filter_size': [5,5,5,5]}
 # conv_rae = { 'e_arch': 'conv_rae' , 'e_nlayers': 4, 'e_nfilters': [8,16,32,64], 'e_nonlinearity': 'relu',
 #         'd_arch': 'conv_rae' , 'd_nlayers': 3, 'd_nfilters': [8,16,32], 'd_nonlinearity': 'relu',
