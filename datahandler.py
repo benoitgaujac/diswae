@@ -86,7 +86,7 @@ def maybe_download(opts):
         if not tf.io.gfile.exists(file_path):
             download_file(file_path,filename,opts['smallNORB_data_source_url'])
     elif opts['dataset']=='3Dchairs':
-        filename = 'rendered_chairs.tar'
+        filename = 'rendered_chairs.npz'
         file_path = os.path.join(data_path, filename)
         if not tf.io.gfile.exists(file_path):
             download_file(file_path,filename,opts['3Dchairs_data_source_url'])
@@ -177,6 +177,33 @@ def load_cifar_batch(fpath, label_key='labels'):
 
     data = data.reshape(data.shape[0], 3, 32, 32)
     return data, labels
+
+def exctract_and_save_3dchairs(filename, data_dir):
+    # load data from npz.
+    X = (np.load(filename, allow_pickle=True)['data'] * 255).astype(np.uint8)
+    # Save images as jpeg
+    # init dir, img_list, counter
+    dest_path = os.path.join(data_dir,'images')
+    if not os.path.isdir(dest_path):
+        os.mkdir(dest_path)
+    img_list_path = os.path.join(dest_path, 'img_list.txt')
+    if os.path.isfile(img_list_path):
+        with open(os.path.join(dest_path, 'img_list.txt'), 'r') as f:
+            names = f.readlines()
+            i = int(names[-1])
+            f.close()
+    else:
+        i = 0
+    # looping over images
+    for n in range(X[i:].shape[0]):
+        file_name = '%.6d.jpg' % (n+1+i)
+        im = Image.fromarray(X[n+i], mode='RGB')
+        im.save(os.path.join(dest_path,file_name))
+        with open(os.path.join(dest_path, 'img_list.txt'), 'a') as f:
+            f.write(file_name[:-4] + '\n')
+            f.close()
+        if (n+1+i) % 10000 == 0:
+            print('{}/{} images saved.'.format(n+1+i,X.shape[0]))
 
 def transform_mnist(pic, mode='n'):
     """Take an MNIST picture normalized into [0, 1] and transform
@@ -442,7 +469,7 @@ class DataHandler(object):
         self.factor_bases = np.prod(self.factor_sizes) / np.cumprod(
             self.factor_sizes)
         # plot set
-        idx = np.random.randint(self.all_data.shape[0],size=opts['evaluate_num_pics'])
+        idx = np.random.randint(num_data,size=opts['evaluate_num_pics'])
         self.data_plot = self._sample_observations(idx)
         # shuffling data
         np.random.seed()
@@ -508,36 +535,77 @@ class DataHandler(object):
 
         """
         self.data_dir = _data_dir(opts)
-        filename = os.path.join(self.data_dir, 'rendered_chairs.npz')
         # Extracting data and saving as npz if necessary
-        if not tf.io.gfile.exists(filename):
-            tar = tarfile.open(filename[:-4] +'.tar')
-            tar.extractall(self.data_dir)
-            tar.close()
-            X = []
-            n = 0
-            root_dir = os.path.join(self.data_dir, 'rendered_chairs')
-            # Iterate over all the dir
-            for dir in os.listdir(root_dir):
-                # Create full path
-                if dir!='all_chair_names.mat':
-                    subdir = os.path.join(root_dir, dir, 'renders')
-                    for file in os.listdir(subdir):
-                        path_to_file = os.path.join(subdir,file)
-                        im = Image.open(path_to_file)
-                        im = im.resize((64, 64), Image.ANTIALIAS)
-                        X.append(np.array(im.getdata()))
-                        im.close()
-                        n += 1
-                        if n%10000==0:
-                            print('{} images unizped'.format(n))
-            np.savez_compressed(filename,data=np.array(X).reshape([-1,]+datashapes['3Dchairs']) / 255.)
-            shutil.rmtree(root_dir)
-        # loading data
-        X = np.load(filename,allow_pickle=True)['data']
-        self.data = Data(opts, X)
+        if not tf.io.gfile.exists(os.path.join(self.data_dir,'images')):
+            filename = os.path.join(self.data_dir, 'rendered_chairs.npz')
+            exctract_and_save_3dchairs(filename, self.data_dir)
+        # data
+        num_data = 86366
+        self.all_data = np.array([os.path.join(self.data_dir,'images','%.6d.jpg') % i for i in range(1, num_data + 1)])
+        num_data = self.all_data.shape[0]
         # plot set
-        self.plot_data_idx = np.arange(10)
+        idx = np.random.randint(self.all_data.shape[0],size=opts['evaluate_num_pics'])
+        self.data_plot = self._sample_observations(idx)
+        # shuffling data
+        np.random.seed()
+        idx_random = np.random.permutation(num_data)
+        if opts['train_dataset_size']==-1 or opts['train_dataset_size']>num_data-10000:
+            tr_stop = num_data - 10000
+        else:
+            tr_stop = opts['train_dataset_size']
+        data_train = self.all_data[idx_random[:tr_stop]]
+        data_test = self.all_data[idx_random[-10000:]]
+        # dataset size
+        self.train_size = data_train.shape[0]
+        self.test_size = data_test.shape[0]
+        # data for vizualisation
+        seed = 123
+        np.random.seed(seed)
+        idx = np.random.randint(self.test_size, size=opts['plot_num_pics'])
+        self.data_vizu = self._sample_observations(idx)
+        # datashape
+        self.data_shape = datashapes[self.dataset]
+        # Create tf.dataset
+        dataset_train = tf.data.Dataset.from_tensor_slices(data_train)
+        dataset_test = tf.data.Dataset.from_tensor_slices(data_test)
+        # map files paths to image with tf.io.decode_jpeg
+        def process_path(file_path):
+            image_file = tf.read_file(file_path)
+            img_decoded = tf.cast(tf.image.decode_jpeg(image_file, channels=0), dtype=tf.dtypes.float32) / 255.
+            # tf.cast(tf.image.decode_jpeg(image_file, channels=0), dtype=tf.dtypes.float32) / 255.
+            return tf.reshape(img_decoded, datashapes['3Dchairs'])
+        dataset_train = dataset_train.map(process_path,
+                                num_parallel_calls=tf.data.experimental.AUTOTUNE)
+        dataset_test = dataset_test.map(process_path,
+                                num_parallel_calls=tf.data.experimental.AUTOTUNE)
+        # normalize data if needed
+        if opts['input_normalize_sym']:
+            dataset_train = dataset_train.map(lambda x: (x - 0.5) * 2.,
+                                    num_parallel_calls=tf.data.experimental.AUTOTUNE)
+            dataset_test = dataset_test.map(lambda x: (x - 0.5) * 2.,
+                                    num_parallel_calls=tf.data.experimental.AUTOTUNE)
+            self.data_vizu = (self.data_vizu - 0.5) * 2.
+            self.data_plot = (self.data_plot - 0.5) * 2.
+        # Shuffle dataset
+        dataset_train = dataset_train.shuffle(buffer_size=50*opts['batch_size'])
+        dataset_test = dataset_test.shuffle(buffer_size=50*opts['batch_size'])
+        # repeat for multiple epochs
+        dataset_train = dataset_train.repeat()
+        dataset_test = dataset_test.repeat()
+        # Random batching
+        dataset_train = dataset_train.batch(batch_size=opts['batch_size'])
+        dataset_test = dataset_test.batch(batch_size=opts['batch_size'])
+        # Prefetch
+        self.dataset_train = dataset_train.prefetch(buffer_size=4*opts['batch_size'])
+        self.dataset_test = dataset_test.prefetch(buffer_size=4*opts['batch_size'])
+        # Iterator for each split
+        self.iterator_train = dataset_train.make_initializable_iterator()
+        self.iterator_test = dataset_test.make_initializable_iterator()
+
+        # Global iterator
+        self.handle = tf.placeholder(tf.string, shape=[])
+        self.next_element = tf.data.Iterator.from_string_handle(
+            self.handle, dataset_train.output_types, dataset_train.output_shapes).get_next()
 
     def _load_celebA(self, opts):
         """Load CelebA
@@ -852,6 +920,8 @@ class DataHandler(object):
                 mask = (point > .85)
                 background[mask] = 1 - background[mask]
                 point = background
+        elif self.dataset == '3Dchairs':
+            point = self._read_3Dchairs(self.all_data[key])
         else:
             raise Exception('Disc read for {} not implemented yet...'.format(self.dataset))
 
@@ -884,6 +954,12 @@ class DataHandler(object):
     def _read_dsprites_image(self, file_path):
         im = Image.open(file_path)
         im_array =np.array(im).reshape(datashapes['dsprites']).astype(np.float32) / 255.
+        im.close()
+        return im_array
+
+    def _read_3Dchairs(self, file_path):
+        im = Image.open(file_path)
+        im_array =np.array(im).reshape(datashapes['3Dchairs']).astype(np.float32) / 255.
         im.close()
         return im_array
 

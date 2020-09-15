@@ -28,8 +28,8 @@ parser.add_argument("--res_dir", type=str, default='res',
                     help='directory in which exp. res are saved')
 parser.add_argument("--num_it", type=int, default=300000,
                     help='iteration number')
-parser.add_argument("--net_archi", default='conv_locatello',
-                    help='networks architecture [mlp/conv_locatello]')
+parser.add_argument("--net_archi",
+                    help='networks architecture [mlp/conv_locatello/conv_rae]')
 parser.add_argument("--id", type=int, default=0,
                     help='exp id corresponding to latent reg weight setup')
 parser.add_argument("--sigma_pen", action='store_true', default=False,
@@ -60,8 +60,11 @@ conv_locatello = { 'e_arch': 'conv_locatello' , 'e_nlayers': 4, 'e_nfilters': [3
         'd_arch': 'conv_locatello' , 'd_nlayers': 4, 'd_nfilters': [32,32,32,64], 'd_nonlinearity': 'relu',
         'filter_size': [4,4,4,4]}
 conv_rae = { 'e_arch': 'conv_rae' , 'e_nlayers': 4, 'e_nfilters': [128,256,512,1024], 'e_nonlinearity': 'relu',
-        'd_arch': 'conv_rae' , 'd_nlayers': 4, 'd_nfilters': [128,256,512,1024], 'd_nonlinearity': 'relu',
+        'd_arch': 'conv_rae' , 'd_nlayers': 3, 'd_nfilters': [128,256,512], 'd_nonlinearity': 'relu',
         'filter_size': [5,5,5,5]}
+# conv_rae = { 'e_arch': 'conv_rae' , 'e_nlayers': 4, 'e_nfilters': [8,16,32,64], 'e_nonlinearity': 'relu',
+#         'd_arch': 'conv_rae' , 'd_nlayers': 3, 'd_nfilters': [8,16,32], 'd_nonlinearity': 'relu',
+#         'filter_size': [5,5,5,5]}
 
 net_configs = { 'mlp': mlp_config,
                 'conv_locatello': conv_locatello,
@@ -94,14 +97,22 @@ def main():
     opts['data_dir'] = FLAGS.data_dir
     opts['fid'] = FLAGS.fid
     opts['cost'] = FLAGS.cost #l2, l2sq, l2sq_norm, l1, xentropy
-    opts['network'] = net_configs[FLAGS.net_archi]
     opts['pen_enc_sigma'] = FLAGS.sigma_pen
     opts['lambda_pen_enc_sigma'] = FLAGS.sigma_pen_val
-
+    if FLAGS.net_archi:
+        opts['network'] = net_configs[FLAGS.net_archi]
+    else:
+        if FLAGS.dataset == 'celebA':
+            opts['network'] = net_configs['conv_rae']
+        else:
+            opts['network'] = net_configs['conv_locatello']
     # Model set up
     opts['model'] = FLAGS.model
     if FLAGS.dataset == 'celebA':
-        opts['zdim'] = 32
+        if opts['network']==net_configs['conv_rae']:
+            opts['zdim'] = 64
+        else:
+            opts['zdim'] = 32
         opts['lr'] = 0.0001
     elif FLAGS.dataset == '3Dchairs':
         opts['zdim'] = 16
@@ -191,7 +202,10 @@ def main():
             coef_id = (FLAGS.id-1) % len(lmba)
             opts['obj_fn_coeffs'] = list(lmba[coef_id])
     # Create directories
-    opts['out_dir'] = FLAGS.out_dir
+    results_dir = 'results'
+    if not tf.io.gfile.isdir(results_dir):
+        utils.create_dir(results_dir)
+    opts['out_dir'] = os.path.join(results_dir,FLAGS.out_dir)
     if not tf.io.gfile.isdir(opts['out_dir']):
         utils.create_dir(opts['out_dir'])
     out_subdir = os.path.join(opts['out_dir'], opts['model'])
