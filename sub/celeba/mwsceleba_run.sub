@@ -15,5 +15,5 @@
 source /share/apps/examples/source_files/python/python-3.6.4.source
 source /share/apps/examples/source_files/cuda/cuda-10.0.source
 
-python3 run_array.py --num_it 600000 --id $SGE_TASK_ID --dataset celebA --cost l2sq --save_data --save_model --out_dir celebA_batchnorm --model TCWAE_MWS
+python3 run_array.py --num_it 600000 --id $SGE_TASK_ID --dataset celebA --cost l2sq --save_data --out_dir celebA_batchnorm --model TCWAE_MWS
 # python3 run_array.py --num_it 20 --id 1 --dataset celebA --cost l2sq --save_data --save_model --out_dir celebA_test --model TCWAE_MWS
