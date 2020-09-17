@@ -61,7 +61,7 @@ conv_locatello = { 'e_arch': 'conv_locatello' , 'e_nlayers': 4, 'e_nfilters': [3
         'filter_size': [4,4,4,4]}
 conv_rae = { 'e_arch': 'conv_rae' , 'e_nlayers': 4, 'e_nfilters': [64,64,128,128], 'e_nonlinearity': 'relu',
         'd_arch': 'conv_rae' , 'd_nlayers': 3, 'd_nfilters': [64,64,128], 'd_nonlinearity': 'relu',
-        'filter_size': [5,5,5,5]}
+        'filter_size': [4,4,4,4]}
 # conv_rae = { 'e_arch': 'conv_rae' , 'e_nlayers': 4, 'e_nfilters': [8,16,32,64], 'e_nonlinearity': 'relu',
 #         'd_arch': 'conv_rae' , 'd_nlayers': 3, 'd_nfilters': [8,16,32], 'd_nonlinearity': 'relu',
 #         'filter_size': [5,5,5,5]}
