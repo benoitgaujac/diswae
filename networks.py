@@ -254,12 +254,12 @@ def  rae_decoder(opts, input, output_dim, reuse,
     # Linear layers
     layer_x = ops.linear.Linear(opts, layer_x,
                             np.prod(input.get_shape().as_list()[1:]),
-                            8*8*1024, scope='hid0/lin0')
+                            8*8*2*opts['network']['d_nfilters'][-1], scope='hid0/lin0')
     if opts['normalization']=='batchnorm':
         layer_x = ops.batchnorm.Batchnorm_layers(
             opts, layer_x, 'hid0/bn0', is_training, reuse)
     layer_x = ops._ops.non_linear(layer_x,'relu')
-    layer_x = tf.reshape(layer_x, [-1, 8, 8, 1024])
+    layer_x = tf.reshape(layer_x, [-1, 8, 8, 8*8*2*opts['network']['d_nfilters'][-1]])
     # Conv block
     for i in range(opts['network']['d_nlayers']):
         _out_shape = [batch_size, 2*layer_x.get_shape().as_list()[1],
