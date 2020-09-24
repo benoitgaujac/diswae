@@ -6,9 +6,9 @@
 
 #$ -l gpu=True
 #$ -l tmem=24G
-#$ -l h_rt=24:00:00
+#$ -l h_rt=10:00:00
 
-#$ -t 1-49
+#$ -t 1-25
 
 #$ -N mwscelebA
 

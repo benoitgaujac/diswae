@@ -118,7 +118,7 @@ config_3Dchairs['input_normalize_sym'] = False
 config_3Dchairs['true_gen_model'] = False #If synthetic data with true gen. model known: True, False
 config_3Dchairs['dataset_size'] = 86366
 # Model set up
-config_3Dchairs['zdim'] = 10
+config_3Dchairs['zdim'] = 16
 # Opt set up
 config_3Dchairs['normalization'] = 'batchnorm' #batchnorm, layernorm, none
 # lambda set up

@@ -62,9 +62,6 @@ conv_locatello = { 'e_arch': 'conv_locatello' , 'e_nlayers': 4, 'e_nfilters': [3
 conv_rae = { 'e_arch': 'conv_rae' , 'e_nlayers': 4, 'e_nfilters': [32,64,128,256], 'e_nonlinearity': 'relu',
         'd_arch': 'conv_rae' , 'd_nlayers': 3, 'd_nfilters': [32,64,128], 'd_nonlinearity': 'relu',
         'filter_size': [4,4,4,4]}
-# conv_rae = { 'e_arch': 'conv_rae' , 'e_nlayers': 4, 'e_nfilters': [8,16,32,64], 'e_nonlinearity': 'relu',
-#         'd_arch': 'conv_rae' , 'd_nlayers': 3, 'd_nfilters': [8,16,32], 'd_nonlinearity': 'relu',
-#         'filter_size': [5,5,5,5]}
 
 net_configs = { 'mlp': mlp_config,
                 'conv_locatello': conv_locatello,
@@ -109,10 +106,11 @@ def main():
     # Model set up
     opts['model'] = FLAGS.model
     if FLAGS.dataset == 'celebA':
-        if opts['network']==net_configs['conv_rae']:
-            opts['zdim'] = 64
-        else:
-            opts['zdim'] = 32
+        # if opts['network']==net_configs['conv_rae']:
+        #     opts['zdim'] = 64
+        # else:
+        #     opts['zdim'] = 32
+        opts['zdim'] = 32
         opts['lr'] = 0.0001
     elif FLAGS.dataset == '3Dchairs':
         opts['zdim'] = 16
@@ -128,16 +126,28 @@ def main():
 
     # Objective Function Coefficients
     if FLAGS.dataset == 'celebA':
-        if opts['model'][-3:]=='VAE':
-            beta = [1, 5, 10, 15, 20, 25, 50]
+        if opts['model']=='BetaTCVAE':
+            beta = [1, 2, 5, 10, 15]
             coef_id = (FLAGS.id-1) % len(beta)
             opts['obj_fn_coeffs'] = beta[coef_id]
-        else:
-            beta = [1, 2, 5, 10, 15, 25, 50]
-            gamma = [1, 2, 5, 10, 15, 25, 50]
+        elif opts['model']=='FactorVAE':
+            beta = [1, 5, 10, 25, 50]
+            coef_id = (FLAGS.id-1) % len(beta)
+            opts['obj_fn_coeffs'] = beta[coef_id]
+        elif opts['model']=='TCWAE_MWS':
+            beta = [1, 2, 5, 10, 15]
+            gamma = [1, 2, 5, 10, 15]
             lmba = list(itertools.product(beta,gamma))
             coef_id = (FLAGS.id-1) % len(lmba)
             opts['obj_fn_coeffs'] = list(lmba[coef_id])
+        elif opts['model']=='TCWAE_GAN':
+            beta = [1, 5, 10, 25, 50]
+            gamma = [1, 5, 10, 25, 50]
+            lmba = list(itertools.product(beta,gamma))
+            coef_id = (FLAGS.id-1) % len(lmba)
+            opts['obj_fn_coeffs'] = list(lmba[coef_id])
+        else:
+            raise Exception('Unknown {} model for celebA'.format(opts['model']))
     elif FLAGS.dataset == '3Dchairs':
         if opts['model'][-3:]=='VAE':
             beta = [1, 2, 5, 10, 20, 50, 100]
@@ -235,7 +245,7 @@ def main():
 
     # Experiemnts set up
     opts['it_num'] = FLAGS.num_it
-    opts['print_every'] = int(opts['it_num'] / 5.)
+    opts['print_every'] = int(opts['it_num'] / 3.)
     opts['evaluate_every'] = int(opts['print_every'] / 2.) + 1
     opts['save_every'] = 10000000000
     opts['save_final'] = FLAGS.save_model
