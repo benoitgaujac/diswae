@@ -150,12 +150,12 @@ def main():
             raise Exception('Unknown {} model for celebA'.format(opts['model']))
     elif FLAGS.dataset == '3Dchairs':
         if opts['model'][-3:]=='VAE':
-            beta = [1, 2, 5, 10, 20, 50, 100]
+            beta = [1, 2, 5, 10, 20, 50]
             coef_id = (FLAGS.id-1) % len(beta)
             opts['obj_fn_coeffs'] = beta[coef_id]
         else:
-            beta = [1, 2, 5, 10, 15, 20, 25]
-            gamma = [1, 2, 5, 10, 15, 20, 25]
+            beta = [1, 2, 5, 10, 20, 50]
+            gamma = [1, 2, 5, 10, 20, 50]
             lmba = list(itertools.product(beta,gamma))
             coef_id = (FLAGS.id-1) % len(lmba)
             opts['obj_fn_coeffs'] = list(lmba[coef_id])
