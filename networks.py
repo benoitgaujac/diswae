@@ -292,10 +292,10 @@ def discriminator(opts, input, is_training):
     for i in range(6):
         layer_x = ops.linear.Linear(opts, layer_x, np.prod(layer_x.get_shape().as_list()[1:]),
                     1000, init='glorot_uniform', scope='hid{}/lin'.format(i))
-        # Note for mlp, batchnorm and layernorm are equivalent
-        if opts['normalization']=='batchnorm':
-            layer_x = ops.batchnorm.Batchnorm_layers(
-                opts, layer_x, 'hid%d/bn' % i, is_training)
+        # # Note for mlp, batchnorm and layernorm are equivalent
+        # if opts['normalization']=='batchnorm':
+        #     layer_x = ops.batchnorm.Batchnorm_layers(
+        #         opts, layer_x, 'hid%d/bn' % i, is_training)
         layer_x = ops._ops.non_linear(layer_x,'leaky_relu')
     logits = ops.linear.Linear(opts, layer_x, np.prod(layer_x.get_shape().as_list()[1:]),
                 2, init='glorot_uniform', scope='hid_final')
