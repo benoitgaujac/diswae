@@ -6,9 +6,9 @@
 
 #$ -l gpu=true
 #$ -l tmem=5G
-#$ -l h_rt=5:00:00
+#$ -l h_rt=3:00:00
 
-#$ -t 1-108
+#$ -t 1-180
 
 #$ -N mwssmallnorb
 

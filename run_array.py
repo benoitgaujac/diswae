@@ -118,6 +118,9 @@ def main():
     elif FLAGS.dataset == 'dSprites':
         opts['zdim'] = 10
         opts['lr'] = 0.0001
+    elif FLAGS.dataset == 'smallNORB':
+        opts['zdim'] = 10
+        opts['lr'] = 0.0005
     else:
         if opts['model'][-3:]=='VAE':
             opts['lr'] = 0.0005
