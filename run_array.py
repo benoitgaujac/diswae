@@ -163,14 +163,26 @@ def main():
             coef_id = (FLAGS.id-1) % len(lmba)
             opts['obj_fn_coeffs'] = list(lmba[coef_id])
     elif FLAGS.dataset == 'dsprites':
-        if opts['model'] == 'BetaVAE' or opts['model'] == 'BetaTCVAE':
+        if opts['model'] == 'BetaVAE':
             beta = [1, 2, 4, 6, 8, 10]
             coef_id = (FLAGS.id-1) % len(beta)
             opts['obj_fn_coeffs'] = beta[coef_id]
-        elif opts['model']=='FactorVAE' or opts['model']=='TCWAE_GAN':
+        elif opts['model'] == 'BetaTCVAE':
+            beta = [1, 2, 4, 6, 8, 10]
+            gamma = [1, 2, 4, 6, 8, 10]
+            lmba = list(itertools.product(beta,gamma))
+            coef_id = (FLAGS.id-1) % len(lmba)
+            opts['obj_fn_coeffs'] = list(lmba[coef_id])
+        elif opts['model']=='FactorVAE':
             beta = [1, 10, 25, 50, 75, 100]
             coef_id = (FLAGS.id-1) % len(beta)
             opts['obj_fn_coeffs'] = beta[coef_id]
+        elif opts['model']=='TCWAE_GAN':
+            beta = [1, 10, 25, 50, 75, 100]
+            gamma = [1, 10, 25, 50, 75, 100]
+            lmba = list(itertools.product(beta,gamma))
+            coef_id = (FLAGS.id-1) % len(lmba)
+            opts['obj_fn_coeffs'] = list(lmba[coef_id])
         elif opts['model']=='WAE':
             if opts['cost'] == 'xentropy':
                 beta = [1, 5, 10, 25, 50, 100]
