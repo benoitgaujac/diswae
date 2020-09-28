@@ -187,7 +187,7 @@ def main():
             if opts['cost'] == 'xentropy':
                 beta = [1, 5, 10, 25, 50, 100]
             else:
-                beta = [0.1, 0.5, 1, 2, 4, 8]
+                beta = [1, 2, 4, 6, 8, 10]
             coef_id = (FLAGS.id-1) % len(beta)
             opts['obj_fn_coeffs'] = beta[coef_id]
         else:
