@@ -163,11 +163,11 @@ def main():
             coef_id = (FLAGS.id-1) % len(lmba)
             opts['obj_fn_coeffs'] = list(lmba[coef_id])
     elif FLAGS.dataset == 'dsprites':
-        if opts['model'] == 'BetaVAE':
+        if opts['model'] == 'BetaTCVAE':
             beta = [1, 2, 4, 6, 8, 10]
             coef_id = (FLAGS.id-1) % len(beta)
             opts['obj_fn_coeffs'] = beta[coef_id]
-        elif opts['model'] == 'BetaTCVAE':
+        elif opts['model'] == 'TCWAE_MWS':
             beta = [1, 2, 4, 6, 8, 10]
             gamma = [1, 2, 4, 6, 8, 10]
             lmba = list(itertools.product(beta,gamma))
@@ -201,7 +201,7 @@ def main():
             coef_id = (FLAGS.id-1) % len(lmba)
             opts['obj_fn_coeffs'] = list(lmba[coef_id])
     elif FLAGS.dataset == 'Noidsprites':
-        if opts['model'] == 'BetaVAE':
+        if opts['model'] == 'BetaTCVAE':
             beta = [1, 2, 4, 6, 8, 10]
             coef_id = (FLAGS.id-1) % len(beta)
             opts['obj_fn_coeffs'] = beta[coef_id]
@@ -233,7 +233,7 @@ def main():
             coef_id = (FLAGS.id-1) % len(lmba)
             opts['obj_fn_coeffs'] = list(lmba[coef_id])
     else:
-        if opts['model'] == 'BetaVAE':
+        if opts['model'] == 'BetaTCVAE':
             beta = [1, 2, 4, 6, 8, 10]
             coef_id = (FLAGS.id-1) % len(beta)
             opts['obj_fn_coeffs'] = beta[coef_id]
