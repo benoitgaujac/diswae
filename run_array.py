@@ -232,7 +232,7 @@ def main():
             lmba = list(itertools.product(beta,gamma))
             coef_id = (FLAGS.id-1) % len(lmba)
             opts['obj_fn_coeffs'] = list(lmba[coef_id])
-    else:
+    elif FLAGS.dataset == 'Scrdsprites':
         if opts['model'] == 'BetaTCVAE':
             beta = [1, 2, 4, 6, 8, 10]
             coef_id = (FLAGS.id-1) % len(beta)
@@ -254,6 +254,32 @@ def main():
             lmba = list(itertools.product(beta,gamma))
             coef_id = (FLAGS.id-1) % len(lmba)
             opts['obj_fn_coeffs'] = list(lmba[coef_id])
+        else:
+            if opts['cost'] == 'xentropy':
+                beta = [1, 5, 10, 25, 50, 100]
+                gamma = [1, 5, 10, 25, 50, 100]
+            else:
+                beta = [1, 2, 4, 6 ,8 ,10]
+                gamma = [1, 2, 4, 6 ,8 ,10]
+            lmba = list(itertools.product(beta,gamma))
+            coef_id = (FLAGS.id-1) % len(lmba)
+            opts['obj_fn_coeffs'] = list(lmba[coef_id])
+    else:
+        if opts['model'] == 'BetaTCVAE':
+            beta = [1, 2, 4, 6, 8, 10]
+            coef_id = (FLAGS.id-1) % len(beta)
+            opts['obj_fn_coeffs'] = beta[coef_id]
+        elif opts['model']=='FactorVAE':
+            beta = [1, 10, 25, 50, 75, 100]
+            coef_id = (FLAGS.id-1) % len(beta)
+            opts['obj_fn_coeffs'] = beta[coef_id]
+        elif opts['model']=='WAE':
+            if opts['cost'] == 'xentropy':
+                beta = [1, 5, 10, 25, 50, 100]
+            else:
+                beta = [1, 2, 4, 6, 8, 10]
+            coef_id = (FLAGS.id-1) % len(beta)
+            opts['obj_fn_coeffs'] = beta[coef_id]
         else:
             if opts['cost'] == 'xentropy':
                 beta = [1, 5, 10, 25, 50, 100]
