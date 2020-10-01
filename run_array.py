@@ -178,8 +178,8 @@ def main():
             coef_id = (FLAGS.id-1) % len(beta)
             opts['obj_fn_coeffs'] = beta[coef_id]
         elif opts['model']=='TCWAE_GAN':
-            beta = [1, 10, 25, 50, 75, 100]
-            gamma = [1, 10, 25, 50, 75, 100]
+            beta = [1, 2, 4, 6, 8, 10]
+            gamma = [1, 2, 4, 6, 8, 10]
             lmba = list(itertools.product(beta,gamma))
             coef_id = (FLAGS.id-1) % len(lmba)
             opts['obj_fn_coeffs'] = list(lmba[coef_id])
