@@ -161,7 +161,7 @@ def main():
                 gamma = [1, 2, 4, 6, 8, 10]
             else:
                 beta = [0.1, 0.25, 0.5, 0.75, 1, 10]
-                beta = [0.1, 0.25, 0.5, 0.75, 1, 10]
+                gamma = [0.1, 0.25, 0.5, 0.75, 1, 10]
             lmba = list(itertools.product(beta,gamma))
             coef_id = (FLAGS.id-1) % len(lmba)
             opts['obj_fn_coeffs'] = list(lmba[coef_id])
