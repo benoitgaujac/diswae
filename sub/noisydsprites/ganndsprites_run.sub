@@ -2,13 +2,13 @@
 
 #$ -S /bin/bash
 
-#$ -wd /home/bgaujac/diswae
+#$ -wd /home/minzhang/new-home-dir/diswae
 
 #$ -l gpu=true
 #$ -l tmem=24G
 #$ -l h_rt=7:00:00
 
-#$ -t 1-144
+#$ -t 1-108
 
 #$ -N ganNdsprites
 

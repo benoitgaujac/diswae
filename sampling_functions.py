@@ -25,7 +25,7 @@ def sample_gaussian(params, typ='numpy', batch_size=100):
     if typ =='tensorflow':
         means, covs = tf.split(params,2,axis=-1)
         shape = tf.shape(means)
-        eps = tf.random_normal(shape, dtype=tf.float32)
+        eps = tf.random.normal(shape, dtype=tf.float32)
         noise = means + tf.multiply(eps,tf.sqrt(1e-10+covs))
     elif typ =='numpy':
         means, covs = np.split(params,2,axis=-1)
@@ -75,10 +75,10 @@ def linespace(opts, n, anchors, std=1.0):
     identity = np.eye(zdim)
     linespce = []
     if opts['dataset'] == 'celebA':
-        if opts['model'] == 'TCWAE_MWS' or opts['model'] == 'BetaTCVAE':
-            std_range = 6*std
-        else:
-            std_range = 4*std
+        # if opts['model'] == 'TCWAE_MWS' or opts['model'] == 'BetaTCVAE':
+        #     std_range = 6*std
+        # else:
+        std_range = 4*std
     else:
         std_range = 2*std
     for i in range(zdim):

@@ -5,6 +5,7 @@ import math
 from networks import encoder, decoder, discriminator
 from datahandler import datashapes
 from loss_functions import l2_cost, l2sq_cost, l2sq_norm_cost, l1_cost, xentropy_cost
+from loss_functions import square_dist_broadcast
 import utils
 
 import pdb
@@ -88,10 +89,9 @@ class BetaVAE(Model):
         """
         Compute Xentropy for bernoulli
         """
-        eps = 1e-8
         labels = tf.layers.flatten(labels)
-        cross_entropy = tf.nn.sigmoid_cross_entropy_with_logits(labels=labels, logits=logits)
-        return tf.reduce_mean(tf.reduce_sum(cross_entropy,axis=-1))
+        cross_entropy = xentropy_cost(labels, logits)
+        return tf.reduce_mean(cross_entropy)
 
     def loss(self, inputs, loss_coeffs, is_training):
 
@@ -197,26 +197,15 @@ class FactorVAE(BetaVAE):
         self.discr_loss = - tf.add(
                             0.5 * tf.reduce_mean(tf.math.log(probs_z[:, 0])),
                             0.5 * tf.reduce_mean(tf.math.log(probs_z_shuffle[:, 1])))
-        divergences = (kl, gamma*tc)
+        divergences = (gamma*tc, kl-tc)
 
         return loss_reconstruct, divergences
 
 
-class WAE(Model):
+class WAE(BetaVAE):
 
     def __init__(self, opts):
         super().__init__(opts)
-
-    def square_dist(self, sample_x, sample_y):
-        """
-        Wrapper to compute square distance
-        """
-        norms_x = tf.reduce_sum(tf.square(sample_x), axis=-1, keepdims=True)
-        norms_y = tf.reduce_sum(tf.square(sample_y), axis=-1, keepdims=True)
-
-        squared_dist = norms_x + tf.transpose(norms_y) \
-                        - 2. * tf.matmul(sample_x,sample_y,transpose_b=True)
-        return tf.nn.relu(squared_dist)
 
     def mmd_penalty(self, sample_qz, sample_pz):
         opts = self.opts
@@ -227,9 +216,13 @@ class WAE(Model):
         nf = tf.cast(n, tf.float32)
         half_size = tf.cast((n * n - n) / 2,tf.int32)
 
-        distances_pz = self.square_dist(sample_pz, sample_pz)
-        distances_qz = self.square_dist(sample_qz, sample_qz)
-        distances = self.square_dist(sample_qz, sample_pz)
+        distances_pz = square_dist_broadcast(sample_pz, sample_pz)
+        distances_qz = square_dist_broadcast(sample_qz, sample_qz)
+        distances = square_dist_broadcast(sample_qz, sample_pz)
+
+        # distances_pz = self.square_dist(sample_pz, sample_pz)
+        # distances_qz = self.square_dist(sample_qz, sample_qz)
+        # distances = self.square_dist(sample_qz, sample_pz)
 
         if opts['mmd_kernel'] == 'RBF':
             # Median heuristic for the sigma^2 of Gaussian kernel
@@ -373,6 +366,36 @@ class TCWAE_MWS(WAE):
         return loss_reconstruct, divergences
 
 
+class TCWAE_MWS_MI(TCWAE_MWS):
+
+    def __init__(self, opts):
+        super().__init__(opts)
+
+    def loss(self, inputs, loss_coeffs, is_training):
+
+        beta = loss_coeffs
+
+        # --- Encoding and reconstructing
+        enc_z, enc_mean, enc_Sigma, recon_x, dec_mean = self.forward_pass(inputs=inputs,
+                                                is_training=is_training)
+        loss_reconstruct = self.reconstruction_loss(inputs, recon_x, dec_mean)
+
+        # --- Latent regularization
+        # tc
+        log_qz, log_qz_product, _ = self.total_correlation(enc_z, enc_mean, tf.math.log(enc_Sigma))
+        tc = log_qz-log_qz_product
+        # kl
+        kl = self.kl_penalty(self.pz_mean, self.pz_sigma, enc_mean, enc_Sigma)
+        # mmd
+        noise = tf.random_normal(shape=tf.shape(enc_z))
+        pz_sample = tf.add(self.pz_mean, (noise * self.pz_sigma))
+        wae_match_penalty = self.mmd_penalty(enc_z, pz_sample)
+
+        divergences = (beta*tc, kl-tc, wae_match_penalty)
+
+        return loss_reconstruct, divergences
+
+
 class TCWAE_GAN(WAE):
 
     def __init__(self, opts):
@@ -432,48 +455,24 @@ class TCWAE_GAN(WAE):
         noise = tf.random_normal(shape=tf.shape(enc_z))
         pz_sample = tf.add(self.pz_mean, (noise * self.pz_sigma))
         # - Get discriminator preds
-        if True:
-            # estimate kl(prod_d q_Z(z_d), p(z)), no weight sharring
-            logits_z, probs_z_shuffle = self.get_discr_pred(
-                                    inputs=enc_z_shuffle,
-                                    scope = 'dimwise',
-                                    reuse = False,
-                                    is_training=is_training)
-            _, probs_z_prior = self.get_discr_pred(
-                                    inputs=pz_sample,
-                                    scope = 'dimwise',
-                                    reuse=True,
-                                    is_training=is_training)
-            # - dimwise loss
-            dimwise = tf.reduce_mean(logits_z[:, 0] - logits_z[:, 1], axis=0)
-            # - Discr loss
-            discr_dimwise_loss = tf.add(
-                                0.5 * tf.reduce_mean(tf.math.log(probs_z_shuffle[:, 0])),
-                                0.5 * tf.reduce_mean(tf.math.log(probs_z_prior[:, 1])))
-        else:
-            # estimate kl(prod_d q_Z(z_d), p(Z)) = sum_d kl(q_Z(z_d), p(z_d)), weight sharring
-            ldimwise, ldiscr_dimwise_loss = [], []
-            reuse = False
-            for d in range(enc_z.get_shape()[1]):
-                logits_z, probs_z_shuffle = self.get_discr_pred(
-                                        inputs=tf.expand_dims(enc_z_shuffle[:,d],axis=-1),
-                                        scope = 'dimwise',
-                                        reuse = reuse,
-                                        is_training=is_training)
-                reuse = True
-                _, probs_z_prior = self.get_discr_pred(
-                                        inputs=tf.expand_dims(pz_sample[:,d],axis=-1),
-                                        scope = 'dimwise',
-                                        reuse=reuse,
-                                        is_training=is_training)
-                # - dimwise loss
-                ldimwise.append(tf.reduce_mean(logits_z[:, 0] - logits_z[:, 1], axis=0))
-                # - Discr loss
-                ldiscr_dimwise_loss.append(tf.add(
-                                    0.5 * tf.reduce_mean(tf.math.log(probs_z_shuffle[:, 0])),
-                                    0.5 * tf.reduce_mean(tf.math.log(probs_z_prior[:, 1]))))
-            dimwise = tf.reduce_sum(tf.stack(ldimwise))
-            discr_dimwise_loss = tf.reduce_sum(tf.stack(ldiscr_dimwise_loss))
+        # estimate kl(prod_d q_Z(z_d), p(z))
+        logits_z, probs_z_shuffle = self.get_discr_pred(
+                                inputs=enc_z_shuffle,
+                                scope = 'dimwise',
+                                reuse = False,
+                                is_training=is_training)
+        _, probs_z_prior = self.get_discr_pred(
+                                inputs=pz_sample,
+                                scope = 'dimwise',
+                                reuse=True,
+                                is_training=is_training)
+        # - dimwise loss
+        dimwise = tf.reduce_mean(logits_z[:, 0] - logits_z[:, 1], axis=0)
+        # - Discr loss
+        discr_dimwise_loss = tf.add(
+                            0.5 * tf.reduce_mean(tf.math.log(probs_z_shuffle[:, 0])),
+                            0.5 * tf.reduce_mean(tf.math.log(probs_z_prior[:, 1])))
+
         # - WAE latent reg
         wae_match_penalty = self.mmd_penalty(enc_z, pz_sample)
         divergences = (lmbd1*tc, lmbd2*dimwise, wae_match_penalty)
@@ -484,103 +483,61 @@ class TCWAE_GAN(WAE):
         return loss_reconstruct, divergences
 
 
-class disWAE(WAE):
+class TCWAE_GAN_MI(WAE):
 
     def __init__(self, opts):
         super().__init__(opts)
 
-    def individual_square_dist(self, sample_x, sample_y):
-        """
-        Wrapper to compute per-component (individual) square distance
-        sample_x:   [batch,zdim]
-        out:        [batch,zdim,batch], out[k,j,l]=||sample_x[k,j]-sample_y[l,j]||_2^2
-        """
-        norms_x = tf.square(sample_x)
-        norms_y = tf.square(sample_y)
+    def get_discr_pred(self, inputs, scope, reuse=False, is_training=False):
+      """Build and get Dsicriminator preds.
+      Based on ICML paper
+      """
+      with tf.variable_scope('discriminator/' + scope, reuse=reuse):
+          logits, probs = discriminator(self.opts, inputs, is_training)
+          clipped = tf.clip_by_value(probs, 1e-6, 1 - 1e-6)
+      return logits, clipped
 
-        sample_x = tf.expand_dims(sample_x,-1)
-        sample_y = tf.expand_dims(sample_y,-1)
-        squared_dist = tf.expand_dims(norms_x,-1) + tf.transpose(norms_y) \
-                        - 2. * sample_x * tf.transpose(sample_y)
-        return tf.nn.relu(squared_dist)
+    def loss(self, inputs, loss_coeffs, is_training):
 
-    def dhsic_penalty(self, samples):
-        """
-        Compute dHSIC V-statistic estimator (Alg.1 of Pfister & Al.)
-        """
-
-        opts = self.opts
-        sigma2_p = opts['pz_scale'] ** 2
-        kernel = opts['mmd_kernel']
-        n = utils.get_batch_size(samples)
-        n = tf.cast(n, tf.int32)
-        nf = tf.cast(n, tf.float32)
-        half_size = tf.cast((n * n - n) / 2,tf.int32)
-
-        distances = self.individual_square_dist(samples, samples)
-
-        # Generating gram matrix of 1d kernel
-        if opts['mmd_kernel'] == 'RBF':
-            # Median heuristic for the sigma^2 of Gaussian kernel
-            sigma2_k = tf.nn.top_k(
-                tf.reshape(distances, [-1]), half_size).values[half_size - 1]
-            # Maximal heuristic for the sigma^2 of Gaussian kernel
-            # sigma2_k = tf.nn.top_k(tf.reshape(distances_qz, [-1]), 1).values[0]
-            # sigma2_k += tf.nn.top_k(tf.reshape(distances, [-1]), 1).values[0]
-            # sigma2_k = opts['latent_space_dim'] * sigma2_p
-            if opts['verbose']:
-                sigma2_k = tf.Print(sigma2_k, [sigma2_k], 'Kernel width:')
-            K = tf.exp( - distances / 2. / sigma2_k)
-        elif opts['mmd_kernel'] == 'IMQ':
-            Cbase = 2 * opts['zdim'] * sigma2_p
-            K = tf.zeros([n,opts['zdim'],n])
-            for scale in [.1, .2, .5, 1., 2., 5., 10.]:
-                C = Cbase * scale
-                K += C / (C + distances)
-        elif opts['mmd_kernel'] == 'RQ':
-            K = tf.zeros([n,opts['zdim'],n])
-            for scale in [.1, .2, .5, 1., 2., 5., 10.]:
-                K += (1. + distances / scale / 2.) ** (-scale)
-        # dHSIC V-estimator
-        res1 = tf.reduce_sum(tf.reduce_prod(K,axis=1)) / nf*nf
-        res2 = tf.reduce_prod(tf.reduce_sum(K,axis=[1,2]) / (nf*nf))
-        res3 = tf.reduce_sum(tf.reduce_prod(tf.reduce_sum(K, axis=1) / nf, axis=0) / nf)
-        return res1 + res2 - 2. * res3
-
-    def loss(self, inputs, samples, loss_coeffs, is_training):
-
-        (lmbd1, lmbd2) = loss_coeffs
+        beta = loss_coeffs
 
         # --- Encoding and reconstructing
         enc_z, enc_mean, enc_Sigma, recon_x, dec_mean = self.forward_pass(inputs=inputs,
-                                                    is_training=is_training)
+                                                is_training=is_training)
         loss_reconstruct = self.reconstruction_loss(inputs, recon_x, dec_mean)
 
         # --- Latent regularization
+        # TC term
         # - shuffling latent codes
-        shuffle_encoded = []
+        enc_z_shuffle = []
         seed = 456
         for i in range(enc_z.get_shape()[1]):
-            shuffle_encoded.append(tf.gather(enc_z[:, i], tf.random.shuffle(tf.range(tf.shape(enc_z[:, i])[0]))))
-        shuffled_encoded = tf.stack(shuffle_encoded, axis=-1, name="encoded_shuffled")
-        # - Dimension-wise latent reg
-        dimension_wise_match_penalty = self.mmd_penalty(shuffled_encoded, samples)
-        # - Multidim. HSIC
-        dhsic_match_penalty = self.mmd_penalty(enc_z, shuffled_encoded)
-        # dhsic_match_penalty = self.dhsic_penalty(enc_z)
-        # self.dhsic_mmd_penalty = lmbd1*self.mmd_penalty(enc_z, shuffled_encoded)
+            enc_z_shuffle.append(tf.gather(enc_z[:, i], tf.random.shuffle(tf.range(tf.shape(enc_z[:, i])[0]))))
+        enc_z_shuffle = tf.stack(enc_z_shuffle, axis=-1, name="encoded_shuffled")
+        # - Get discriminator preds
+        logits_z, probs_z = self.get_discr_pred(
+                                inputs=enc_z,
+                                scope = 'TC',
+                                reuse = False,
+                                is_training=is_training)
+        _, probs_z_shuffle = self.get_discr_pred(
+                                inputs=enc_z_shuffle,
+                                scope = 'TC',
+                                reuse=True,
+                                is_training=is_training)
+        # - TC loss
+        tc = tf.reduce_mean(logits_z[:, 0] - logits_z[:, 1], axis=0)
+        # - Discr loss
+        discr_TC_loss = tf.add(
+                            0.5 * tf.reduce_mean(tf.math.log(probs_z[:, 0])),
+                            0.5 * tf.reduce_mean(tf.math.log(probs_z_shuffle[:, 1])))
+        # - kl
+        kl = self.kl_penalty(self.pz_mean, self.pz_sigma, enc_mean, enc_Sigma)
         # - WAE latent reg
-        wae_match_penalty = self.mmd_penalty(enc_z, samples)
-        matching_penalty = lmbd1*dhsic_match_penalty + lmbd2*dimension_wise_match_penalty
-        divergences = (lmbd1*dhsic_match_penalty, lmbd2*dimension_wise_match_penalty, wae_match_penalty)
+        wae_match_penalty = self.mmd_penalty(enc_z, pz_sample)
+        divergences = (beta*tc, kl-tc, wae_match_penalty)
 
         # -- Obj
-        objective = loss_reconstruct + matching_penalty
+        self.discr_loss = - beta*discr_TC_loss
 
-        # - Pen Encoded Sigma
-        if self.opts['pen_enc_sigma'] and self.opts['encoder'] == 'gauss':
-            pen_enc_sigma = self.opts['lambda_pen_enc_sigma'] * tf.reduce_mean(
-                tf.reduce_sum(tf.abs(tf.math.log(enc_Sigma)), axis=-1))
-            objective += pen_enc_sigma
-
-        return objective, loss_reconstruct, divergences
+        return loss_reconstruct, divergences

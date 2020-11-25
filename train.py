@@ -51,16 +51,19 @@ class Run(object):
             self.obj_fn_coeffs = self.beta
         elif opts['model'] == 'WAE':
             self.model = models.WAE(opts)
-            self.obj_fn_coeffs = self.lmbd
+            self.obj_fn_coeffs = self.beta
         elif opts['model'] == 'TCWAE_MWS':
             self.model = models.TCWAE_MWS(opts)
             self.obj_fn_coeffs = (self.lmbd1, self.lmbd2)
+        elif opts['model'] == 'TCWAE_MWS_MI':
+            self.model = models.TCWAE_MWS_MI(opts)
+            self.obj_fn_coeffs = self.beta
         elif opts['model'] == 'TCWAE_GAN':
             self.model = models.TCWAE_GAN(opts)
             self.obj_fn_coeffs = (self.lmbd1, self.lmbd2)
-        elif opts['model'] == 'disWAE':
-            self.model = models.disWAE(opts)
-            self.obj_fn_coeffs = (self.lmbd1, self.lmbd2)
+        elif opts['model'] == 'TCWAE_GAN_MI':
+            self.model = models.TCWAE_GAN_MI(opts)
+            self.obj_fn_coeffs = self.beta
         else:
             raise NotImplementedError()
 
@@ -75,6 +78,9 @@ class Run(object):
             self.objective = self.loss_reconstruct\
                             + self.divergences[0] + self.divergences[1]
 
+        # --- Get batchnorm ops for training only
+        self.extra_update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
+
         # --- encode & decode pass for testing
         self.z_samples, self.z_mean, self.z_sigma, self.recon_x, _ =\
             self.model.forward_pass(inputs=self.data.next_element,
@@ -87,18 +93,6 @@ class Run(object):
 
         # --- MSE
         self.mse = self.model.MSE(self.data.next_element, self.recon_x)
-
-        # --- Get batchnorm ops for training only
-        self.extra_update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
-
-        # # --- Pen Encoded Sigma &  stats
-        # Sigma_tr = tf.reduce_mean(self.z_sigma, axis=-1)
-        # Smean, Svar = tf.nn.moments(Sigma_tr, axes=[0])
-        # self.encSigmas_stats = tf.stack([Smean, Svar], axis=-1)
-        # if self.opts['pen_enc_sigma'] and self.opts['encoder'] == 'gauss':
-        #     pen_enc_sigma = self.opts['lambda_pen_enc_sigma'] * tf.reduce_mean(
-        #         tf.reduce_sum(tf.abs(tf.math.log(self.z_sigma)), axis=-1))
-        #     self.objective+= pen_enc_sigma
 
         # --- encode & decode pass for vizu
         self.encoded, self.encoded_mean, _, self.decoded, _ =\
@@ -137,13 +131,11 @@ class Run(object):
         self.inputs_img = tf.placeholder(tf.float32,
                                          [None] + self.data.data_shape,
                                          name='point_ph')
-        if self.opts['model']=='BetaVAE' or self.opts['model'] == 'BetaTCVAE' or self.opts['model'] == 'FactorVAE':
-            self.beta = tf.placeholder(tf.float32, name='beta_ph')
-        elif self.opts['model']=='WAE':
-            self.lmbd = tf.placeholder(tf.float32, name='lambda_ph')
-        else:
+        if self.opts['model'][:5]=='TCWAE':
             self.lmbd1 = tf.placeholder(tf.float32, name='lambda1_ph')
             self.lmbd2 = tf.placeholder(tf.float32, name='lambda2_ph')
+        else:
+            self.beta = tf.placeholder(tf.float32, name='beta_ph')
 
     def create_inception_graph(self):
         inception_model = 'classify_image_graph_def.pb'
@@ -359,7 +351,7 @@ class Run(object):
         decoder_vars = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES,
                                                 scope='decoder')
         # discriminator opt if needed
-        if self.opts['model']=='FactorVAE' or self.opts['model']=='TCWAE_GAN':
+        if self.opts['model'] in ['FactorVAE','TCWAE_GAN','TCWAE_GAN_MI']:
             if opts['dataset']=='celebA' or opts['dataset']=='3Dchairs':
                 discr_opt = self.discr_optimizer(0.00001)
             else:
@@ -437,6 +429,7 @@ class Run(object):
             ##### TESTING LOOP #####
             if it % self.opts['evaluate_every'] == 0:
                 logging.error('\nIteration {}/{}'.format(it, self.opts['it_num']))
+                # training losses
                 feed_dict={self.data.handle: self.train_handle,
                                 self.obj_fn_coeffs: self.opts['obj_fn_coeffs'],
                                 self.is_training: False}
@@ -450,13 +443,8 @@ class Run(object):
                 Loss_rec.append(loss_rec)
                 MSE.append(mse)
                 Divergences.append(divergences)
-
-                # # Encoded Sigma
-                # if opts['vizu_encSigma']:
-                #     enc_sigmastats = self.sess.run(self.encSigmas_stats,
-                #                             feed_dict=feed_dict)
-                #     enc_Sigmas.append(enc_sigmastats)
-                test_it_num = int(10000 / self.opts['batch_size'])
+                # testing losses
+                test_it_num = int(self.data.test_size / self.opts['batch_size'])
                 loss, loss_rec, mse = 0., 0., 0.
                 if type(divergences)==tuple:
                     divergences = np.zeros(len(divergences))
@@ -519,19 +507,6 @@ class Run(object):
                                                 Loss_rec_test[-1],
                                                 Divergences[-1],
                                                 Divergences_test[-1])
-                    logging.error(debug_str)
-                elif self.opts['model'] == 'disWAE':
-                    debug_str = 'TRAIN: REC=%.3f,l1*HSIC=%10.3e, l2*DIMWISE=%10.3e, WAE=%10.3e' % (
-                                                Loss_rec[-1],
-                                                Divergences[-1][0],
-                                                Divergences[-1][1],
-                                                Divergences[-1][2])
-                    logging.error(debug_str)
-                    debug_str = 'TEST : REC=%.3f, l1*HSIC=%10.3e, l2*DIMWISE=%10.3e, WAE=%10.3e \n ' % (
-                                                Loss_rec_test[-1],
-                                                Divergences_test[-1][0],
-                                                Divergences_test[-1][1],
-                                                Divergences_test[-1][2])
                     logging.error(debug_str)
                 elif self.opts['model'] == 'TCWAE_MWS' or self.opts['model'] == 'TCWAE_GAN':
                     debug_str = 'TRAIN: REC=%.3f,l1*TC=%10.3e, l2*DIMWISE=%10.3e, WAE=%10.3e' % (
@@ -729,13 +704,13 @@ class Run(object):
                                                 SAP)
             logging.error(debug_str)
         if self.opts['model'] == 'BetaVAE':
-            debug_str = 'REC=%.3f, TEST REC=%.3f, beta*KL=%10.3e, beta*TEST KL=%10.3e'  % (
+            debug_str = 'REC=%.3f, TEST REC=%.3f, b*KL=%10.3e, b*TEST KL=%10.3e'  % (
                                                 Loss_rec[-1],
                                                 Loss_rec_test[-1],
                                                 Divergences[-1],
                                                 Divergences_test[-1])
             logging.error(debug_str)
-        elif self.opts['model'] == 'BetaTCVAE':
+        elif self.opts['model'] in ['BetaTCVAE', 'FactorVAE', 'TCWAE_MWS_MI', 'TCWAE_GAN_MI']:
             debug_str = 'REC=%.3f, TEST REC=%.3f, b*TC=%10.3e, TEST b*TC=%10.3e, KL=%10.3e, TEST KL=%10.3e'  % (
                                                 Loss_rec[-1],
                                                 Loss_rec_test[-1],
@@ -744,43 +719,21 @@ class Run(object):
                                                 Divergences[-1][1],
                                                 Divergences_test[-1][1])
             logging.error(debug_str)
-        elif self.opts['model'] == 'FactorVAE':
-            debug_str = 'REC=%.3f, TEST REC=%.3f, b*KL=%10.3e, TEST b*KL=%10.3e, g*TC=%10.3e, TEST g*TC=%10.3e'  % (
-                                                Loss_rec[-1],
-                                                Loss_rec_test[-1],
-                                                Divergences[-1][0],
-                                                Divergences_test[-1][0],
-                                                Divergences[-1][1],
-                                                Divergences_test[-1][1])
-            logging.error(debug_str)
         elif self.opts['model'] == 'WAE':
-            debug_str = 'REC=%.3f, TEST REC=%.3f, l*MMD=%10.3e, l*TEST MMD=%10.3e' % (
+            debug_str = 'REC=%.3f, TEST REC=%.3f, b*MMD=%10.3e, b*TEST MMD=%10.3e' % (
                                                 Loss_rec[-1],
                                                 Loss_rec_test[-1],
                                                 Divergences[-1],
                                                 Divergences_test[-1])
             logging.error(debug_str)
-        elif self.opts['model'] == 'disWAE':
-            debug_str = 'TRAIN: REC=%.3f,l1*HSIC=%10.3e, l2*DIMWISE=%10.3e, WAE=%10.3e' % (
-                                                Loss_rec[-1],
-                                                Divergences[-1][0],
-                                                Divergences[-1][1],
-                                                Divergences[-1][2])
-            logging.error(debug_str)
-            debug_str = 'TEST : REC=%.3f, l1*HSIC=%10.3e, l2*DIMWISE=%10.3e, WAE=%10.3e' % (
-                                                Loss_rec_test[-1],
-                                                Divergences_test[-1][0],
-                                                Divergences_test[-1][1],
-                                                Divergences_test[-1][2])
-            logging.error(debug_str)
         elif self.opts['model'] == 'TCWAE_MWS' or self.opts['model'] == 'TCWAE_GAN':
-            debug_str = 'TRAIN: REC=%.3f,l1*TC=%10.3e, l2*DIMWISE=%10.3e, WAE=%10.3e' % (
+            debug_str = 'TRAIN: REC=%.3f,l1*TC=%10.3e, l2*DIMWISE=%10.3e, MMD=%10.3e' % (
                                                 Loss_rec[-1],
                                                 Divergences[-1][0],
                                                 Divergences[-1][1],
                                                 Divergences[-1][2])
             logging.error(debug_str)
-            debug_str = 'TEST : REC=%.3f, l1*TC=%10.3e, l2*DIMWISE=%10.3e, WAE=%10.3e' % (
+            debug_str = 'TEST : REC=%.3f, l1*TC=%10.3e, l2*DIMWISE=%10.3e, MMD=%10.3e' % (
                                                 Loss_rec_test[-1],
                                                 Divergences_test[-1][0],
                                                 Divergences_test[-1][1],
@@ -910,15 +863,6 @@ class Run(object):
                                             MSE,
                                             Divergences)
                 logging.error(debug_str)
-            elif opts['model'] == 'disWAE':
-                debug_str = 'LOSS=%.3f, REC=%.3f, MSE=%.3f, b*HSIC=%10.3e, g*DIMWISE=%10.3e, WAE=%10.3e' % (
-                                            Loss,
-                                            Loss_rec,
-                                            MSE,
-                                            Divergences[0],
-                                            Divergences[1],
-                                            Divergences[2])
-                logging.error(debug_str)
             elif opts['model'] == 'TCWAE_MWS' or opts['model'] == 'TCWAE_GAN':
                 debug_str = 'LOSS=%.3f, REC=%.3f,l1*TC=%10.3e, MSE=%.3f, l2*DIMWISE=%10.3e, WAE=%10.3e' % (
                                             Loss,
@@ -956,86 +900,80 @@ class Run(object):
 
         opts = self.opts
 
-        # - Load trained weights
-        if not tf.gfile.Exists(WEIGHTS_PATH+".meta"):
-            raise Exception("weights file doesn't exist")
+        # --- Load trained weights
         self.saver.restore(self.sess, WEIGHTS_PATH)
 
         # - Set up
         im_shape = datashapes[opts['dataset']]
         if opts['dataset']=='celebA' or opts['dataset']=='3Dchairs':
-            num_pics = 100
+            num_pics = opts['plot_num_pics']
             num_steps = 7
         else:
-            num_pics = 20
+            num_pics = opts['evaluate_num_pics']
             num_steps = 10
         fixed_noise = sample_pz(opts, self.pz_params, num_pics)
-
-
         # - Auto-encoding test images & samples generated by the model
-        [reconstructions, latents, generations] = self.sess.run(
-                                    [self.recon_x,
-                                     self.z_samples,
-                                     self.generated_x],
-                                    feed_dict={self.batch: data.data[self.plot_data_idx],
-                                               self.samples_pz: fixed_noise,
-                                               self.is_training: False})
+        [reconstructions, generations] = self.sess.run(
+                                        [self.decoded, self.generated],
+                                        feed_dict={self.inputs_img: self.data.data_plot[:num_pics],
+                                                   self.pz_samples: fixed_noise,
+                                                   self.is_training: False})
         # - get kl(q(z_i),p(z_i)) on test data to plot latent traversals
-        test_size = self.test_size
-        batch_size_te = min(test_size,1000)
-        batches_num_te = int(test_size / batch_size_te)+1
-        kl_to_prior = np.zeros(opts['zdim'])
-        for it_ in range(batches_num_te):
-            data_ids = np.random.choice(test_size, batch_size_te, replace=True)
-            batch_images_test = data.get_batch_img(data_ids, 'test').astype(np.float32)
-            kl = self.sess.run(self.kl_to_prior, feed_dict={
-                                                self.batch: batch_images_test,
-                                                self.is_training: False})
-            kl_to_prior += kl / batches_num_te
+        test_it_num = int(self.data.test_size / self.opts['batch_size'])
+        kl_to_prior = np.zeros(self.opts['zdim'])
+        for it_ in range(test_it_num):
+            test_feed_dict={self.data.handle: self.test_handle,
+                            self.obj_fn_coeffs: self.opts['obj_fn_coeffs'],
+                            self.is_training: False}
+            kl = self.sess.run(self.kl_to_prior, feed_dict=test_feed_dict)
+            kl_to_prior += kl / test_it_num
 
         # - Latent transversals
+        # encodings obs
+        latents = self.sess.run(self.encoded, feed_dict={
+                            self.inputs_img: self.data.data_plot[:opts['evaluate_num_pics']],
+                            self.is_training: False})
         enc_var = np.ones(opts['zdim'])
         # create latent linespacel
         if opts['dataset']=='celebA' :
-            idx = [0,3,20,26,40,49]
             latent_transversal = linespace(opts, num_steps,  # shape: [nanchors, zdim, nsteps, zdim]
-                                    anchors=latents[idx],
+                                    anchors=latents,
                                     std=enc_var)
             # latent_transversal = latent_transversal[:,:,::-1]
         elif opts['dataset']=='3Dchairs':
-            idx = [48,4,21,44,1]
             latent_transversal = linespace(opts, num_steps,  # shape: [nanchors, zdim, nsteps, zdim]
-                                    anchors=latents[idx],
+                                    anchors=latents,
                                     std=enc_var)
             latent_transversal = latent_transversal[:,:,::-1]
         else:
             latent_transversal = linespace(opts, num_steps,  # shape: [nanchors, zdim, nsteps, zdim]
-                                    anchors=latents[::2],
+                                    anchors=latents,
                                     std=enc_var)
         # - Reconstructing latent transversals
-        obs_transversal = self.sess.run(self.generated_x,
-                                    feed_dict={self.samples_pz: np.reshape(latent_transversal,[-1, opts['zdim']]),
+        obs_transversal = self.sess.run(self.generated,
+                                    feed_dict={self.pz_samples: np.reshape(latent_transversal,[-1, opts['zdim']]),
                                                self.is_training: False})
         obs_transversal = np.reshape(obs_transversal, [-1, opts['zdim'], num_steps]+im_shape)
         kl_to_prior_sorted = np.argsort(kl_to_prior)[::-1]
         obs_transversal = obs_transversal[:,kl_to_prior_sorted]
+        # obs_transversal = obs_transversal[:,:,::-1]
 
         # - ploting and saving
         if opts['dataset']=='celebA' or opts['dataset']=='3Dchairs':
-            save_test_celeba(opts, data.data[self.plot_data_idx],
+            save_test_celeba(opts, self.data.data_plot[:num_pics],
                                         reconstructions,
                                         obs_transversal,
                                         generations,
                                         opts['exp_dir'])
             save_dimwise_traversals(opts, obs_transversal, opts['exp_dir'])
         else:
-            save_test_smallnorb(opts, data.data[self.plot_data_idx],
+            save_test_smallnorb(opts, self.data.data_plot[:num_pics],
                                         reconstructions,
                                         obs_transversal,
                                         generations,
                                         opts['exp_dir'])
 
-    def fid_score(self, MODEL_PATH, WEIGHTS_FILE, COMPUTE_DATASET_STASTICS, fid_inputs='samples'):
+    def fid_score(self, MODEL_PATH, WEIGHTS_PATH, COMPUTE_DATASET_STASTICS, fid_inputs='samples'):
         """
         Compute FID score
         """
@@ -1043,11 +981,11 @@ class Run(object):
         opts = self.opts
 
         # --- Load trained weights
-        if not tf.gfile.IsDirectory(MODEL_PATH):
-            raise Exception("model doesn't exist")
-        WEIGHTS_PATH = os.path.join(MODEL_PATH,'checkpoints',WEIGHTS_FILE)
-        if not tf.gfile.Exists(WEIGHTS_PATH+".meta"):
-            raise Exception("weights file doesn't exist")
+        # if not tf.gfile.IsDirectory(MODEL_PATH):
+        #     raise Exception("model doesn't exist")
+        # WEIGHTS_PATH = os.path.join(MODEL_PATH,'checkpoints',WEIGHTS_FILE)
+        # if not tf.gfile.Exists(WEIGHTS_PATH+".meta"):
+        #     raise Exception('weights file {} doesnt exist'.format(WEIGHTS_PATH))
         self.saver.restore(self.sess, WEIGHTS_PATH)
 
         if self.data.dataset == 'celebA':
@@ -1057,13 +995,32 @@ class Run(object):
         else:
             assert False, 'FID not implemented for {} dataset.'.format(self.data.dataset)
 
+        # --- logging
+        run_name = os.path.split(opts['exp_dir'])[1]
+        run_config = run_name[:run_name.find('2020')-1]
+        # logging.error('Computing scores for {}'.format(run_config))
+
         # --- setup
         full_size = self.data.train_size + self.data.test_size
-        test_size = 1000
+        test_size = 1000 #self.data.test_size
         batch_size = 100
         batch_num = int(test_size/batch_size)
         fid_dir = 'fid'
         stats_path = os.path.join(fid_dir, compare_dataset_name)
+        scores = {}
+
+        # --- MSE
+        MSE = []
+        num_it = int(self.data.test_size / self.opts['batch_size'])
+        for it in range(num_it):
+            test_feed_dict={self.data.handle: self.test_handle,
+                            self.is_training: False}
+            mse = self.sess.run(self.mse, feed_dict=test_feed_dict)
+            MSE.append(mse)
+        mes_mean, mse_std = np.mean(MSE), np.var(MSE)
+        debug_str = 'MSE={:.3f}+\-{:.3f} for {}'.format(mes_mean, mse_std, run_config)
+        logging.error(debug_str)
+        scores['mse'] = {'mean':mes_mean, 'std':mse_std}
 
         # --- Compute stats on real dataset if needed
         if COMPUTE_DATASET_STASTICS:
@@ -1091,7 +1048,7 @@ class Run(object):
             sigma = stats['s']
 
         # --- Compute stats for reconstructions or samples
-        if fid_inputs == 'reconstruction':
+        if fid_inputs == 'reconstructions' or fid_inputs=='all':
             preds_list = []
             for n in range(batch_num):
                 batch_id = np.random.randint(full_size, size=batch_size)
@@ -1108,7 +1065,9 @@ class Run(object):
             preds_list = np.concatenate(preds_list, axis=0)
             mu_model = np.mean(preds_list, axis=0)
             sigma_model = np.cov(preds_list, rowvar=False)
-        elif fid_inputs == 'samples':
+            fid_scores = calculate_frechet_distance(mu, sigma, mu_model, sigma_model)
+            scores['reconstructions'] = fid_scores
+        if fid_inputs == 'samples' or fid_inputs=='all':
             preds_list = []
             for n in range(batch_num):
                 batch = sample_pz(opts, self.pz_params, batch_size)
@@ -1124,12 +1083,16 @@ class Run(object):
             preds_list = np.concatenate(preds_list, axis=0)
             mu_model = np.mean(preds_list, axis=0)
             sigma_model = np.cov(preds_list, rowvar=False)
-
-        # --- Compute FID between real stats and model stats
-        fid_scores = calculate_frechet_distance(mu, sigma, mu_model, sigma_model)
+            fid_scores = calculate_frechet_distance(mu, sigma, mu_model, sigma_model)
+            scores['samples'] = fid_scores
 
         # --- Logging
-        debug_str = 'FID={:.3f} for {} data'.format(fid_scores, test_size)
-        logging.error(debug_str)
-        filename = 'fid.py'
-        np.save(os.path.join(fid_dir,filename),fid_scores)
+        for k in scores:
+            if k!='mse':
+                debug_str = 'FID={:.3f} for {}'.format(scores[k], k)
+                logging.error(debug_str)
+        fid_res_dir = os.path.join(MODEL_PATH,fid_dir)
+        if not tf.io.gfile.isdir(fid_res_dir):
+            utils.create_dir(fid_res_dir)
+        filename = 'scores'
+        np.savez(os.path.join(fid_res_dir,filename),scores)

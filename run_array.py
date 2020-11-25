@@ -32,10 +32,6 @@ parser.add_argument("--net_archi",
                     help='networks architecture [mlp/conv_locatello/conv_rae]')
 parser.add_argument("--id", type=int, default=0,
                     help='exp id corresponding to latent reg weight setup')
-parser.add_argument("--sigma_pen", action='store_true', default=False,
-                    help='penalization of Sigma_q')
-parser.add_argument("--sigma_pen_val", type=float, default=0.01,
-                    help='value of penalization of Sigma_q')
 parser.add_argument("--cost", default='xentropy',
                     help='ground cost [l2, l2sq, l2sq_norm, l1, xentropy]')
 parser.add_argument('--fid', action='store_true', default=False,
@@ -94,8 +90,6 @@ def main():
     opts['data_dir'] = FLAGS.data_dir
     opts['fid'] = FLAGS.fid
     opts['cost'] = FLAGS.cost #l2, l2sq, l2sq_norm, l1, xentropy
-    opts['pen_enc_sigma'] = FLAGS.sigma_pen
-    opts['lambda_pen_enc_sigma'] = FLAGS.sigma_pen_val
     if FLAGS.net_archi:
         opts['network'] = net_configs[FLAGS.net_archi]
     else:
@@ -106,26 +100,12 @@ def main():
     # Model set up
     opts['model'] = FLAGS.model
     if FLAGS.dataset == 'celebA':
-        # if opts['network']==net_configs['conv_rae']:
-        #     opts['zdim'] = 64
-        # else:
-        #     opts['zdim'] = 32
         opts['zdim'] = 32
-        opts['lr'] = 0.0001
     elif FLAGS.dataset == '3Dchairs':
         opts['zdim'] = 16
-        opts['lr'] = 0.0001
-    elif FLAGS.dataset == 'dSprites':
-        opts['zdim'] = 10
-        opts['lr'] = 0.0001
-    elif FLAGS.dataset == 'smallNORB':
-        opts['zdim'] = 10
-        opts['lr'] = 0.0005
     else:
-        if opts['model'][-3:]=='VAE':
-            opts['lr'] = 0.0005
-        else:
-            opts['lr'] = 0.0008
+        opts['zdim'] = 10
+    opts['lr'] = 0.0001
 
     # Objective Function Coefficients
     if FLAGS.dataset == 'celebA':
@@ -162,9 +142,64 @@ def main():
             lmba = list(itertools.product(beta,gamma))
             coef_id = (FLAGS.id-1) % len(lmba)
             opts['obj_fn_coeffs'] = list(lmba[coef_id])
+    else:
+        if opts['model'] == 'BetaTCVAE':
+            beta = [1, 2, 4, 6, 8, 10]
+            coef_id = (FLAGS.id-1) % len(beta)
+            opts['obj_fn_coeffs'] = beta[coef_id]
+        elif opts['model']=='FactorVAE':
+            beta = [1, 10, 25, 50, 75, 100]
+            coef_id = (FLAGS.id-1) % len(beta)
+            opts['obj_fn_coeffs'] = beta[coef_id]
+        elif opts['model']=='WAE':
+            beta = [1, 5, 10, 25, 50, 100]
+            coef_id = (FLAGS.id-1) % len(beta)
+            opts['obj_fn_coeffs'] = beta[coef_id]
+        elif opts['model'] == 'TCWAE_MWS':
+            if opts['cost']='xent':
+                beta = [1, 2, 4, 6, 8, 10]
+                gamma = [1, 2, 4, 6, 8, 10]
+            else:
+                beta = [0.1, 0.25. 0.5. 0.75, 1, 10]
+                beta = [0.1, 0.25. 0.5. 0.75, 1, 10]
+            lmba = list(itertools.product(beta,gamma))
+            coef_id = (FLAGS.id-1) % len(lmba)
+            opts['obj_fn_coeffs'] = list(lmba[coef_id])
+        elif opts['model']=='TCWAE_GAN':
+            if opts['cost']='xent':
+                beta = [1, 10, 25, 50, 75, 100]
+                gamma = [1, 10, 25, 50, 75, 100]
+            else:
+                beta = [1, 2, 4, 6, 8, 10]
+                gamma = [1, 2, 4, 6, 8, 10]
+            lmba = list(itertools.product(beta,gamma))
+            coef_id = (FLAGS.id-1) % len(lmba)
+            opts['obj_fn_coeffs'] = list(lmba[coef_id])
+        elif opts['model'] == 'TCWAE_MWS_MI':
+            beta = [0.1, 0.25. 0.5. 0.75, 1, 10]
+            coef_id = (FLAGS.id-1) % len(beta)
+            opts['obj_fn_coeffs'] = beta[coef_id]
+        elif opts['model']=='TCWAE_GAN_MI':
+            beta = [1, 2, 4, 6, 8, 10]
+            coef_id = (FLAGS.id-1) % len(beta)
+            opts['obj_fn_coeffs'] = beta[coef_id]
+        else:
+            raise NotImplementedError('Model type not recognised')
+
+
+
+
     elif FLAGS.dataset == 'dsprites':
         if opts['model'] == 'BetaTCVAE':
             beta = [1, 2, 4, 6, 8, 10]
+            coef_id = (FLAGS.id-1) % len(beta)
+            opts['obj_fn_coeffs'] = beta[coef_id]
+        elif opts['model']=='FactorVAE':
+            beta = [1, 10, 25, 50, 75, 100]
+            coef_id = (FLAGS.id-1) % len(beta)
+            opts['obj_fn_coeffs'] = beta[coef_id]
+        elif opts['model']=='WAE':
+            beta = [1, 5, 10, 25, 50, 100]
             coef_id = (FLAGS.id-1) % len(beta)
             opts['obj_fn_coeffs'] = beta[coef_id]
         elif opts['model'] == 'TCWAE_MWS':
@@ -173,33 +208,26 @@ def main():
             lmba = list(itertools.product(beta,gamma))
             coef_id = (FLAGS.id-1) % len(lmba)
             opts['obj_fn_coeffs'] = list(lmba[coef_id])
-        elif opts['model']=='FactorVAE':
-            beta = [1, 10, 25, 50, 75, 100]
-            coef_id = (FLAGS.id-1) % len(beta)
-            opts['obj_fn_coeffs'] = beta[coef_id]
         elif opts['model']=='TCWAE_GAN':
-            beta = [1, 2, 4, 6, 8, 10]
-            gamma = [1, 2, 4, 6, 8, 10]
+            if opts['cost']='xent':
+                beta = [1, 10, 25, 50, 75, 100]
+                gamma = [1, 10, 25, 50, 75, 100]
+            else:
+                beta = [1, 2, 4, 6, 8, 10]
+                gamma = [1, 2, 4, 6, 8, 10]
             lmba = list(itertools.product(beta,gamma))
             coef_id = (FLAGS.id-1) % len(lmba)
             opts['obj_fn_coeffs'] = list(lmba[coef_id])
-        elif opts['model']=='WAE':
-            if opts['cost'] == 'xentropy':
-                beta = [1, 5, 10, 25, 50, 100]
-            else:
-                beta = [1, 5, 10, 25, 50, 100]
+        elif opts['model'] == 'TCWAE_MWS_MI':
+            beta = [1, 2, 4, 6, 8, 10]
+            coef_id = (FLAGS.id-1) % len(beta)
+            opts['obj_fn_coeffs'] = beta[coef_id]
+        elif opts['model']=='TCWAE_GAN_MI':
+            beta = [1, 2, 4, 6, 8, 10]
             coef_id = (FLAGS.id-1) % len(beta)
             opts['obj_fn_coeffs'] = beta[coef_id]
         else:
-            if opts['cost'] == 'xentropy':
-                beta = [1, 5, 10, 25, 50, 100]
-                gamma = [1, 5, 10, 25, 50, 100]
-            else:
-                beta = [0.1, 0.5, 1, 2, 4]
-                gamma = [0.1, 0.5, 1, 2, 4]
-            lmba = list(itertools.product(beta,gamma))
-            coef_id = (FLAGS.id-1) % len(lmba)
-            opts['obj_fn_coeffs'] = list(lmba[coef_id])
+            raise NotImplementedError('Model type not recognised')
     elif FLAGS.dataset == 'Noidsprites':
         if opts['model'] == 'BetaTCVAE':
             beta = [1, 2, 4, 6, 8, 10]
@@ -216,22 +244,32 @@ def main():
                 beta = [1, 2, 4, 6, 8, 10]
             coef_id = (FLAGS.id-1) % len(beta)
             opts['obj_fn_coeffs'] = beta[coef_id]
-        # elif opts['model']=='TCWAE_GAN':
-        #     beta = [1, 2, 4, 6, 8, 10]
-        #     gamma = [1, 2, 4, 6, 8, 10]
-        #     lmba = list(itertools.product(beta,gamma))
-        #     coef_id = (FLAGS.id-1) % len(lmba)
-        #     opts['obj_fn_coeffs'] = list(lmba[coef_id])
-        else:
-            if opts['cost'] == 'xentropy':
-                beta = [1, 5, 10, 25, 50, 100]
-                gamma = [1, 5, 10, 25, 50, 100]
-            else:
-                beta = [1, 2, 4, 6 ,8 ,10]
-                gamma = [1, 2, 4, 6 ,8 ,10]
+        elif opts['model'] == 'TCWAE_MWS':
+            beta = [1, 2, 4, 6, 8, 10]
+            gamma = [1, 2, 4, 6, 8, 10]
             lmba = list(itertools.product(beta,gamma))
             coef_id = (FLAGS.id-1) % len(lmba)
             opts['obj_fn_coeffs'] = list(lmba[coef_id])
+        elif opts['model']=='TCWAE_GAN':
+            if opts['cost']='xent':
+                beta = [1, 10, 25, 50, 75, 100]
+                gamma = [1, 10, 25, 50, 75, 100]
+            else:
+                beta = [1, 2, 4, 6, 8, 10]
+                gamma = [1, 2, 4, 6, 8, 10]
+            lmba = list(itertools.product(beta,gamma))
+            coef_id = (FLAGS.id-1) % len(lmba)
+            opts['obj_fn_coeffs'] = list(lmba[coef_id])
+        elif opts['model'] == 'TCWAE_MWS_MI':
+            beta = [1, 2, 4, 6, 8, 10]
+            coef_id = (FLAGS.id-1) % len(beta)
+            opts['obj_fn_coeffs'] = beta[coef_id]
+        elif opts['model']=='TCWAE_GAN_MI':
+            beta = [1, 2, 4, 6, 8, 10]
+            coef_id = (FLAGS.id-1) % len(beta)
+            opts['obj_fn_coeffs'] = beta[coef_id]
+        else:
+            raise NotImplementedError('Model type not recognised')
     elif FLAGS.dataset == 'Scrdsprites':
         if opts['model'] == 'BetaTCVAE':
             beta = [1, 2, 4, 6, 8, 10]
@@ -324,8 +362,8 @@ def main():
 
     # Experiemnts set up
     opts['it_num'] = FLAGS.num_it
-    opts['print_every'] = int(opts['it_num'] / 3.)
-    opts['evaluate_every'] = int(opts['print_every'] / 2.) + 1
+    opts['print_every'] = int(opts['it_num'] / 2.)
+    opts['evaluate_every'] = int(opts['it_num'] / 4.)
     opts['save_every'] = 10000000000
     opts['save_final'] = FLAGS.save_model
     opts['save_train_data'] = FLAGS.save_data

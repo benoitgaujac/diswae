@@ -23,7 +23,7 @@ config['evaluate_num_pics'] = 5
 config['celebA_crop'] = 'closecrop' # closecrop, resizecrop
 # Experiment set up
 config['train_dataset_size'] = -1
-config['batch_size'] = 100
+config['batch_size'] = 64
 config['model'] = 'TCWAE_MWS' #WAE, BetaVAE
 config['use_trained'] = False #train from pre-trained model
 # Opt set up
@@ -63,6 +63,7 @@ config_dsprites['DSprites_data_source_url'] = 'https://github.com/deepmind/dspri
 config_dsprites['input_normalize_sym'] = False
 config_dsprites['true_gen_model'] = True #If synthetic data with true gen. model known: True, False
 config_dsprites['dataset_size'] = 737280
+config_dsprites['evaluate_num_pics'] = 12
 # Model set up
 config_dsprites['zdim'] = 10
 # lambda set up
@@ -103,6 +104,7 @@ config_smallNORB['smallNORB_data_source_url'] = 'https://cs.nyu.edu/~ylclab/data
 config_smallNORB['input_normalize_sym'] = False
 config_smallNORB['true_gen_model'] = True #If synthetic data with true gen. model known: True, False
 config_smallNORB['dataset_size'] = 48600
+config_smallNORB['evaluate_num_pics'] = 12
 # Model set up
 config_smallNORB['zdim'] = 10
 # lambda set up
@@ -117,6 +119,7 @@ config_3Dchairs['3Dchairs_data_source_url'] = 'https://www.di.ens.fr/willow/rese
 config_3Dchairs['input_normalize_sym'] = False
 config_3Dchairs['true_gen_model'] = False #If synthetic data with true gen. model known: True, False
 config_3Dchairs['dataset_size'] = 86366
+config_3Dchairs['evaluate_num_pics'] = 5
 # Model set up
 config_3Dchairs['zdim'] = 16
 # Opt set up
@@ -133,6 +136,7 @@ config_celebA['celebA_data_source_url'] = 'https://docs.google.com/uc?export=dow
 config_celebA['input_normalize_sym'] = False
 config_celebA['true_gen_model'] = False #If synthetic data with true gen. model known: True, False
 config_celebA['dataset_size'] = 202599
+config_celebA['evaluate_num_pics'] = 5
 # Model set up
 config_celebA['zdim'] = 32
 # Opt set up

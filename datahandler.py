@@ -302,7 +302,9 @@ class DataHandler(object):
         self.factor_bases = np.prod(self.factor_sizes) / np.cumprod(
                             self.factor_sizes)
         # plot set
-        idx = np.random.randint(self.all_data.shape[0],size=opts['evaluate_num_pics'])
+        seed = 123
+        np.random.seed(seed)
+        idx = np.random.randint(self.all_data.shape[0],size=opts['plot_num_pics'])
         self.data_plot = self._sample_observations(idx)
         # shuffling data
         np.random.seed()
@@ -469,7 +471,9 @@ class DataHandler(object):
         self.factor_bases = np.prod(self.factor_sizes) / np.cumprod(
             self.factor_sizes)
         # plot set
-        idx = np.random.randint(num_data,size=opts['evaluate_num_pics'])
+        seed = 123
+        np.random.seed(seed)
+        idx = np.random.randint(self.all_data.shape[0],size=opts['plot_num_pics'])
         self.data_plot = self._sample_observations(idx)
         # shuffling data
         np.random.seed()
@@ -544,7 +548,9 @@ class DataHandler(object):
         self.all_data = np.array([os.path.join(self.data_dir,'images','%.6d.jpg') % i for i in range(1, num_data + 1)])
         num_data = self.all_data.shape[0]
         # plot set
-        idx = np.random.randint(self.all_data.shape[0],size=opts['evaluate_num_pics'])
+        seed = 123
+        np.random.seed(seed)
+        idx = np.random.randint(self.all_data.shape[0],size=opts['plot_num_pics'])
         self.data_plot = self._sample_observations(idx)
         # shuffling data
         np.random.seed()
@@ -614,7 +620,12 @@ class DataHandler(object):
         self.data_dir = _data_dir(opts)
         self.all_data = np.array([os.path.join(self.data_dir,'%.6d.jpg') % i for i in range(1, num_data + 1)])
         # plot set
-        idx = np.random.randint(self.all_data.shape[0],size=opts['evaluate_num_pics'])
+        # idx = np.random.randint(self.all_data.shape[0],size=opts['evaluate_num_pics'])
+        # idx = idx = [5,17,39,50,25]
+        # self.data_plot = self._sample_observations(idx)
+        seed = 123
+        np.random.seed(seed)
+        idx = np.random.randint(self.all_data.shape[0],size=opts['plot_num_pics'])
         self.data_plot = self._sample_observations(idx)
         # shuffling data
         np.random.seed()
