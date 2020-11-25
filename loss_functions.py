@@ -6,7 +6,7 @@ import pdb
 import utils
 
 
-def square_dist(opts, sample_x, sample_y):
+def square_dist(sample_x, sample_y):
     """
     Wrapper to compute square distance
     """
@@ -18,7 +18,7 @@ def square_dist(opts, sample_x, sample_y):
     return tf.nn.relu(squared_dist)
 
 
-def square_dist_broadcast(opts, sample_x, sample_y):
+def square_dist_broadcast(sample_x, sample_y):
     """
     Wrapper to compute square distance
     """
