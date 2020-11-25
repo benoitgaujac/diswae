@@ -567,10 +567,18 @@ class Run(object):
                                             exp_dir, 'inter_it%07d.png' % (it))
 
                 # Auto-encoding training images
-                inputs_tr =  self.sess.run(self.data.next_element, feed_dict={self.data.handle: self.train_handle}) # Make sure size is correct
-                reconstructions_train = self.sess.run(self.decoded,
-                                            feed_dict={self.inputs_img: inputs_tr,
-                                                       self.is_training: False})
+                reconstructions_train = []
+                inputs_tr = []
+                for _ in range(2):
+                    batch =  self.sess.run(self.data.next_element, feed_dict={self.data.handle: self.train_handle}) # Make sure size is correct
+
+                    rec = self.sess.run(self.decoded, feed_dict={self.inputs_img: inputs_tr,
+                                                           self.is_training: False})
+
+                    inputs_tr.append(batch)
+                    reconstructions_train.append(rec)
+                inputs_tr = np.concatenate(inputs_tr, axis=0)[:self.opts['plot_num_pics']]
+                reconstructions_train = np.concatenate(reconstructions_train, axis=0)[:self.opts['plot_num_pics']]
 
 
                 # Saving plots
