@@ -571,8 +571,7 @@ class Run(object):
                 inputs_tr = []
                 for _ in range(2):
                     batch =  self.sess.run(self.data.next_element, feed_dict={self.data.handle: self.train_handle}) # Make sure size is correct
-
-                    rec = self.sess.run(self.decoded, feed_dict={self.inputs_img: inputs_tr,
+                    rec = self.sess.run(self.decoded, feed_dict={self.inputs_img: batch,
                                                            self.is_training: False})
 
                     inputs_tr.append(batch)
