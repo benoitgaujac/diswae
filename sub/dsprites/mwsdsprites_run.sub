@@ -8,7 +8,7 @@
 #$ -l tmem=16G
 #$ -l h_rt=5:00:00
 
-#$ -t 1-25
+#$ -t 1-108
 
 #$ -N mwsdsprites
 
