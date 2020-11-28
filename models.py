@@ -281,7 +281,7 @@ class WAE(BetaVAE):
             cost = l2sq_norm_cost(x1, x2)
         elif opts['cost'] == 'l1':
             cost = l1_cost(x1, x2)
-        elif opts['cost'] == 'xentropy':
+        elif opts['cost'] == 'xent':
             cost = xentropy_cost(x1, logits)
         else:
             assert False, 'Unknown cost function %s' % opts['obs_cost']
