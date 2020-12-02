@@ -373,7 +373,7 @@ class TCWAE_MWS_MI(TCWAE_MWS):
 
     def loss(self, inputs, loss_coeffs, is_training):
 
-        beta = loss_coeffs
+        (lmbd1, lmbd2) = loss_coeffs
 
         # --- Encoding and reconstructing
         enc_z, enc_mean, enc_Sigma, recon_x, dec_mean = self.forward_pass(inputs=inputs,
@@ -391,7 +391,7 @@ class TCWAE_MWS_MI(TCWAE_MWS):
         pz_sample = tf.add(self.pz_mean, (noise * self.pz_sigma))
         wae_match_penalty = self.mmd_penalty(enc_z, pz_sample)
 
-        divergences = (beta*tc, kl-tc, wae_match_penalty)
+        divergences = (lmbd1*tc, lmbd2*(kl-tc), wae_match_penalty)
 
         return loss_reconstruct, divergences
 
@@ -499,7 +499,7 @@ class TCWAE_GAN_MI(WAE):
 
     def loss(self, inputs, loss_coeffs, is_training):
 
-        beta = loss_coeffs
+        (lmbd1, lmbd2) = loss_coeffs
 
         # --- Encoding and reconstructing
         enc_z, enc_mean, enc_Sigma, recon_x, dec_mean = self.forward_pass(inputs=inputs,
@@ -535,7 +535,7 @@ class TCWAE_GAN_MI(WAE):
         kl = self.kl_penalty(self.pz_mean, self.pz_sigma, enc_mean, enc_Sigma)
         # - WAE latent reg
         wae_match_penalty = self.mmd_penalty(enc_z, pz_sample)
-        divergences = (beta*tc, kl-tc, wae_match_penalty)
+        divergences = (lmbd1*tc, lmbd2*(kl-tc), wae_match_penalty)
 
         # -- Obj
         self.discr_loss = - beta*discr_TC_loss

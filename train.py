@@ -57,13 +57,13 @@ class Run(object):
             self.obj_fn_coeffs = (self.lmbd1, self.lmbd2)
         elif opts['model'] == 'TCWAE_MWS_MI':
             self.model = models.TCWAE_MWS_MI(opts)
-            self.obj_fn_coeffs = self.beta
+            self.obj_fn_coeffs = (self.lmbd1, self.lmbd2)
         elif opts['model'] == 'TCWAE_GAN':
             self.model = models.TCWAE_GAN(opts)
             self.obj_fn_coeffs = (self.lmbd1, self.lmbd2)
         elif opts['model'] == 'TCWAE_GAN_MI':
             self.model = models.TCWAE_GAN_MI(opts)
-            self.obj_fn_coeffs = self.beta
+            self.obj_fn_coeffs = (self.lmbd1, self.lmbd2)
         else:
             raise NotImplementedError()
 
@@ -213,7 +213,7 @@ class Run(object):
         global_variances = np.var(codes, axis=0, ddof=1)
         active_dims = np.sqrt(global_variances)>=threshold
         # Generate classifier training set and build classifier
-        training_size = 4000
+        training_size = 5000
         # training_size = 100
         votes = np.zeros((len(self.data.factor_sizes), opts['zdim']),dtype=np.int32)
         for i in range(training_size):
@@ -224,7 +224,7 @@ class Run(object):
         classifier = np.argmax(votes, axis=0)
         other_index = np.arange(votes.shape[1])
         # Generate classifier eval set and get eval accuracy
-        eval_size = 2000
+        eval_size = 1000
         # eval_size = 50
         votes = np.zeros((len(self.data.factor_sizes), opts['zdim']),dtype=np.int32)
         for i in range(eval_size):
@@ -262,19 +262,18 @@ class Run(object):
 
         return z, factors
 
-    def compute_SAP(self):
+    def compute_SAP(self, z, y, z_test, y_test):
         """Compute SAP metric"""
-        opts = self.opts
-        # Generate training set
-        training_size = 4000
-        # training_size = 100
-        mus, ys = self.generate_SAP_minibatch(training_size)
-        # Generate testing set
-        testing_size = 2000
-        # testing_size = 50
-        mus_test, ys_test = self.generate_SAP_minibatch(testing_size)
+        # # Generate training set
+        # training_size = 4000
+        # # training_size = 100
+        # mus, ys = self.generate_SAP_minibatch(training_size)
+        # # Generate testing set
+        # testing_size = 2000
+        # # testing_size = 50
+        # mus_test, ys_test = self.generate_SAP_minibatch(testing_size)
         # Computing score matrix
-        score_matrix = utils.compute_score_matrix(mus, ys, mus_test, ys_test)
+        score_matrix = utils.compute_score_matrix(z, y, z_test, y_test)
         # average diff top 2 predictive latent dim for each factor
         sorted_score_matric = np.sort(score_matrix, axis=0)
         sap = np.mean(sorted_score_matric[-1, :] - sorted_score_matric[-2, :])
@@ -678,27 +677,52 @@ class Run(object):
         Divergences_test.append(divergences)
         # Disentanglment metrics
         if self.opts['true_gen_model']:
-            codes = np.zeros((self.data.test_size, self.opts['zdim']))
-            codes_mean = np.zeros((self.data.test_size, self.opts['zdim']))
-            labels = np.zeros((self.data.test_size,len(self.data.factor_sizes)))
-            batch_size_te = 100
-            batches_num_te = int(self.data.test_size / batch_size_te)
-            for it_ in range(batches_num_te):
+            # generating traing set for MIG and SAP
+            tr_set_size = 10000
+            # tr_set_size = 100
+            tr_batch_size = min(1000,tr_set_size)
+            tr_batch_num = int(tr_set_size / tr_batch_size)
+            tr_codes = np.zeros((tr_set_size, self.opts['zdim']))
+            tr_codes_mean = np.zeros((tr_set_size, self.opts['zdim']))
+            tr_labels = np.zeros((tr_set_size,len(self.data.factor_sizes)))
+            for it_ in range(tr_batch_num):
                 # Sample batches of test_data points
-                batch_factors = utils.sample_factors(batch_size_te, self.data.factor_sizes)
+                batch_factors = utils.sample_factors(tr_batch_size, self.data.factor_sizes)
                 batch_images = self.data.sample_observations_from_factors(self.opts, batch_factors)
-                batch_pz_samples = sample_pz(self.opts, self.pz_params, batch_size_te)
+                batch_pz_samples = sample_pz(self.opts, self.pz_params, tr_batch_size)
                 test_feed_dict = {self.inputs_img: batch_images,
                                   self.pz_samples: batch_pz_samples,
                                   self.is_training: False}
                 [z, z_mean] = self.sess.run([self.encoded, self.encoded_mean],
                                                 feed_dict=test_feed_dict)
-                codes[batch_size_te*it_:batch_size_te*(it_+1)] = z
-                codes_mean[batch_size_te*it_:batch_size_te*(it_+1)] = z_mean
-                labels[batch_size_te*it_:batch_size_te*(it_+1)] = batch_factors
-            MIG=self.compute_mig(codes_mean, labels)
-            factorVAE=self.compute_factorVAE(codes)
-            SAP=self.compute_SAP()
+                tr_codes[tr_batch_size*it_:tr_batch_size*(it_+1)] = z
+                tr_codes_mean[tr_batch_size*it_:tr_batch_size*(it_+1)] = z_mean
+                tr_labels[tr_batch_size*it_:tr_batch_size*(it_+1)] = batch_factors
+            # MIG
+            MIG=self.compute_mig(tr_codes_mean, tr_labels)
+            # generating testing set for SAP
+            te_set_size = 5000
+            # te_set_size = 50
+            te_batch_size = min(1000,te_set_size)
+            te_batch_num = int(te_set_size / tr_batch_size)
+            te_codes = np.zeros((te_set_size, self.opts['zdim']))
+            te_labels = np.zeros((te_set_size,len(self.data.factor_sizes)))
+            for it_ in range(te_batch_num):
+                # Sample batches of test_data points
+                batch_factors = utils.sample_factors(te_batch_size, self.data.factor_sizes)
+                batch_images = self.data.sample_observations_from_factors(self.opts, batch_factors)
+                batch_pz_samples = sample_pz(self.opts, self.pz_params, te_batch_size)
+                test_feed_dict = {self.inputs_img: batch_images,
+                                  self.pz_samples: batch_pz_samples,
+                                  self.is_training: False}
+                [z, z_mean] = self.sess.run([self.encoded, self.encoded_mean],
+                                                feed_dict=test_feed_dict)
+                te_codes[te_batch_size*it_:te_batch_size*(it_+1)] = z
+                te_labels[te_batch_size*it_:te_batch_size*(it_+1)] = batch_factors
+            # SAP
+            SAP=self.compute_SAP(tr_codes,tr_labels,te_codes,te_labels)
+            # FactorVAE
+            factorVAE=self.compute_factorVAE(np.vstack((tr_codes,te_codes)))
 
         # Printing various loss values
         logging.error('Training done.')
