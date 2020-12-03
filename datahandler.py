@@ -56,7 +56,6 @@ def _data_dir(opts):
     if opts['scratch_dir'][:8]=='scratch0':
         head_tail = os.path.split(data_path)
         dst = os.path.join(opts['scratch_dir'],head_tail[-1])
-        pdb.set_trace()
         shutil.copytree(data_path,dst)
         data_path = dst
     return data_path
