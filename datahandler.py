@@ -50,9 +50,15 @@ with utils.o_gfile(SCREAM_PATH, 'rb') as f:
     scream = np.array(img) / 255.
     img.close()
 
-
 def _data_dir(opts):
     data_path = maybe_download(opts)
+    # stage data to scratch storage if needed
+    if opts['scratch_dir'][:8]=='scratch0':
+        head_tail = os.path.split(data_path)
+        dst = os.path.join(opts['scratch_dir'],head_tail[-1])
+        pdb.set_trace()
+        shutil.copytree(data_path,dst)
+        data_path = dst
     return data_path
 
 def maybe_download(opts):
@@ -107,7 +113,7 @@ def maybe_download(opts):
             print('Unzipping done.')
             os.remove(file_path)
             # os.rename(os.path.join(data_path, zip_dir), os.path.join(data_path, 'img_align_celeba'))
-        data_path = os.path.join(data_path,'img_align_celeba')
+        # data_path = os.path.join(data_path,'img_align_celeba')
     elif opts['dataset']=='mnist':
         download_file(data_path,'train-images-idx3-ubyte.gz',opts['MNIST_data_source_url'])
         download_file(data_path,'train-labels-idx1-ubyte.gz',opts['MNIST_data_source_url'])
@@ -539,13 +545,18 @@ class DataHandler(object):
 
         """
         self.data_dir = _data_dir(opts)
-        # Extracting data and saving as npz if necessary
-        if not tf.io.gfile.exists(os.path.join(self.data_dir,'images')):
-            filename = os.path.join(self.data_dir, 'rendered_chairs.npz')
-            exctract_and_save_3dchairs(filename, self.data_dir)
+        # # Extracting data and saving as npz if necessary
+        # if not tf.io.gfile.exists(os.path.join(self.data_dir,'images')):
+        #     filename = os.path.join(self.data_dir, 'rendered_chairs.npz')
+        #     exctract_and_save_3dchairs(filename, self.data_dir)
         # data
-        num_data = 86366
-        self.all_data = np.array([os.path.join(self.data_dir,'images','%.6d.jpg') % i for i in range(1, num_data + 1)])
+        # num_data = 86366
+        # self.all_data = np.array([os.path.join(self.data_dir,'images','%.6d.jpg') % i for i in range(1, num_data + 1)])
+        filename = 'rendered_chairs.npz'
+        filepath = os.path.join(self.data_dir,filename)
+        assert os.path.isfile(filepath), '3Dchairs data file doesnt exist.'
+        X = np.load(filepath)
+        self.all_data = (255.*X['data']).astype(np.uint8)
         num_data = self.all_data.shape[0]
         # plot set
         seed = 123
@@ -574,15 +585,22 @@ class DataHandler(object):
         # Create tf.dataset
         dataset_train = tf.data.Dataset.from_tensor_slices(data_train)
         dataset_test = tf.data.Dataset.from_tensor_slices(data_test)
-        # map files paths to image with tf.io.decode_jpeg
-        def process_path(file_path):
-            image_file = tf.read_file(file_path)
-            img_decoded = tf.cast(tf.image.decode_jpeg(image_file, channels=0), dtype=tf.dtypes.float32) / 255.
-            # tf.cast(tf.image.decode_jpeg(image_file, channels=0), dtype=tf.dtypes.float32) / 255.
-            return tf.reshape(img_decoded, datashapes['3Dchairs'])
-        dataset_train = dataset_train.map(process_path,
+        # # map files paths to image with tf.io.decode_jpeg
+        # def process_path(file_path):
+        #     image_file = tf.read_file(file_path)
+        #     img_decoded = tf.cast(tf.image.decode_jpeg(image_file, channels=0), dtype=tf.dtypes.float32) / 255.
+        #     # tf.cast(tf.image.decode_jpeg(image_file, channels=0), dtype=tf.dtypes.float32) / 255.
+        #     return tf.reshape(img_decoded, datashapes['3Dchairs'])
+        # dataset_train = dataset_train.map(process_path,
+        #                         num_parallel_calls=tf.data.experimental.AUTOTUNE)
+        # dataset_test = dataset_test.map(process_path,
+        #                         num_parallel_calls=tf.data.experimental.AUTOTUNE)
+        # map img to [0,1] and convert to float32
+        def process_img(x):
+            return tf.cast(x, dtype=tf.dtypes.float32) / 255.
+        dataset_train = dataset_train.map(process_img,
                                 num_parallel_calls=tf.data.experimental.AUTOTUNE)
-        dataset_test = dataset_test.map(process_path,
+        dataset_test = dataset_test.map(process_img,
                                 num_parallel_calls=tf.data.experimental.AUTOTUNE)
         # normalize data if needed
         if opts['input_normalize_sym']:
@@ -618,7 +636,7 @@ class DataHandler(object):
         """
         num_data = 202599
         self.data_dir = _data_dir(opts)
-        self.all_data = np.array([os.path.join(self.data_dir,'%.6d.jpg') % i for i in range(1, num_data + 1)])
+        self.all_data = np.array([os.path.join(self.data_dir,'img_align_celeba','%.6d.jpg') % i for i in range(1, num_data + 1)])
         # plot set
         # idx = np.random.randint(self.all_data.shape[0],size=opts['evaluate_num_pics'])
         # idx = idx = [5,17,39,50,25]
@@ -899,7 +917,10 @@ class DataHandler(object):
     def _sample_observations(self, keys):
         if len(self.all_data.shape)>1:
             # all_data is an np.ndarray already loaded into the memory
-            return self.all_data[keys]
+            if np.amax(self.all_data[keys])>1:
+                return (self.all_data[keys] / 255.).astype(dtype=np.float32)
+            else:
+                return self.all_data[keys]
         else:
             # all_data is a 1d array of paths
             obs = []

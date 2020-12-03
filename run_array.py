@@ -22,6 +22,8 @@ parser.add_argument("--dataset", default='dsprites',
                     help='dataset')
 parser.add_argument("--data_dir", type=str, default='../data',
                     help='directory in which data is stored')
+parser.add_argument("--scratch_dir", type=str, default='../data',
+                    help='scratch directory in which data is staged')
 parser.add_argument("--out_dir", type=str, default='code_outputs',
                     help='root_directory in which outputs are saved')
 parser.add_argument("--res_dir", type=str, default='res',
@@ -87,7 +89,6 @@ def main():
         assert False, 'Unknown dataset'
 
     # Set method param
-    opts['data_dir'] = FLAGS.data_dir
     opts['fid'] = FLAGS.fid
     opts['cost'] = FLAGS.cost #l2, l2sq, l2sq_norm, l1, xentropy
     if FLAGS.net_archi:
@@ -231,6 +232,8 @@ def main():
     tf.reset_default_graph()
 
     # Loading the dataset
+    opts['data_dir'] = FLAGS.data_dir
+    opts['scratch_dir'] = FLAGS.scratch_dir    
     data = DataHandler(opts)
     assert data.train_size >= opts['batch_size'], 'Training set too small'
 
