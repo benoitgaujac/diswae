@@ -55,9 +55,12 @@ def _data_dir(opts):
     data_path = maybe_download(opts)
     # stage data to scratch storage if needed
     if opts['stage_to_scratch']:
-        head_tail = os.path.split(data_path)
+        head_tail = os.path.split(opts['scratch_dir'])
+        if not os.path.isdir(head_tail[0]):
+            os.mkdir(head_tail[0])
         if not os.path.isdir(opts['scratch_dir']):
             os.mkdir(opts['scratch_dir'])
+        head_tail = os.path.split(data_path)
         dst = os.path.join(opts['scratch_dir'],head_tail[-1])
         exctract_dsprites(data_path, dst)
         # shutil.copytree(data_path,dst)
@@ -302,11 +305,8 @@ class DataHandler(object):
         """ just create paths_list & load labels info"""
         num_data = 737280
         self.data_dir = _data_dir(opts)
-        # self.all_data = np.array([os.path.join(self.data_dir,'images','%.6d.jpg') % i for i in range(1, num_data + 1)])
-        data_path = os.path.join(self.data_dir, 'dsprites_ndarray_co1sh3sc6or40x32y32_64x64.npz')
-        with np.load(data_path, encoding="latin1", allow_pickle=True) as data:
-            # self.all_data = (255 * np.load(filepath, allow_pickle=True)['imgs']).astype(np.uint8)#[:,:,:,None]
-            self.all_data = (255 * data['imgs']).astype(np.uint8)#[:,:,:,None]
+        self.all_data = np.array([os.path.join(self.data_dir,'images','%.6d.jpg') % i for i in range(1, num_data + 1)])
+        with np.load(os.path.join(opts['data_dir'],opts['dataset'][-8:]), encoding="latin1", allow_pickle=True) as data:
             self.factor_sizes = np.array(data['metadata'][()]["latents_sizes"], dtype=np.int64)[1:]
         # labels informations
         self.factor_indices = list(range(5))
