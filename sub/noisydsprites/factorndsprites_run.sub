@@ -6,6 +6,7 @@
 
 #$ -l gpu=true
 #$ -l tmem=24G
+#$ -l tscratch=3.5G
 #$ -l h_rt=7:00:00
 
 #$ -t 1-36
@@ -15,5 +16,12 @@
 source /share/apps/examples/source_files/python/python-3.6.4.source
 source /share/apps/examples/source_files/cuda/cuda-10.0.source
 
-python3 run_array.py --num_it 300000 --id $SGE_TASK_ID --dataset noisydsprites --save_model --out_dir NoidSprites_xent --model FactorVAE --cost l2sq
+mkdir -p /scratch0/bgaujac/$JOB_ID.$SGE_TASK_ID
+
+python3 run_array.py --num_it 300000 --id $SGE_TASK_ID --dataset noisydsprites --scratch_dir scratch0/bgaujac/$JOB_ID.$SGE_TASK_ID --stage_to_scratch --save_model --out_dir NoidSprites_xent --model FactorVAE --cost l2sq
 # python3 run_array.py --num_it 300000 --id 1 --dataset noisydsprites --save_data --save_model --out_dir NoidSprites_test --model TCWAE_MWS --cost l2sq
+
+function finish {
+    rm -rf /scratch0/bgaujac/$JOB_ID.$SGE_TASK_ID
+}
+trap finish EXIT ERR

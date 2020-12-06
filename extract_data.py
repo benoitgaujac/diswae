@@ -4,18 +4,20 @@ import numpy as np
 import pdb
 
 
-def exctract_dsprites(data_dir):
-    """Load daat and save images
+def exctract_dsprites(src, dst):
+    """Load data and save images
     """
     # loading data
-    data_path = os.path.join(data_dir, 'dsprites')
-    assert os.path.isdir(data_path), 'dSprites dir. doesnt exist.'
+    # data_path = os.path.join(src, 'dsprites')
+    assert os.path.isdir(src), 'dSprites dir. doesnt exist.'
     filename = 'dsprites_ndarray_co1sh3sc6or40x32y32_64x64.npz'
-    filepath = os.path.join(data_path,filename)
+    filepath = os.path.join(src,filename)
     assert os.path.isfile(filepath), 'dSprites data file doesnt exist.'
     X = (255 * np.load(filepath, allow_pickle=True)['imgs']).astype(np.uint8)#[:,:,:,None]
     # init dir, img_list, counter
-    dest_path = os.path.join(data_path,'images')
+    if not os.path.isdir(dst):
+        os.mkdir(dst)
+    dest_path = os.path.join(dst,'images')
     if not os.path.isdir(dest_path):
         os.mkdir(dest_path)
     img_list_path = os.path.join(dest_path, 'img_list.txt')
@@ -39,7 +41,7 @@ def exctract_dsprites(data_dir):
             print('{}/{} images saved.'.format(n+1+i,X.shape[0]))
 
 def main():
-    exctract_dsprites('../data')
+    exctract_dsprites('../data/dSprites')
 
 if __name__ == '__main__':
 

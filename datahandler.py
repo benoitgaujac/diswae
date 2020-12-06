@@ -7,7 +7,7 @@
 """
 
 import os
-import shutil
+# import shutil
 import random
 import logging
 import gzip
@@ -28,6 +28,7 @@ import h5py
 from math import ceil
 
 import utils
+from extract_data import exctract_dsprites
 
 import pdb
 
@@ -53,10 +54,13 @@ with utils.o_gfile(SCREAM_PATH, 'rb') as f:
 def _data_dir(opts):
     data_path = maybe_download(opts)
     # stage data to scratch storage if needed
-    if opts['scratch_dir'][:8]=='scratch0':
+    if opts['stage_to_scratch']:
         head_tail = os.path.split(data_path)
+        if not os.path.isdir(opts['scratch_dir']):
+            os.mkdir(opts['scratch_dir'])
         dst = os.path.join(opts['scratch_dir'],head_tail[-1])
-        shutil.copytree(data_path,dst)
+        exctract_dsprites(data_path, dst)
+        # shutil.copytree(data_path,dst)
         data_path = dst
     return data_path
 
@@ -298,9 +302,11 @@ class DataHandler(object):
         """ just create paths_list & load labels info"""
         num_data = 737280
         self.data_dir = _data_dir(opts)
-        self.all_data = np.array([os.path.join(self.data_dir,'images','%.6d.jpg') % i for i in range(1, num_data + 1)])
+        # self.all_data = np.array([os.path.join(self.data_dir,'images','%.6d.jpg') % i for i in range(1, num_data + 1)])
         data_path = os.path.join(self.data_dir, 'dsprites_ndarray_co1sh3sc6or40x32y32_64x64.npz')
         with np.load(data_path, encoding="latin1", allow_pickle=True) as data:
+            # self.all_data = (255 * np.load(filepath, allow_pickle=True)['imgs']).astype(np.uint8)#[:,:,:,None]
+            self.all_data = (255 * data['imgs']).astype(np.uint8)#[:,:,:,None]
             self.factor_sizes = np.array(data['metadata'][()]["latents_sizes"], dtype=np.int64)[1:]
         # labels informations
         self.factor_indices = list(range(5))
@@ -333,7 +339,7 @@ class DataHandler(object):
         # Create tf.dataset
         dataset_train = tf.data.Dataset.from_tensor_slices(data_train)
         dataset_test = tf.data.Dataset.from_tensor_slices(data_test)
-        # map files paths to image with tf.io.decode_jpeg
+        # # map files paths to image with tf.io.decode_jpeg
         def process_path(file_path):
             image_file = tf.read_file(file_path)
             img_decoded = tf.cast(tf.image.decode_jpeg(image_file, channels=0), dtype=tf.dtypes.float32) / 255.

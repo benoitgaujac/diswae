@@ -22,7 +22,9 @@ parser.add_argument("--dataset", default='dsprites',
                     help='dataset')
 parser.add_argument("--data_dir", type=str, default='../data',
                     help='directory in which data is stored')
-parser.add_argument("--scratch_dir", type=str, default='../data',
+parser.add_argument("--stage_to_scratch", action='store_true', default=False,
+                    help='stage data to scracht')
+parser.add_argument("--scratch_dir", type=str, default='scratch0',
                     help='scratch directory in which data is staged')
 parser.add_argument("--out_dir", type=str, default='code_outputs',
                     help='root_directory in which outputs are saved')
@@ -233,7 +235,8 @@ def main():
 
     # Loading the dataset
     opts['data_dir'] = FLAGS.data_dir
-    opts['scratch_dir'] = FLAGS.scratch_dir    
+    opts['stage_to_scratch'] = FLAGS.stage_to_scratch
+    opts['scratch_dir'] = FLAGS.scratch_dir
     data = DataHandler(opts)
     assert data.train_size >= opts['batch_size'], 'Training set too small'
 
