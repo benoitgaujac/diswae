@@ -306,7 +306,9 @@ class DataHandler(object):
         num_data = 737280
         self.data_dir = _data_dir(opts)
         self.all_data = np.array([os.path.join(self.data_dir,'images','%.6d.jpg') % i for i in range(1, num_data + 1)])
-        with np.load(os.path.join(opts['data_dir'],opts['dataset'][-8:]), encoding="latin1", allow_pickle=True) as data:
+        data_file = 'dsprites_ndarray_co1sh3sc6or40x32y32_64x64.npz'
+        data_file_path = os.path.join(opts['data_dir'],opts['dataset'][-8:])
+        with np.load(os.path.join(data_file_path,data_file), encoding="latin1", allow_pickle=True) as data:
             self.factor_sizes = np.array(data['metadata'][()]["latents_sizes"], dtype=np.int64)[1:]
         # labels informations
         self.factor_indices = list(range(5))
