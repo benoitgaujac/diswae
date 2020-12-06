@@ -23,6 +23,6 @@ python3 run_array.py --num_it 300000 --id $SGE_TASK_ID --dataset dsprites --scra
 # python3 run_array.py --num_it 100 --id 1 --dataset dsprites --save_model --out_dir dSprites_test --model TCWAE_MWS --cost l2sq --scratch_dir scratch0_test --stage_to_scratch
 
 function finish {
-    rm -rf /scratch0/bgaujac/$JOB_ID.$SGE_TASK_ID
+    rm -rf scratch0/bgaujac/$JOB_ID.$SGE_TASK_ID
 }
 trap finish EXIT ERR

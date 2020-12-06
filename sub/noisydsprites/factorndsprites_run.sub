@@ -22,6 +22,6 @@ python3 run_array.py --num_it 300000 --id $SGE_TASK_ID --dataset noisydsprites -
 # python3 run_array.py --num_it 300000 --id 1 --dataset noisydsprites --save_data --save_model --out_dir NoidSprites_test --model TCWAE_MWS --cost l2sq
 
 function finish {
-    rm -rf /scratch0/bgaujac/$JOB_ID.$SGE_TASK_ID
+    rm -rf scratch0/bgaujac/$JOB_ID.$SGE_TASK_ID
 }
 trap finish EXIT ERR
