@@ -62,7 +62,9 @@ def _data_dir(opts):
             os.mkdir(opts['scratch_dir'])
         head_tail = os.path.split(data_path)
         dst = os.path.join(opts['scratch_dir'],head_tail[-1])
-        exctract_dsprites(data_path, dst)
+        file_count = sum(len(files) for _, _, files in os.walk(dst):
+        if file_count<=opts['dataset_size']:
+            exctract_dsprites(data_path, dst)
         # shutil.copytree(data_path,dst)
         data_path = dst
     return data_path
@@ -303,7 +305,7 @@ class DataHandler(object):
         """
         # Loading labels and data
         """ just create paths_list & load labels info"""
-        num_data = 737280
+        num_data = opts['dataset_size']
         self.data_dir = _data_dir(opts)
         self.all_data = np.array([os.path.join(self.data_dir,'images','%.6d.jpg') % i for i in range(1, num_data + 1)])
         data_file = 'dsprites_ndarray_co1sh3sc6or40x32y32_64x64.npz'
@@ -557,7 +559,7 @@ class DataHandler(object):
         #     filename = os.path.join(self.data_dir, 'rendered_chairs.npz')
         #     exctract_and_save_3dchairs(filename, self.data_dir)
         # data
-        # num_data = 86366
+        # num_data = opts['dataset_size']
         # self.all_data = np.array([os.path.join(self.data_dir,'images','%.6d.jpg') % i for i in range(1, num_data + 1)])
         filename = 'rendered_chairs.npz'
         filepath = os.path.join(self.data_dir,filename)
@@ -565,6 +567,7 @@ class DataHandler(object):
         X = np.load(filepath)
         self.all_data = (255.*X['data']).astype(np.uint8)
         num_data = self.all_data.shape[0]
+        assert num_data==opts['dataset_size'], 'wrong dataset size'
         # plot set
         seed = 123
         np.random.seed(seed)
@@ -641,7 +644,7 @@ class DataHandler(object):
     def _load_celebA(self, opts):
         """Load CelebA
         """
-        num_data = 202599
+        num_data = opts['dataset_size']
         self.data_dir = _data_dir(opts)
         self.all_data = np.array([os.path.join(self.data_dir,'img_align_celeba','%.6d.jpg') % i for i in range(1, num_data + 1)])
         # plot set
