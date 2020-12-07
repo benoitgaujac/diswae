@@ -2,7 +2,7 @@
 
 #$ -S /bin/bash
 
-#$ -wd /home/minzhang/new-home-dir/diswae
+#$ -wd /home/bgaujac/diswae
 
 #$ -l gpu=true
 #$ -l tmem=24G
@@ -16,12 +16,13 @@
 source /share/apps/examples/source_files/python/python-3.6.4.source
 source /share/apps/examples/source_files/cuda/cuda-10.0.source
 
-mkdir -p /scratch0/bgaujac/$JOB_ID.$SGE_TASK_ID
+# mkdir -p scratch0/bgaujac/$JOB_ID.$SGE_TASK_ID
+mkdir -p scratch0/bgaujac
 
-python3 run_array.py --num_it 300000 --id $SGE_TASK_ID --dataset screamdsprites --scratch_dir scratch0/bgaujac/$JOB_ID.$SGE_TASK_ID --stage_to_scratch --save_model --out_dir ScrdSprites_xent --model FactorVAE --cost l2sq
+python3 run_array.py --num_it 300000 --id $SGE_TASK_ID --dataset screamdsprites --scratch_dir scratch0/bgaujac --stage_to_scratch --save_model --out_dir ScrdSprites_xent --model FactorVAE --cost l2sq
 # python3 run_array.py --num_it 1000 --id 1 --dataset screamdsprites --out_dir ScrdSprites_test --model TCWAE_MWS --cost l2sq
 
-function finish {
-    rm -rf scratch0/bgaujac/$JOB_ID.$SGE_TASK_ID
-}
-trap finish EXIT ERR
+# function finish {
+#     rm -rf scratch0/bgaujac/$JOB_ID.$SGE_TASK_ID
+# }
+# trap finish EXIT ERR
