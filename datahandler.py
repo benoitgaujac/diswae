@@ -62,7 +62,7 @@ def _data_dir(opts):
             os.mkdir(opts['scratch_dir'])
         head_tail = os.path.split(data_path)
         dst = os.path.join(opts['scratch_dir'],head_tail[-1])
-        file_count = sum(len(files) for _, _, files in os.walk(dst):
+        file_count = sum(len(files) for _, _, files in os.walk(dst))
         if file_count<=opts['dataset_size']:
             exctract_dsprites(data_path, dst)
         # shutil.copytree(data_path,dst)
