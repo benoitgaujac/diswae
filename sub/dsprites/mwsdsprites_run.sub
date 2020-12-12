@@ -9,7 +9,7 @@
 #$ -l tscratch=3.5G
 #$ -l h_rt=7:00:00
 
-#$ -t 1-108
+#$ -t 1-180
 
 #$ -N mwsdsprites
 
