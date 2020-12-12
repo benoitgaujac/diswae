@@ -7,7 +7,7 @@
 #$ -l gpu=true
 #$ -l tmem=24G
 #$ -l tscratch=3.5G
-#$ -l h_rt=6:00:00
+#$ -l h_rt=7:00:00
 
 #$ -t 1-108
 
