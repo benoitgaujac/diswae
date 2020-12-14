@@ -5,8 +5,9 @@
 #$ -wd /home/bgaujac/diswae
 
 #$ -l gpu=true
-#$ -l tmem=25G
-#$ -l h_rt=7:00:00
+#$ -l tmem=10G
+#$ -l tscratch=2.1G
+#$ -l h_rt=9:00:00
 
 #$ -t 1-108
 
@@ -15,6 +16,7 @@
 source /share/apps/examples/source_files/python/python-3.6.4.source
 source /share/apps/examples/source_files/cuda/cuda-10.0.source
 
-# python3 run_array.py --num_it 300000 --id $SGE_TASK_ID --dataset 3dshapes --save_model --out_dir 3dshapes_l2sq --model TCWAE_GAN --cost l2sq
-python3 run_array.py --num_it 300000 --id $SGE_TASK_ID --dataset 3dshapes --save_model --out_dir 3dshapes_xent --model TCWAE_GAN --cost xent
-# python3 run_array.py --num_it 10 --id 1 --dataset smallNORB --save_model --out_dir smallNORB_test --model TCWAE_MWS --cost l2sq
+mkdir -p scratch0/bgaujac
+
+python3 run_array.py --num_it 300000 --id $SGE_TASK_ID --dataset 3dshapes --scratch_dir scratch0/bgaujac --stage_to_scratch --save_model --out_dir 3dshapes_l2sq --model TCWAE_GAN --cost l2sq
+# python3 run_array.py --num_it 300000 --id $SGE_TASK_ID --dataset 3dshapes --scratch_dir scratch0/bgaujac --stage_to_scratch --save_model --out_dir 3dshapes_xent --model TCWAE_GAN --cost xent

@@ -28,7 +28,7 @@ import h5py
 from math import ceil
 
 import utils
-from extract_data import exctract_dsprites
+from extract_data import stage_to_scratch
 
 import pdb
 
@@ -64,7 +64,7 @@ def _data_dir(opts):
         dst = os.path.join(opts['scratch_dir'],head_tail[-1])
         file_count = sum(len(files) for _, _, files in os.walk(dst))
         if file_count<=opts['dataset_size']:
-            exctract_dsprites(data_path, dst)
+            stage_to_scratch(opts['dataset'][-8:],data_path, dst)
         # shutil.copytree(data_path,dst)
         data_path = dst
     return data_path
@@ -73,7 +73,7 @@ def maybe_download(opts):
     """Download the data from url, unless it's already here."""
     if not tf.io.gfile.exists(opts['data_dir']):
         tf.io.gfile.makedirs(opts['data_dir'])
-    if opts['dataset']=='noisydsprites' or opts['dataset']=='screamdsprites':
+    if opts['dataset'][-8:]=='dsprites':
         data_path = os.path.join(opts['data_dir'], opts['dataset'][-8:])
     else:
         data_path = os.path.join(opts['data_dir'], opts['dataset'])
@@ -316,6 +316,8 @@ class DataHandler(object):
         self.factor_indices = list(range(5))
         self.factor_bases = np.prod(self.factor_sizes) / np.cumprod(
                             self.factor_sizes)
+        # datashape
+        self.data_shape = datashapes[self.dataset]
         # plot set
         seed = 123
         np.random.seed(seed)
@@ -338,17 +340,15 @@ class DataHandler(object):
         np.random.seed(seed)
         idx = np.random.randint(self.test_size, size=opts['plot_num_pics'])
         self.data_vizu = self._sample_observations(idx)
-        # datashape
-        self.data_shape = datashapes[self.dataset]
         # Create tf.dataset
         dataset_train = tf.data.Dataset.from_tensor_slices(data_train)
         dataset_test = tf.data.Dataset.from_tensor_slices(data_test)
-        # # map files paths to image with tf.io.decode_jpeg
+        # map files paths to image with tf.io.decode_jpeg
         def process_path(file_path):
             image_file = tf.read_file(file_path)
             img_decoded = tf.cast(tf.image.decode_jpeg(image_file, channels=0), dtype=tf.dtypes.float32) / 255.
             # tf.cast(tf.image.decode_jpeg(image_file, channels=0), dtype=tf.dtypes.float32) / 255.
-            return tf.reshape(img_decoded, datashapes['dsprites'])
+            return tf.reshape(img_decoded, self.data_shape)
         dataset_train = dataset_train.map(process_path,
                                 num_parallel_calls=tf.data.experimental.AUTOTUNE)
         dataset_test = dataset_test.map(process_path,
@@ -398,31 +398,21 @@ class DataHandler(object):
 
         """
 
-        def get_factors_from_labels(labels):
-            """Convert labels values to factors categories
-            """
-            num_factors = labels.shape[-1]
-            factors = []
-            for i in range(num_factors):
-                _, factor = np.unique(labels[:,i],return_inverse=True)
-                factors.append(factor)
-            return np.stack(factors,axis=-1)
-
         # Loading data
+        num_data = opts['dataset_size']
         self.data_dir = _data_dir(opts)
-        data_path = os.path.join(self.data_dir, '3dshapes.h5')
-        dataset = h5py.File(data_path, 'r')
-        X = np.array(dataset['images'])
-        Y = np.array(dataset['labels'])
-        num_data = Y.shape[0]
-        # data
-        self.all_data = X.astype(np.float32) / 255.
+        self.all_data = np.array([os.path.join(self.data_dir,'images','%.6d.jpg') % i for i in range(1, num_data + 1)])
+        data_file = '3dshapes.h5'
+        data_file_path = os.path.join(opts['data_dir'],opts['dataset'])
+        Y = np.array(h5py.File(os.path.join(data_file_path,data_file), 'r')['labels'])
         # labels
         self.all_labels = Y
         self.factor_indices = list(range(6))
         self.factor_sizes = np.array([10,10,10,8,4,15])
         self.factor_bases = np.prod(self.factor_sizes) / np.cumprod(
             self.factor_sizes)
+        # datashape
+        self.data_shape = datashapes[self.dataset]
         # plot set
         seed = 123
         np.random.seed(seed)
@@ -435,8 +425,8 @@ class DataHandler(object):
             tr_stop = num_data - 10000
         else:
             tr_stop = opts['train_dataset_size']
-        data_train = X[idx_random[:tr_stop]]
-        data_test = X[idx_random[-10000:]]
+        data_train = self.all_data[idx_random[:tr_stop]]
+        data_test = self.all_data[idx_random[-10000:]]
         # dataset size
         self.train_size = data_train.shape[0]
         self.test_size = data_test.shape[0]
@@ -445,17 +435,18 @@ class DataHandler(object):
         np.random.seed(seed)
         idx = np.random.randint(self.test_size, size=opts['plot_num_pics'])
         self.data_vizu = self._sample_observations(idx)
-        # datashape
-        self.data_shape = datashapes[self.dataset]
         # Create tf.dataset
         dataset_train = tf.data.Dataset.from_tensor_slices(data_train)
         dataset_test = tf.data.Dataset.from_tensor_slices(data_test)
-        # preprocess raw data
-        def process_raw(data):
-            return tf.cast(data, dtype=tf.dtypes.float32) / 255.
-        dataset_train = dataset_train.map(process_raw,
+        # map files paths to image with tf.io.decode_jpeg
+        def process_path(file_path):
+            image_file = tf.read_file(file_path)
+            img_decoded = tf.cast(tf.image.decode_jpeg(image_file, channels=0), dtype=tf.dtypes.float32) / 255.
+            # tf.cast(tf.image.decode_jpeg(image_file, channels=0), dtype=tf.dtypes.float32) / 255.
+            return tf.reshape(img_decoded, self.data_shape)
+        dataset_train = dataset_train.map(process_path,
                                 num_parallel_calls=tf.data.experimental.AUTOTUNE)
-        dataset_test = dataset_test.map(process_raw,
+        dataset_test = dataset_test.map(process_path,
                                 num_parallel_calls=tf.data.experimental.AUTOTUNE)
         # normalize data if needed
         if opts['input_normalize_sym']:
@@ -547,6 +538,8 @@ class DataHandler(object):
         self.factor_sizes = np.array([5, 10, 9, 18, 6])
         self.factor_bases = np.prod(self.factor_sizes) / np.cumprod(
             self.factor_sizes)
+        # datashape
+        self.data_shape = datashapes[self.dataset]
         # plot set
         seed = 123
         np.random.seed(seed)
@@ -569,19 +562,9 @@ class DataHandler(object):
         np.random.seed(seed)
         idx = np.random.randint(self.test_size, size=opts['plot_num_pics'])
         self.data_vizu = self._sample_observations(idx)
-        # datashape
-        self.data_shape = datashapes[self.dataset]
         # Create tf.dataset
         dataset_train = tf.data.Dataset.from_tensor_slices(data_train)
         dataset_test = tf.data.Dataset.from_tensor_slices(data_test)
-        # # map files paths to image with tf.io.decode_jpeg
-        # def process_path(file_path):
-        #     image_file = tf.read_file(file_path)
-        #     return tf.cast(tf.image.decode_jpeg(image_file, channels=0), dtype=tf.dtypes.float32) / 255.
-        # dataset_train = dataset_train.map(process_path,
-        #                         num_parallel_calls=tf.data.experimental.AUTOTUNE)
-        # dataset_test = dataset_test.map(process_path,
-        #                         num_parallel_calls=tf.data.experimental.AUTOTUNE)
         # normalize data if needed
         if opts['input_normalize_sym']:
             dataset_train = dataset_train.map(lambda x: (x - 0.5) * 2.,
@@ -616,20 +599,13 @@ class DataHandler(object):
 
         """
         self.data_dir = _data_dir(opts)
-        # # Extracting data and saving as npz if necessary
-        # if not tf.io.gfile.exists(os.path.join(self.data_dir,'images')):
-        #     filename = os.path.join(self.data_dir, 'rendered_chairs.npz')
-        #     exctract_and_save_3dchairs(filename, self.data_dir)
-        # data
-        # num_data = opts['dataset_size']
-        # self.all_data = np.array([os.path.join(self.data_dir,'images','%.6d.jpg') % i for i in range(1, num_data + 1)])
         filename = 'rendered_chairs.npz'
         filepath = os.path.join(self.data_dir,filename)
         assert os.path.isfile(filepath), '3Dchairs data file doesnt exist.'
         X = np.load(filepath)
-        self.all_data = (255.*X['data']).astype(np.uint8)
-        num_data = self.all_data.shape[0]
-        assert num_data==opts['dataset_size'], 'wrong dataset size'
+        self.all_data = (255.*np.load(filepath)['data']).astype(np.uint8)
+        # datashape
+        self.data_shape = datashapes[self.dataset]
         # plot set
         seed = 123
         np.random.seed(seed)
@@ -652,21 +628,9 @@ class DataHandler(object):
         np.random.seed(seed)
         idx = np.random.randint(self.test_size, size=opts['plot_num_pics'])
         self.data_vizu = self._sample_observations(idx)
-        # datashape
-        self.data_shape = datashapes[self.dataset]
         # Create tf.dataset
         dataset_train = tf.data.Dataset.from_tensor_slices(data_train)
         dataset_test = tf.data.Dataset.from_tensor_slices(data_test)
-        # # map files paths to image with tf.io.decode_jpeg
-        # def process_path(file_path):
-        #     image_file = tf.read_file(file_path)
-        #     img_decoded = tf.cast(tf.image.decode_jpeg(image_file, channels=0), dtype=tf.dtypes.float32) / 255.
-        #     # tf.cast(tf.image.decode_jpeg(image_file, channels=0), dtype=tf.dtypes.float32) / 255.
-        #     return tf.reshape(img_decoded, datashapes['3Dchairs'])
-        # dataset_train = dataset_train.map(process_path,
-        #                         num_parallel_calls=tf.data.experimental.AUTOTUNE)
-        # dataset_test = dataset_test.map(process_path,
-        #                         num_parallel_calls=tf.data.experimental.AUTOTUNE)
         # map img to [0,1] and convert to float32
         def process_img(x):
             return tf.cast(x, dtype=tf.dtypes.float32) / 255.
@@ -712,6 +676,8 @@ class DataHandler(object):
         # plot set
         # idx = np.random.randint(self.all_data.shape[0],size=opts['evaluate_num_pics'])
         # idx = idx = [5,17,39,50,25]
+        # datashape
+        self.data_shape = datashapes[self.dataset]
         # self.data_plot = self._sample_observations(idx)
         seed = 123
         np.random.seed(seed)
@@ -734,8 +700,6 @@ class DataHandler(object):
         np.random.seed(seed)
         idx = np.random.randint(self.test_size, size=opts['plot_num_pics'])
         self.data_vizu = self._sample_observations(idx)
-        # datashape
-        self.data_shape = datashapes[self.dataset]
         # Create tf.dataset
         dataset_train = tf.data.Dataset.from_tensor_slices(data_train)
         dataset_test = tf.data.Dataset.from_tensor_slices(data_test)
@@ -1008,7 +972,7 @@ class DataHandler(object):
         if self.dataset == 'celebA':
             point = self._read_celeba_image(self.all_data[key])
         elif self.dataset[-8:] == 'dsprites':
-            point = self._read_dsprites_image(self.all_data[key])
+            point = self._read_file(self.all_data[key])
             if self.dataset == 'noisydsprites':
                 point = np.repeat(point, 3, axis=-1)
                 np.random.seed(seed + key)
@@ -1025,7 +989,9 @@ class DataHandler(object):
                 background[mask] = 1 - background[mask]
                 point = background
         elif self.dataset == '3Dchairs':
-            point = self._read_3Dchairs(self.all_data[key])
+            point = self._read_file(self.all_data[key])
+        elif self.dataset == '3dshapes':
+            point = self._read_file(self.all_data[key])
         else:
             raise Exception('Disc read for {} not implemented yet...'.format(self.dataset))
 
@@ -1055,15 +1021,9 @@ class DataHandler(object):
         im.close()
         return im_array
 
-    def _read_dsprites_image(self, file_path):
+    def _read_file(self, file_path):
         im = Image.open(file_path)
-        im_array =np.array(im).reshape(datashapes['dsprites']).astype(np.float32) / 255.
-        im.close()
-        return im_array
-
-    def _read_3Dchairs(self, file_path):
-        im = Image.open(file_path)
-        im_array =np.array(im).reshape(datashapes['3Dchairs']).astype(np.float32) / 255.
+        im_array = np.array(im).reshape(self.data_shape).astype(np.float32) / 255.
         im.close()
         return im_array
 
