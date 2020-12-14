@@ -409,20 +409,82 @@ class DataHandler(object):
             return np.stack(factors,axis=-1)
 
         # Loading data
-        data_dir = _data_dir(opts)
+        self.data_dir = _data_dir(opts)
         data_path = os.path.join(self.data_dir, '3dshapes.h5')
         dataset = h5py.File(data_path, 'r')
-        X = np.array(dataset['images']).astype(np.float32) / 255.
+        X = np.array(dataset['images'])
         Y = np.array(dataset['labels'])
-        self.data = Data(opts, X)
-        self.labels = Data(opts, Y, type='label')
-        # plot set
-        self.plot_data_idx = np.arange(10)
-        # labels informations
+        num_data = Y.shape[0]
+        # data
+        self.all_data = X.astype(np.float32) / 255.
+        # labels
+        self.all_labels = Y
         self.factor_indices = list(range(6))
         self.factor_sizes = np.array([10,10,10,8,4,15])
         self.factor_bases = np.prod(self.factor_sizes) / np.cumprod(
             self.factor_sizes)
+        # plot set
+        seed = 123
+        np.random.seed(seed)
+        idx = np.random.randint(self.all_data.shape[0],size=opts['plot_num_pics'])
+        self.data_plot = self._sample_observations(idx)
+        # shuffling data
+        np.random.seed()
+        idx_random = np.random.permutation(num_data)
+        if opts['train_dataset_size']==-1 or opts['train_dataset_size']>num_data-10000:
+            tr_stop = num_data - 10000
+        else:
+            tr_stop = opts['train_dataset_size']
+        data_train = X[idx_random[:tr_stop]]
+        data_test = X[idx_random[-10000:]]
+        # dataset size
+        self.train_size = data_train.shape[0]
+        self.test_size = data_test.shape[0]
+        # data for vizualisation
+        seed = 123
+        np.random.seed(seed)
+        idx = np.random.randint(self.test_size, size=opts['plot_num_pics'])
+        self.data_vizu = self._sample_observations(idx)
+        # datashape
+        self.data_shape = datashapes[self.dataset]
+        # Create tf.dataset
+        dataset_train = tf.data.Dataset.from_tensor_slices(data_train)
+        dataset_test = tf.data.Dataset.from_tensor_slices(data_test)
+        # preprocess raw data
+        def process_raw(data):
+            return tf.cast(data, dtype=tf.dtypes.float32) / 255.
+        dataset_train = dataset_train.map(process_raw,
+                                num_parallel_calls=tf.data.experimental.AUTOTUNE)
+        dataset_test = dataset_test.map(process_raw,
+                                num_parallel_calls=tf.data.experimental.AUTOTUNE)
+        # normalize data if needed
+        if opts['input_normalize_sym']:
+            dataset_train = dataset_train.map(lambda x: (x - 0.5) * 2.,
+                                    num_parallel_calls=tf.data.experimental.AUTOTUNE)
+            dataset_test = dataset_test.map(lambda x: (x - 0.5) * 2.,
+                                    num_parallel_calls=tf.data.experimental.AUTOTUNE)
+            self.data_vizu = (self.data_vizu - 0.5) * 2.
+            self.data_plot = (self.data_plot - 0.5) * 2.
+        # Shuffle dataset
+        dataset_train = dataset_train.shuffle(buffer_size=50*opts['batch_size'])
+        dataset_test = dataset_test.shuffle(buffer_size=50*opts['batch_size'])
+        # repeat for multiple epochs
+        dataset_train = dataset_train.repeat()
+        dataset_test = dataset_test.repeat()
+        # Random batching
+        dataset_train = dataset_train.batch(batch_size=opts['batch_size'])
+        dataset_test = dataset_test.batch(batch_size=opts['batch_size'])
+        # Prefetch
+        self.dataset_train = dataset_train.prefetch(buffer_size=4*opts['batch_size'])
+        self.dataset_test = dataset_test.prefetch(buffer_size=4*opts['batch_size'])
+        # Iterator for each split
+        self.iterator_train = dataset_train.make_initializable_iterator()
+        self.iterator_test = dataset_test.make_initializable_iterator()
+
+        # Global iterator
+        self.handle = tf.placeholder(tf.string, shape=[])
+        self.next_element = tf.data.Iterator.from_string_handle(
+            self.handle, dataset_train.output_types, dataset_train.output_shapes).get_next()
 
     def _load_smallNORB(self, opts):
         """Load data from smallNORB dataset
