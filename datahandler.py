@@ -348,7 +348,7 @@ class DataHandler(object):
             image_file = tf.read_file(file_path)
             img_decoded = tf.cast(tf.image.decode_jpeg(image_file, channels=0), dtype=tf.dtypes.float32) / 255.
             # tf.cast(tf.image.decode_jpeg(image_file, channels=0), dtype=tf.dtypes.float32) / 255.
-            return tf.reshape(img_decoded, self.data_shape)
+            return tf.reshape(img_decoded, datashapes['dsprites'])
         dataset_train = dataset_train.map(process_path,
                                 num_parallel_calls=tf.data.experimental.AUTOTUNE)
         dataset_test = dataset_test.map(process_path,
