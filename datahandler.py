@@ -1023,7 +1023,11 @@ class DataHandler(object):
 
     def _read_file(self, file_path):
         im = Image.open(file_path)
-        im_array = np.array(im).reshape(self.data_shape).astype(np.float32) / 255.
+        if opts['dataset'][-8:]=='dsprites':
+            shape = datashapes['dsprites']
+        else:
+            shape = self.data_shape
+        im_array = np.array(im).reshape(shape).astype(np.float32) / 255.
         im.close()
         return im_array
 
