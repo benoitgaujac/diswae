@@ -1023,7 +1023,7 @@ class DataHandler(object):
 
     def _read_file(self, file_path):
         im = Image.open(file_path)
-        if opts['dataset'][-8:]=='dsprites':
+        if self.dataset[-8:]=='dsprites':
             shape = datashapes['dsprites']
         else:
             shape = self.data_shape
