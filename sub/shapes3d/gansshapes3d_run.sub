@@ -9,7 +9,7 @@
 #$ -l tscratch=2.1G
 #$ -l h_rt=9:00:00
 
-#$ -t 1-108
+#$ -t 1-48
 
 #$ -N gan3dshapes
 
