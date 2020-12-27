@@ -534,10 +534,12 @@ class TCWAE_GAN_MI(WAE):
         # - kl
         kl = self.kl_penalty(self.pz_mean, self.pz_sigma, enc_mean, enc_Sigma)
         # - WAE latent reg
+        noise = tf.random_normal(shape=tf.shape(enc_z))
+        pz_sample = tf.add(self.pz_mean, (noise * self.pz_sigma))
         wae_match_penalty = self.mmd_penalty(enc_z, pz_sample)
         divergences = (lmbd1*tc, lmbd2*(kl-tc), wae_match_penalty)
 
         # -- Obj
-        self.discr_loss = - beta*discr_TC_loss
+        self.discr_loss = - lmbd1*discr_TC_loss
 
         return loss_reconstruct, divergences
