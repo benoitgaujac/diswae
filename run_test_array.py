@@ -124,14 +124,12 @@ def main():
             opts['obj_fn_coeffs'] = beta[coef_id]
         elif opts['model']=='TCWAE_MWS':
             beta = [1, 2, 5, 10, 15]
-            lmba = list(itertools.product(beta,[FLAGS.gamma,]))
-            coef_id = (FLAGS.id-1) % len(lmba)
-            opts['obj_fn_coeffs'] = list(lmba[coef_id])
+            coef_id = (FLAGS.id-1) % len(beta)
+            opts['obj_fn_coeffs'] = [beta[coef_id], FLAGS.gamma]
         elif opts['model']=='TCWAE_GAN':
             beta = [1, 5, 10, 25, 50]
-            lmba = list(itertools.product(beta,[FLAGS.gamma,]))
-            coef_id = (FLAGS.id-1) % len(lmba)
-            opts['obj_fn_coeffs'] = list(lmba[coef_id])
+            coef_id = (FLAGS.id-1) % len(beta)
+            opts['obj_fn_coeffs'] = [beta[coef_id], FLAGS.gamma]
         else:
             raise Exception('Unknown {} model for celebA'.format(opts['model']))
     elif FLAGS.dataset == '3Dchairs':
@@ -141,9 +139,8 @@ def main():
             opts['obj_fn_coeffs'] = beta[coef_id]
         else:
             beta = [1, 2, 5, 10, 20, 50]
-            lmba = list(itertools.product(beta,[FLAGS.gamma,]))
-            coef_id = (FLAGS.id-1) % len(lmba)
-            opts['obj_fn_coeffs'] = list(lmba[coef_id])
+            coef_id = (FLAGS.id-1) % len(beta)
+            opts['obj_fn_coeffs'] = [beta[coef_id], FLAGS.gamma]
     else:
         if opts['model']=='BetaTCVAE':
             beta = [1, 2, 4, 6, 8, 10]
@@ -162,19 +159,18 @@ def main():
                 beta = [1, 2, 4, 6, 8, 10]
             else:
                 beta = [0.1, 0.25, 0.5, 0.75, 1, 2]
-            lmba = list(itertools.product(beta,[FLAGS.gamma,]))
-            coef_id = (FLAGS.id-1) % len(lmba)
-            opts['obj_fn_coeffs'] = list(lmba[coef_id])
+            coef_id = (FLAGS.id-1) % len(beta)
+            opts['obj_fn_coeffs'] = [beta[coef_id], FLAGS.gamma]
         elif opts['model']=='TCWAE_GAN':
             if opts['cost']=='xent':
                 beta = [1, 10, 25, 50, 75, 100]
             else:
                 beta = [0.1, 1, 2.5, 5, 7.5, 10]
-            lmba = list(itertools.product(beta,[FLAGS.gamma,]))
-            coef_id = (FLAGS.id-1) % len(lmba)
-            opts['obj_fn_coeffs'] = list(lmba[coef_id])
+            coef_id = (FLAGS.id-1) % len(beta)
+            opts['obj_fn_coeffs'] = [beta[coef_id], FLAGS.gamma]
         else:
             raise NotImplementedError('Model type not recognised')
+
     # Create directories
     results_dir = 'results'
     if not tf.io.gfile.isdir(results_dir):

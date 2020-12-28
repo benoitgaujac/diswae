@@ -38,7 +38,7 @@ parser.add_argument("--id", type=int, default=0,
                     help='exp id corresponding to latent reg weight setup')
 parser.add_argument("--cost", default='xentropy',
                     help='ground cost [l2, l2sq, l2sq_norm, l1, xentropy]')
-parser.add_argument("--gamma", default=1.0,
+parser.add_argument("--gamma", type=float, default=1.0,
                     help='latent KL regularizer')
 parser.add_argument('--fid', action='store_true', default=False,
                     help='compute FID score')
@@ -129,7 +129,6 @@ def main():
             opts['obj_fn_coeffs'] = [beta[coef_id], FLAGS.gamma]
     else:
         raise NotImplementedError('Model type not recognised for MI ablation')
-
     # Create directories
     results_dir = 'results'
     if not tf.io.gfile.isdir(results_dir):
