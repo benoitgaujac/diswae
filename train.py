@@ -483,7 +483,7 @@ class Run(object):
                                                 Divergences_test[-1][0])
                     logging.error(debug_str)
                 elif self.opts['model'] == 'BetaTCVAE':
-                    debug_str = 'REC=%.3f, TEST REC=%.3f, b*TC=%10.3e, TEST b*TC=%10.3e, KL=%10.3e, TEST KL=%10.3e, \n '  % (
+                    debug_str = 'REC=%.3f, TEST REC=%.3f, b*TC=%10.3e, TEST b*TC=%10.3e, pseudo-KL=%10.3e, TEST pseudo-KL=%10.3e, \n '  % (
                                                 Loss_rec[-1],
                                                 Loss_rec_test[-1],
                                                 Divergences[-1][0],
@@ -492,7 +492,7 @@ class Run(object):
                                                 Divergences_test[-1][1])
                     logging.error(debug_str)
                 elif self.opts['model'] == 'FactorVAE':
-                    debug_str = 'REC=%.3f, TEST REC=%.3f, g*TC=%10.3e, TEST g*TC=%10.3e, b*KL=%10.3e, TEST KL=%10.3e, \n '  % (
+                    debug_str = 'REC=%.3f, TEST REC=%.3f, g*TC=%10.3e, TEST g*TC=%10.3e, pseudo-KL=%10.3e, TEST pseudo-KL=%10.3e, \n '  % (
                                                 Loss_rec[-1],
                                                 Loss_rec_test[-1],
                                                 Divergences[-1][1],
@@ -515,6 +515,19 @@ class Run(object):
                                                 Divergences[-1][2])
                     logging.error(debug_str)
                     debug_str = 'TEST : REC=%.3f, l1*TC=%10.3e, l2*DIMWISE=%10.3e, WAE=%10.3e \n ' % (
+                                                Loss_rec_test[-1],
+                                                Divergences_test[-1][0],
+                                                Divergences_test[-1][1],
+                                                Divergences_test[-1][2])
+                    logging.error(debug_str)
+                elif self.opts['model'] == 'TCWAE_MWS_MI' or self.opts['model'] == 'TCWAE_GAN_MI':
+                    debug_str = 'TRAIN: REC=%.3f,l1*TC=%10.3e, l2*pseudo-KL=%10.3e, WAE=%10.3e' % (
+                                                Loss_rec[-1],
+                                                Divergences[-1][0],
+                                                Divergences[-1][1],
+                                                Divergences[-1][2])
+                    logging.error(debug_str)
+                    debug_str = 'TEST : REC=%.3f, l1*TC=%10.3e, l2*pseudo-KL=%10.3e, WAE=%10.3e \n ' % (
                                                 Loss_rec_test[-1],
                                                 Divergences_test[-1][0],
                                                 Divergences_test[-1][1],
@@ -765,6 +778,19 @@ class Run(object):
                                                 Divergences[-1][2])
             logging.error(debug_str)
             debug_str = 'TEST : REC=%.3f, l1*TC=%10.3e, l2*DIMWISE=%10.3e, MMD=%10.3e' % (
+                                                Loss_rec_test[-1],
+                                                Divergences_test[-1][0],
+                                                Divergences_test[-1][1],
+                                                Divergences_test[-1][2])
+            logging.error(debug_str)
+        elif self.opts['model'] == 'TCWAE_MWS_MI' or self.opts['model'] == 'TCWAE_GAN_MI':
+            debug_str = 'TRAIN: REC=%.3f,l1*TC=%10.3e, l2*pseudo-KL=%10.3e, WAE=%10.3e' % (
+                                                Loss_rec[-1],
+                                                Divergences[-1][0],
+                                                Divergences[-1][1],
+                                                Divergences[-1][2])
+            logging.error(debug_str)
+            debug_str = 'TEST : REC=%.3f, l1*TC=%10.3e, l2*pseudo-KL=%10.3e, WAE=%10.3e \n ' % (
                                                 Loss_rec_test[-1],
                                                 Divergences_test[-1][0],
                                                 Divergences_test[-1][1],

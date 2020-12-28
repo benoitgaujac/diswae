@@ -201,6 +201,13 @@ def save_train(opts, data_train, data_test,
                 y = np.log(np.abs(y[::x_step]))
                 losses_test.append(list(y))
             labels += [r"$\lambda_1$|TC|",r"$\lambda_2$|dimwise|",'|wae|']
+        elif opts['model'] == 'TCWAE_MWS_MI' or opts['model'] == 'TCWAE_GAN_MI':
+            for l in zip(*loss_match_test):
+                # y = np.convolve(l, np.ones((size_filter,))/size_filter, mode='valid')
+                y = l
+                y = np.log(np.abs(y[::x_step]))
+                losses_test.append(list(y))
+            labels += [r"$\lambda_1$|TC|",r"$\lambda_2$|kl-tc|",'|wae|']
         else:
             raise NotImplementedError('Model type not recognised')
         if opts['cost']!='l2sq':
