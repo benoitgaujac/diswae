@@ -7,7 +7,7 @@
 #$ -l gpu=true
 #$ -l tmem=16G
 #$ -l tscratch=3.5G
-#$ -l h_rt=7:00:00
+#$ -l h_rt=9:00:00
 
 #$ -t 1-48
 
@@ -20,8 +20,9 @@ source /share/apps/examples/source_files/cuda/cuda-10.0.source
 mkdir -p scratch0/bgaujac
 
 # python3 run_array.py --num_it 300000 --id $SGE_TASK_ID --dataset dsprites --scratch_dir scratch0/bgaujac --stage_to_scratch --save_model --out_dir dSprites_l2sq --model TCWAE_MWS --cost l2sq
-# python3 run_array.py --num_it 300000 --id $SGE_TASK_ID --dataset dsprites --scratch_dir scratch0/bgaujac --stage_to_scratch --save_model --out_dir dSprites_xent --model TCWAE_MWS --cost xent
-python3 run_MI_ablation.py --num_it 300000 --id $SGE_TASK_ID --dataset dsprites --scratch_dir scratch0/bgaujac --stage_to_scratch --save_model --out_dir dSprites_MI --model TCWAE_MWS_MI --cost l2sq --gamma 0.1
+# python3 run_MI_ablation.py --num_it 300000 --id $SGE_TASK_ID --dataset dsprites --scratch_dir scratch0/bgaujac --stage_to_scratch --save_model --out_dir dSprites_MI --model TCWAE_MWS_MI --cost l2sq --gamma 0.1
+python3 run_test_array.py --num_it 600000 --id $SGE_TASK_ID --dataset dsprites --scratch_dir scratch0/bgaujac --stage_to_scratch --out_dir dSprites_testing --model TCWAE_MWS --cost l2sq --gamma 0.1
+# python3 run_test_array.py --num_it 600000 --id 1 --dataset dsprites --out_dir dSprites_testing_test --model TCWAE_MWS --cost l2sq --gamma 0.1
 
 # function finish {
 #     rm -rf scratch0/bgaujac/$JOB_ID.$SGE_TASK_ID

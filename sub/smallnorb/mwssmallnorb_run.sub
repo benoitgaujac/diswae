@@ -16,5 +16,5 @@ source /share/apps/examples/source_files/python/python-3.6.4.source
 source /share/apps/examples/source_files/cuda/cuda-10.0.source
 
 # python3 run_array.py --num_it 300000 --id $SGE_TASK_ID --dataset smallNORB --save_model --out_dir smallNORB_l2sq --model TCWAE_MWS --cost l2sq
-# python3 run_array.py --num_it 300000 --id $SGE_TASK_ID --dataset smallNORB --save_model --out_dir smallNORB_xent --model TCWAE_MWS --cost xent
-python3 run_MI_ablation.py --num_it 300000 --id $SGE_TASK_ID --dataset smallNORB --save_model --out_dir smallNORB_MI --model TCWAE_MWS_MI --cost l2sq --gamma 0.1
+# python3 run_MI_ablation.py --num_it 300000 --id $SGE_TASK_ID --dataset smallNORB --save_model --out_dir smallNORB_MI --model TCWAE_MWS_MI --cost l2sq --gamma 0.1
+python3 run_test_array.py --num_it 600000 --id $SGE_TASK_ID --dataset smallNORB --out_dir smallNORB_testing --model TCWAE_MWS --cost l2sq --gamma 0.1
