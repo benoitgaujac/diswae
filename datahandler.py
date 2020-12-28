@@ -604,6 +604,7 @@ class DataHandler(object):
         assert os.path.isfile(filepath), '3Dchairs data file doesnt exist.'
         X = np.load(filepath)
         self.all_data = (255.*np.load(filepath)['data']).astype(np.uint8)
+        num_data = opts['dataset_size']
         # datashape
         self.data_shape = datashapes[self.dataset]
         # plot set
