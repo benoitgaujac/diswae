@@ -16,7 +16,6 @@ def delete_checkpoints(work_dir):
         for dir in dirs:
             for sub_root_dir, sub_dirs, _ in os.walk(os.path.join(root_dir,dir)):
                 for sub_dir in sub_dirs:
-                    pdb.set_trace()
                     if sub_dir not in dirs_to_keep:
                         to_delete = os.path.join(sub_root_dir,sub_dir,'checkpoints')
                         if os.path.isdir(to_delete):
