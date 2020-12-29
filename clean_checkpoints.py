@@ -5,7 +5,7 @@ import warnings
 
 import pdb
 
-sub_dirs = ['checkpoints', 'train_plots', 'train_data']
+dirs_to_keep = ['TCWAE_GAN', 'TCWAE_MWS', 'BetaTCVAE', 'FactorVAE','checkpoints', 'train_plots', 'train_data']
 
 def fxn():
     warnings.warn("deprecated", DeprecationWarning)
@@ -14,22 +14,27 @@ def delete_checkpoints(work_dir):
     i = 0
     for root_dir, dirs, _ in os.walk(work_dir):
         for dir in dirs:
-            if dir not in sub_dirs:
-                to_delete = os.path.join(work_dir,dir,'checkpoints')
-                if os.path.isdir(to_delete):
-                    shutil.rmtree(to_delete, ignore_errors=True)
-                    i+=1
-    print('{} directories deleted.'.format(i))
+            for sub_root_dir, sub_dirs, _ in os.walk(os.path.join(root_dir,dir)):
+                for sub_dir in sub_dirs:
+                    pdb.set_trace()
+                    if sub_dir not in dirs_to_keep:
+                        to_delete = os.path.join(sub_root_dir,sub_dir,'checkpoints')
+                        if os.path.isdir(to_delete):
+                            shutil.rmtree(to_delete, ignore_errors=True)
+                            i+=1
+    print('{} checkoints directories deleted.'.format(i))
 
 def delete_error_runs(work_dir):
     i = 0
     for root_dir, dirs, _ in os.walk(work_dir):
         for dir in dirs:
-            if dir not in sub_dirs:
-                to_delete = os.path.join(work_dir,dir)
-                if 'train_data' not in os.listdir(to_delete):
-                    shutil.rmtree(to_delete, ignore_errors=True)
-                    i+=1
+            for sub_root_dir, sub_dirs, _ in os.walk(os.path.join(root_dir,dir)):
+                for sub_dir in sub_dirs:
+                    if sub_dir not in dirs_to_keep:
+                        to_delete = os.path.join(sub_root_dir,sub_dir)
+                        if 'train_data' not in os.listdir(to_delete):
+                            shutil.rmtree(to_delete, ignore_errors=True)
+                            i+=1
     print('{} directories deleted.'.format(i))
 
 def delete_tree(work_dir):
