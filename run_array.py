@@ -113,22 +113,22 @@ def main():
     # Objective Function Coefficients
     if FLAGS.dataset == 'celebA':
         if opts['model']=='BetaTCVAE':
-            beta = [1, 2, 4, 6, 8, 10, 15]
+            beta = [1, 2, 4, 6, 8, 10]
             coef_id = (FLAGS.id-1) % len(beta)
             opts['obj_fn_coeffs'] = beta[coef_id]
         elif opts['model']=='FactorVAE':
-            beta = [1, 5, 10, 25, 50, 75, 100]
+            beta = [1, 5, 10, 25, 50, 100]
             coef_id = (FLAGS.id-1) % len(beta)
             opts['obj_fn_coeffs'] = beta[coef_id]
         elif opts['model']=='TCWAE_MWS':
-            beta = [0.01, 0.1, .5, 1., 2., 5.]
-            gamma = [0.01, 0.1, .5, 1., 2., 5.]
+            beta = [0.1, 0.25, 0.5, 1., 2., 5.]
+            gamma = [0.1, 0.25, 0.5, 1., 2., 5.]
             lmba = list(itertools.product(beta,gamma))
             coef_id = (FLAGS.id-1) % len(lmba)
             opts['obj_fn_coeffs'] = list(lmba[coef_id])
         elif opts['model']=='TCWAE_GAN':
-            beta = [0.01, 0.1, 1., 5., 10., 20.]
-            gamma = [0.01, 0.1, 1., 5., 10., 20.]
+            beta = [0.1, 0.5, 1., 2., 5., 10.]
+            gamma = [0.1, 0.5, 1., 2., 5., 10.]
             lmba = list(itertools.product(beta,gamma))
             coef_id = (FLAGS.id-1) % len(lmba)
             opts['obj_fn_coeffs'] = list(lmba[coef_id])
@@ -136,22 +136,22 @@ def main():
             raise Exception('Unknown {} model for celebA'.format(opts['model']))
     elif FLAGS.dataset == '3Dchairs':
         if opts['model']=='BetaTCVAE':
-            beta = [1, 2, 4, 6, 8, 10, 15]
+            beta = [1, 2, 4, 6, 8, 10]
             coef_id = (FLAGS.id-1) % len(beta)
             opts['obj_fn_coeffs'] = beta[coef_id]
         elif opts['model']=='FactorVAE':
-            beta = [1, 5, 10, 25, 50, 75, 100]
+            beta = [1, 5, 10, 25, 50, 100]
             coef_id = (FLAGS.id-1) % len(beta)
             opts['obj_fn_coeffs'] = beta[coef_id]
         elif opts['model']=='TCWAE_MWS':
-            beta = [0.01, 0.1, .5, 1., 2., 5.]
-            gamma = [0.01, 0.1, .5, 1., 2., 5.]
+            beta = [0.1, 0.25, 0.5, 1., 2., 5.]
+            gamma = [0.1, 0.25, 0.5, 1., 2., 5.]
             lmba = list(itertools.product(beta,gamma))
             coef_id = (FLAGS.id-1) % len(lmba)
             opts['obj_fn_coeffs'] = list(lmba[coef_id])
         elif opts['model']=='TCWAE_GAN':
-            beta = [0.01, 0.1, 1., 5., 10., 20.]
-            gamma = [0.01, 0.1, 1., 5., 10., 20.]
+            beta = [0.1, 0.5, 1., 2., 5., 10.]
+            gamma = [0.1, 0.5, 1., 2., 5., 10.]
             lmba = list(itertools.product(beta,gamma))
             coef_id = (FLAGS.id-1) % len(lmba)
             opts['obj_fn_coeffs'] = list(lmba[coef_id])
