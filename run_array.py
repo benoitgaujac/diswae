@@ -174,16 +174,10 @@ def main():
             if opts['cost']=='xent':
                 beta = [1, 2, 4, 6, 8, 10]
                 gamma = [1, 2, 4, 6, 8, 10]
-                lmba = list(itertools.product(beta,gamma))
             else:
                 beta = [0.1, 0.25, 0.5, 0.75, 1, 2]
-                gamma = [2,]
-                # beta = [0.1, 0.25, 0.5, 0.75, 1, 10]
-                # gamma = [0.1, 0.25, 0.5, 0.75, 1, 10]
-                coef1 = list(itertools.product(beta,gamma))
-                coef2 = list(itertools.product(gamma,beta))
-                lmba = coef1 + coef2
-            # lmba = list(itertools.product(beta,gamma))
+                gamma = [0.1, 0.25, 0.5, 0.75, 1, 2]
+            lmba = list(itertools.product(beta,gamma))
             coef_id = (FLAGS.id-1) % len(lmba)
             opts['obj_fn_coeffs'] = list(lmba[coef_id])
         elif opts['model']=='TCWAE_GAN':

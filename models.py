@@ -192,7 +192,8 @@ class FactorVAE(BetaVAE):
         # - TC loss
         tc = tf.reduce_mean(logits_z[:,0] - logits_z[:,1])
         # - Discr loss
-        self.discr_loss = - 0.5 * tf.reduce_mean(tf.math.log(probs_z[:,0] + probs_z_shuffle[:,1]))
+        discr_loss = tf.math.log(probs_z[:,0]) + tf.math.log(probs_z_shuffle[:,1])
+        self.discr_loss = - 0.5 * tf.reduce_mean(discr_loss)
         divergences = (gamma*tc, kl)
 
         return loss_reconstruct, divergences
@@ -440,7 +441,8 @@ class TCWAE_GAN(WAE):
         # - TC loss
         tc = tf.reduce_mean(logits_z[:,0] - logits_z[:,1])
         # - Discr loss
-        discr_TC_loss = 0.5 * tf.reduce_mean(tf.math.log(probs_z[:,0] + probs_z_shuffle[:,1]))
+        discr_TC_loss = tf.math.log(probs_z[:,0]) + tf.math.log(probs_z_shuffle[:,1])
+        discr_TC_loss = 0.5 * tf.reduce_mean(discr_TC_loss)
 
         # Dimwise term
         # - shuffling latent codes
@@ -465,8 +467,8 @@ class TCWAE_GAN(WAE):
         # - dimwise loss
         dimwise = tf.reduce_mean(tf.reduce_sum(logits_z[:,:,0] - logits_z[:,:,1], axis=1))
         # - Discr loss
-        discr_dimwise_loss = 0.5 * tf.reduce_mean(tf.reduce_sum(
-                                tf.math.log(probs_z_shuffle[:,:,0] + probs_z_prior[:,:,1]), axis=1))
+        discr_dimwise_loss = tf.math.log(probs_z_shuffle[:,:,0]) + tf.math.log(probs_z_prior[:,:,1])
+        discr_dimwise_loss = 0.5 * tf.reduce_mean(tf.reduce_sum(discr_dimwise_loss, axis=1))
 
         # - WAE latent reg
         wae_match_penalty = self.mmd_penalty(enc_z, pz_sample)
@@ -521,7 +523,8 @@ class TCWAE_GAN_MI(WAE):
         # - TC loss
         tc = tf.reduce_mean(logits_z[:,0] - logits_z[:,1])
         # - Discr loss
-        discr_TC_loss = 0.5 * tf.reduce_mean(tf.math.log(probs_z[:,0] + probs_z_shuffle[:,1]))
+        discr_TC_loss = tf.math.log(probs_z[:,0]) + tf.math.log(probs_z_shuffle[:,1])
+        discr_TC_loss = 0.5 * tf.reduce_mean(discr_TC_loss)
         # - kl
         kl = self.kl_penalty(self.pz_mean, self.pz_sigma, enc_mean, enc_Sigma)
         # - WAE latent reg
