@@ -2,7 +2,7 @@ import numpy as np
 import tensorflow as tf
 import math
 
-from networks import encoder, decoder, discriminator
+from networks import encoder, decoder, discriminator, dimwise_discriminator
 from datahandler import datashapes
 from loss_functions import l2_cost, l2sq_cost, l2sq_norm_cost, l1_cost, xentropy_cost
 from loss_functions import square_dist_broadcast
@@ -156,12 +156,12 @@ class FactorVAE(BetaVAE):
     def __init__(self, opts):
         super().__init__(opts)
 
-    def get_discr_pred(self, inputs, reuse=False, is_training=False):
+    def get_discr_pred(self, inputs, reuse=False):
       """Build and get Dsicriminator preds.
       Based on ICML paper
       """
       with tf.variable_scope("discriminator",reuse=reuse):
-          logits, probs = discriminator(self.opts, inputs, is_training)
+          logits, probs = discriminator(self.opts, inputs)
           clipped = tf.clip_by_value(probs, 1e-6, 1 - 1e-6)
       return logits, clipped
 
@@ -185,19 +185,15 @@ class FactorVAE(BetaVAE):
         enc_z_shuffle = tf.stack(enc_z_shuffle, axis=-1, name="encoded_shuffled")
         # - Get discriminator preds
         logits_z, probs_z = self.get_discr_pred(
-                                inputs=enc_z,
-                                is_training=is_training)
+                                inputs=enc_z)
         _, probs_z_shuffle = self.get_discr_pred(
                                 inputs=enc_z_shuffle,
-                                reuse=True,
-                                is_training=is_training)
+                                reuse=True)
         # - TC loss
-        tc = tf.reduce_mean(logits_z[:, 0] - logits_z[:, 1], axis=0)
+        tc = tf.reduce_mean(logits_z[:,0] - logits_z[:,1])
         # - Discr loss
-        self.discr_loss = - tf.add(
-                            0.5 * tf.reduce_mean(tf.math.log(probs_z[:, 0])),
-                            0.5 * tf.reduce_mean(tf.math.log(probs_z_shuffle[:, 1])))
-        divergences = (gamma*tc, kl-tc)
+        self.discr_loss = - 0.5 * tf.reduce_mean(tf.math.log(probs_z[:,0] + probs_z_shuffle[:,1]))
+        divergences = (gamma*tc, kl)
 
         return loss_reconstruct, divergences
 
@@ -401,12 +397,17 @@ class TCWAE_GAN(WAE):
     def __init__(self, opts):
         super().__init__(opts)
 
-    def get_discr_pred(self, inputs, scope, reuse=False, is_training=False):
-      """Build and get Dsicriminator preds.
+    def get_discr_pred(self, inputs, scope, reuse=False):
+      """Build and get Discriminator preds.
       Based on ICML paper
       """
       with tf.variable_scope('discriminator/' + scope, reuse=reuse):
-          logits, probs = discriminator(self.opts, inputs, is_training)
+          if scope == 'TC':
+              logits, probs = discriminator(self.opts, inputs)
+          elif scope == 'dimwise':
+              logits, probs = dimwise_discriminator(self.opts, inputs)
+          else:
+              raise Exception('Unknown {} scope for Discriminator'.format(scope))
           clipped = tf.clip_by_value(probs, 1e-6, 1 - 1e-6)
       return logits, clipped
 
@@ -426,31 +427,28 @@ class TCWAE_GAN(WAE):
         seed = 456
         for i in range(enc_z.get_shape()[1]):
             enc_z_shuffle.append(tf.gather(enc_z[:, i], tf.random.shuffle(tf.range(tf.shape(enc_z[:, i])[0]))))
-        enc_z_shuffle = tf.stack(enc_z_shuffle, axis=-1, name="encoded_shuffled")
+        enc_z_shuffle = tf.stack(enc_z_shuffle, axis=-1, name="tc_encoded_shuffled")
         # - Get discriminator preds
         logits_z, probs_z = self.get_discr_pred(
                                 inputs=enc_z,
                                 scope = 'TC',
-                                reuse = False,
-                                is_training=is_training)
+                                reuse = False)
         _, probs_z_shuffle = self.get_discr_pred(
                                 inputs=enc_z_shuffle,
                                 scope = 'TC',
-                                reuse=True,
-                                is_training=is_training)
+                                reuse=True)
         # - TC loss
-        tc = tf.reduce_mean(logits_z[:, 0] - logits_z[:, 1], axis=0)
+        tc = tf.reduce_mean(logits_z[:,0] - logits_z[:,1])
         # - Discr loss
-        discr_TC_loss = tf.add(
-                            0.5 * tf.reduce_mean(tf.math.log(probs_z[:, 0])),
-                            0.5 * tf.reduce_mean(tf.math.log(probs_z_shuffle[:, 1])))
+        discr_TC_loss = 0.5 * tf.reduce_mean(tf.math.log(probs_z[:,0] + probs_z_shuffle[:,1]))
+
         # Dimwise term
         # - shuffling latent codes
         enc_z_shuffle = []
         seed = 892
         for d in range(enc_z.get_shape()[1]):
             enc_z_shuffle.append(tf.gather(enc_z[:, d], tf.random.shuffle(tf.range(tf.shape(enc_z[:, d])[0]))))
-        enc_z_shuffle = tf.stack(enc_z_shuffle, axis=-1, name="encoded_shuffled")
+        enc_z_shuffle = tf.stack(enc_z_shuffle, axis=-1, name="tc_encoded_shuffled")
         # - sample from prior
         noise = tf.random_normal(shape=tf.shape(enc_z))
         pz_sample = tf.add(self.pz_mean, (noise * self.pz_sigma))
@@ -459,19 +457,16 @@ class TCWAE_GAN(WAE):
         logits_z, probs_z_shuffle = self.get_discr_pred(
                                 inputs=enc_z_shuffle,
                                 scope = 'dimwise',
-                                reuse = False,
-                                is_training=is_training)
+                                reuse = False)
         _, probs_z_prior = self.get_discr_pred(
                                 inputs=pz_sample,
                                 scope = 'dimwise',
-                                reuse=True,
-                                is_training=is_training)
+                                reuse=True)
         # - dimwise loss
-        dimwise = tf.reduce_mean(logits_z[:, 0] - logits_z[:, 1], axis=0)
+        dimwise = tf.reduce_mean(tf.reduce_sum(logits_z[:,:,0] - logits_z[:,:,1], axis=1))
         # - Discr loss
-        discr_dimwise_loss = tf.add(
-                            0.5 * tf.reduce_mean(tf.math.log(probs_z_shuffle[:, 0])),
-                            0.5 * tf.reduce_mean(tf.math.log(probs_z_prior[:, 1])))
+        discr_dimwise_loss = 0.5 * tf.reduce_mean(tf.reduce_sum(
+                                tf.math.log(probs_z_shuffle[:,:,0] + probs_z_prior[:,:,1]), axis=1))
 
         # - WAE latent reg
         wae_match_penalty = self.mmd_penalty(enc_z, pz_sample)
@@ -488,12 +483,12 @@ class TCWAE_GAN_MI(WAE):
     def __init__(self, opts):
         super().__init__(opts)
 
-    def get_discr_pred(self, inputs, scope, reuse=False, is_training=False):
+    def get_discr_pred(self, inputs, scope, reuse=False):
       """Build and get Dsicriminator preds.
       Based on ICML paper
       """
       with tf.variable_scope('discriminator/' + scope, reuse=reuse):
-          logits, probs = discriminator(self.opts, inputs, is_training)
+          logits, probs = discriminator(self.opts, inputs)
           clipped = tf.clip_by_value(probs, 1e-6, 1 - 1e-6)
       return logits, clipped
 
@@ -518,19 +513,15 @@ class TCWAE_GAN_MI(WAE):
         logits_z, probs_z = self.get_discr_pred(
                                 inputs=enc_z,
                                 scope = 'TC',
-                                reuse = False,
-                                is_training=is_training)
+                                reuse = False)
         _, probs_z_shuffle = self.get_discr_pred(
                                 inputs=enc_z_shuffle,
                                 scope = 'TC',
-                                reuse=True,
-                                is_training=is_training)
+                                reuse=True)
         # - TC loss
-        tc = tf.reduce_mean(logits_z[:, 0] - logits_z[:, 1], axis=0)
+        tc = tf.reduce_mean(logits_z[:,0] - logits_z[:,1])
         # - Discr loss
-        discr_TC_loss = tf.add(
-                            0.5 * tf.reduce_mean(tf.math.log(probs_z[:, 0])),
-                            0.5 * tf.reduce_mean(tf.math.log(probs_z_shuffle[:, 1])))
+        discr_TC_loss = 0.5 * tf.reduce_mean(tf.math.log(probs_z[:,0] + probs_z_shuffle[:,1]))
         # - kl
         kl = self.kl_penalty(self.pz_mean, self.pz_sigma, enc_mean, enc_Sigma)
         # - WAE latent reg

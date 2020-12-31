@@ -281,8 +281,8 @@ def  rae_decoder(opts, input, output_dim, reuse,
     return outputs
 
 
-######### Discriminator #########
-def discriminator(opts, input, is_training):
+######### Discriminators #########
+def discriminator(opts, input):
     """
     Discriminator network for FactorVAE.
     Archtecture is the same than icml paper
@@ -292,13 +292,27 @@ def discriminator(opts, input, is_training):
     for i in range(6):
         layer_x = ops.linear.Linear(opts, layer_x, np.prod(layer_x.get_shape().as_list()[1:]),
                     1000, init='glorot_uniform', scope='hid{}/lin'.format(i))
-        # # Note for mlp, batchnorm and layernorm are equivalent
-        # if opts['normalization']=='batchnorm':
-        #     layer_x = ops.batchnorm.Batchnorm_layers(
-        #         opts, layer_x, 'hid%d/bn' % i, is_training)
         layer_x = ops._ops.non_linear(layer_x,'leaky_relu')
     logits = ops.linear.Linear(opts, layer_x, np.prod(layer_x.get_shape().as_list()[1:]),
                 2, init='glorot_uniform', scope='hid_final')
+    probs = tf.nn.softmax(logits)
+
+    return logits, probs
+
+def dimwise_discriminator(opts, input):
+    """
+    dim-wise Discriminator network for TCWAE-GAN.
+    Archtecture is the same than icml paper
+    """
+
+    layer_x = tf.layers.flatten(input)
+    for i in range(6):
+        layer_x = ops.linear.Linear(opts, layer_x, np.prod(layer_x.get_shape().as_list()[1:]),
+                    1000, init='glorot_uniform', scope='hid{}/lin'.format(i))
+        layer_x = ops._ops.non_linear(layer_x,'leaky_relu')
+    logits = ops.linear.Linear(opts, layer_x, np.prod(layer_x.get_shape().as_list()[1:]),
+                2*opts['zdim'], init='glorot_uniform', scope='hid_final')
+    logits = tf.reshape(logits, [-1,opts['zdim'],2])
     probs = tf.nn.softmax(logits)
 
     return logits, probs
