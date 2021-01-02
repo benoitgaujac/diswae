@@ -403,12 +403,15 @@ class TCWAE_GAN(WAE):
       Based on ICML paper
       """
       with tf.variable_scope('discriminator/' + scope, reuse=reuse):
+          logits, probs = discriminator(self.opts, inputs)
+          """
           if scope == 'TC':
               logits, probs = discriminator(self.opts, inputs)
           elif scope == 'dimwise':
               logits, probs = dimwise_discriminator(self.opts, inputs)
           else:
               raise Exception('Unknown {} scope for Discriminator'.format(scope))
+          """
           clipped = tf.clip_by_value(probs, 1e-6, 1 - 1e-6)
       return logits, clipped
 
@@ -464,11 +467,18 @@ class TCWAE_GAN(WAE):
                                 inputs=pz_sample,
                                 scope = 'dimwise',
                                 reuse=True)
+        """
         # - dimwise loss
         dimwise = tf.reduce_mean(tf.reduce_sum(logits_z[:,:,0] - logits_z[:,:,1], axis=1))
         # - Discr loss
         discr_dimwise_loss = tf.math.log(probs_z_shuffle[:,:,0]) + tf.math.log(probs_z_prior[:,:,1])
         discr_dimwise_loss = 0.5 * tf.reduce_mean(tf.reduce_sum(discr_dimwise_loss, axis=1))
+        """
+        # - dimwise loss
+        dimwise = tf.reduce_mean(logits_z[:,0] - logits_z[:,1])
+        # - Discr loss
+        discr_dimwise_loss = tf.math.log(probs_z_shuffle[:,0]) + tf.math.log(probs_z_prior[:,1])
+        discr_dimwise_loss = 0.5 * tf.reduce_mean(discr_dimwise_loss)
 
         # - WAE latent reg
         wae_match_penalty = self.mmd_penalty(enc_z, pz_sample)
