@@ -9,7 +9,7 @@
 #$ -l tscratch=2.1G
 #$ -l h_rt=9:00:00
 
-#$ -t 1-30
+#$ -t 1-12
 
 #$ -N beta3dshapes
 
@@ -19,4 +19,4 @@ source /share/apps/examples/source_files/cuda/cuda-10.0.source
 mkdir -p scratch0/bgaujac
 
 # python3 run_array.py --num_it 300000 --id $SGE_TASK_ID --dataset 3dshapes --scratch_dir scratch0/bgaujac --stage_to_scratch --save_model --out_dir 3dshapes_xent --model BetaTCVAE --cost xent
-python3 run_test_array.py --num_it 600000 --id $SGE_TASK_ID --dataset 3dshapes --save_model --scratch_dir scratch0/bgaujac --stage_to_scratch --out_dir 3dshapes_testing --model BetaTCVAE
+python3 run_test_array.py --num_it 600000 --id $SGE_TASK_ID --dataset 3dshapes --scratch_dir scratch0/bgaujac --stage_to_scratch --save_model --out_dir 3dshapes_testing --model BetaTCVAE
