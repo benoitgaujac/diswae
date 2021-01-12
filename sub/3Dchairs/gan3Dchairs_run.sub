@@ -16,4 +16,4 @@ source /share/apps/examples/source_files/python/python-3.6.4.source
 source /share/apps/examples/source_files/cuda/cuda-10.0.source
 
 # python3 run_array.py --num_it 600000 --id $SGE_TASK_ID --dataset 3Dchairs --cost l2sq --save_model --fid --out_dir 3Dchairs --model TCWAE_GAN
-python3 run_test_array.py --num_it 600000 --id $SGE_TASK_ID --dataset 3Dchairs --cost l2sq --fid --out_dir 3Dchairs_testing --model TCWAE_GAN --gamma 0.25
+python3 run_test_array.py --num_it 600000 --id $SGE_TASK_ID --dataset 3Dchairs --cost l2sq --save_model --fid --out_dir 3Dchairs_testing --model TCWAE_GAN --gamma 0.25
