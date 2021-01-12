@@ -55,16 +55,23 @@ def _data_dir(opts):
     data_path = maybe_download(opts)
     # stage data to scratch storage if needed
     if opts['stage_to_scratch']:
-        head_tail = os.path.split(opts['scratch_dir'])
-        if not os.path.isdir(head_tail[0]):
-            os.mkdir(head_tail[0])
-        if not os.path.isdir(opts['scratch_dir']):
-            os.mkdir(opts['scratch_dir'])
+        scratch_abspth = os.path.expanduser(opts['scratch_dir'])
+        # scratch_abspth = os.path.abspath(opts['scratch_dir'])
+        sys.path.append(scratch_abspth)
         head_tail = os.path.split(data_path)
-        dst = os.path.join(opts['scratch_dir'],head_tail[-1])
-        file_count = sum(len(files) for _, _, files in os.walk(dst))
-        if file_count<=opts['dataset_size']:
-            stage_to_scratch(opts['dataset'][-8:],data_path, dst)
+        dst = os.path.join(scratch_abspth,head_tail[-1])
+        stage_to_scratch(opts['dataset'],data_path, dst)
+        # head_tail = os.path.split(opts['scratch_dir'])
+        # if not os.path.isdir(head_tail[0]):
+        #     os.mkdir(head_tail[0])
+        # if not os.path.isdir(opts['scratch_dir']):
+        #     os.mkdir(opts['scratch_dir'])
+        # head_tail = os.path.split(data_path)
+        # dst = os.path.join(opts['scratch_dir'],head_tail[-1])
+        # file_count = sum(len(files) for _, _, files in os.walk(dst))
+        # if file_count<=opts['dataset_size']:
+        #     stage_to_scratch(opts['dataset'][-8:],data_path, dst)
+        # stage_to_scratch(opts['dataset'],data_path, dst)
         # shutil.copytree(data_path,dst)
         data_path = dst
     return data_path

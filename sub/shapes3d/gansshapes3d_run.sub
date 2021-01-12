@@ -7,20 +7,25 @@
 #$ -l gpu=true
 #$ -l tmem=10G
 #$ -l tscratch=2.1G
-#$ -l h_rt=9:00:00
+#$ -l h_rt=12:00:00
 
-#$ -t 1-30
+#$ -t 1-12
 
-# #$ -N gan3dshapes
+#$ -N xentgan3dshapes
 # #$ -N testgan3dshapes
-#$ -N migan3dshapes
+# #$ -N migan3dshapes
 
 source /share/apps/examples/source_files/python/python-3.6.4.source
 source /share/apps/examples/source_files/cuda/cuda-10.0.source
 
-mkdir -p scratch0/bgaujac
+mkdir -p /scratch0/bgaujac/$JOB_ID.$SGE_TASK_ID
 
-# python3 run_array.py --num_it 300000 --id $SGE_TASK_ID --dataset 3dshapes --scratch_dir scratch0/bgaujac --stage_to_scratch --save_model --out_dir 3dshapes_l2sq --model TCWAE_GAN --cost l2sq
-# python3 run_test_array.py --num_it 600000 --id $SGE_TASK_ID --dataset 3dshapes --scratch_dir scratch0/bgaujac --stage_to_scratch --save_model --out_dir 3dshapes_testing --model TCWAE_GAN --cost l2sq --gamma 0.1
-# python3 run_test_array.py --num_it 600000 --id $SGE_TASK_ID --dataset 3dshapes --scratch_dir scratch0/bgaujac --stage_to_scratch --save_model --out_dir 3dshapes_testing_xent --model TCWAE_GAN --cost xent --gamma 1.0
-python3 run_MI_ablation.py --num_it 600000 --id $SGE_TASK_ID --dataset 3dshapes --scratch_dir scratch0/bgaujac --stage_to_scratch --save_model --out_dir 3dshapes_testing --model TCWAE_GAN_MI --cost l2sq --gamma 0.1
+# python3 run_array.py --num_it 300000 --id $SGE_TASK_ID --dataset 3dshapes --stage_to_scratch --scratch_dir ~/scratch0/bgaujac/$JOB_ID.$SGE_TASK_ID --save_model --out_dir 3dshapes_l2sq --model TCWAE_GAN --cost l2sq
+# python3 run_test_array.py --num_it 600000 --id $SGE_TASK_ID --dataset 3dshapes --stage_to_scratch --scratch_dir ~/scratch0/bgaujac/$JOB_ID.$SGE_TASK_ID --stage_to_scratch --save_model --out_dir 3dshapes_testing --model TCWAE_GAN --cost l2sq --gamma 0.1
+python3 run_test_array.py --num_it 600000 --id $SGE_TASK_ID --dataset 3dshapes --stage_to_scratch --scratch_dir ~/scratch0/bgaujac/$JOB_ID.$SGE_TASK_ID --save_model --out_dir 3dshapes_testing_xent --model TCWAE_GAN --cost xent --gamma 1.0
+# python3 run_MI_ablation.py --num_it 600000 --id $SGE_TASK_ID --dataset 3dshapes --stage_to_scratch --scratch_dir ~/scratch0/bgaujac/$JOB_ID.$SGE_TASK_ID --save_model --out_dir 3dshapes_testing --model TCWAE_GAN_MI --cost l2sq --gamma 0.1
+
+function finish {
+    rm -rf /scratch0/bgaujac/$JOB_ID.$SGE_TASK_ID
+}
+trap finish EXIT ERR

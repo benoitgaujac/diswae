@@ -1,4 +1,7 @@
 import os
+import sys
+import logging
+
 from PIL import Image
 import numpy as np
 import h5py
@@ -48,7 +51,8 @@ def stage_to_scratch(dataset, src, dst):
         with open(os.path.join(dest_path, 'img_list.txt'), 'a') as f:
             f.write(file_name[:-4] + '\n')
             f.close()
-        if (n+1+i) % 10000 == 0:
+        if (n+1+i) % 25000 == 0:
+            logging.error('{}/{} images saved.'.format(n+1+i,X.shape[0]))
             print('{}/{} images saved.'.format(n+1+i,X.shape[0]))
 
 def main():
