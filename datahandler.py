@@ -55,12 +55,9 @@ def _data_dir(opts):
     data_path = maybe_download(opts)
     # stage data to scratch storage if needed
     if opts['stage_to_scratch']:
-        # scratch_abspth = os.path.abspath(opts['scratch_dir'])
-        scratch_abspth = opts['scratch_dir']
-        print(scratch_abspth)
-        sys.path.append(scratch_abspth)
+        sys.path.append(opts['scratch_dir'])
         head_tail = os.path.split(data_path)
-        dst = os.path.join(scratch_abspth,head_tail[-1])
+        dst = os.path.join(opts['scratch_dir'],head_tail[-1])
         stage_to_scratch(opts['dataset'],data_path, dst)
         # head_tail = os.path.split(opts['scratch_dir'])
         # if not os.path.isdir(head_tail[0]):

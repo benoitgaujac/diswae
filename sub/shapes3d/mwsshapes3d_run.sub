@@ -19,12 +19,13 @@ source /share/apps/examples/source_files/python/python-3.6.4.source
 source /share/apps/examples/source_files/cuda/cuda-10.0.source
 
 mkdir -p /scratch0/bgaujac/$JOB_ID.$SGE_TASK_ID
+# mkdir -p /scratch0/bgaujac/test
 
-# python3 run_array.py --num_it 300000 --id $SGE_TASK_ID --dataset 3dshapes --stage_to_scratch --scratch_dir ~/scratch0/bgaujac/$JOB_ID.$SGE_TASK_ID --save_model --out_dir 3dshapes_l2sq --model TCWAE_MWS --cost l2sq
-# python3 run_test_array.py --num_it 600000 --id $SGE_TASK_ID --dataset 3dshapes --stage_to_scratch --scratch_dir ~/scratch0/bgaujac/$JOB_ID.$SGE_TASK_ID --save_model --out_dir 3dshapes_testing --model TCWAE_MWS --cost l2sq --gamma 0.5
-python3 run_test_array.py --num_it 600000 --id $SGE_TASK_ID --dataset 3dshapes --stage_to_scratch --scratch_dir ~/scratch0/bgaujac/$JOB_ID.$SGE_TASK_ID --save_model --out_dir 3dshapes_testing_xent --model TCWAE_MWS --cost xent --gamma 2.0
-# python3 run_MI_ablation.py --num_it 600000 --id $SGE_TASK_ID --dataset 3dshapes --stage_to_scratch --scratch_dir ~/scratch0/bgaujac/$JOB_ID.$SGE_TASK_ID --save_model --out_dir 3dshapes_testing --model TCWAE_MWS_MI --cost l2sq --gamma 0.5
-# python3 run_MI_ablation.py --num_it 600000 --id 1 --dataset 3dshapes --stage_to_scratch --scratch_dir ~/Documents/scratch0/bgaujac/1 --save_model --out_dir 3dshapes_scratch_test --model TCWAE_MWS_MI --cost l2sq --gamma 0.5
+# python3 run_array.py --num_it 300000 --id $SGE_TASK_ID --dataset 3dshapes --stage_to_scratch --scratch_dir /scratch0/bgaujac/$JOB_ID.$SGE_TASK_ID --save_model --out_dir 3dshapes_l2sq --model TCWAE_MWS --cost l2sq
+# python3 run_test_array.py --num_it 600000 --id $SGE_TASK_ID --dataset 3dshapes --stage_to_scratch --scratch_dir /scratch0/bgaujac/$JOB_ID.$SGE_TASK_ID --save_model --out_dir 3dshapes_testing --model TCWAE_MWS --cost l2sq --gamma 0.5
+python3 run_test_array.py --num_it 600000 --id $SGE_TASK_ID --dataset 3dshapes --stage_to_scratch --scratch_dir /scratch0/bgaujac/$JOB_ID.$SGE_TASK_ID --save_model --out_dir 3dshapes_testing_xent --model TCWAE_MWS --cost xent --gamma 2.0
+# python3 run_MI_ablation.py --num_it 600000 --id $SGE_TASK_ID --dataset 3dshapes --stage_to_scratch --scratch_dir /scratch0/bgaujac/$JOB_ID.$SGE_TASK_ID --save_model --out_dir 3dshapes_testing --model TCWAE_MWS_MI --cost l2sq --gamma 0.5
+# python3 run_MI_ablation.py --num_it 600000 --id 1 --dataset 3dshapes --stage_to_scratch --scratch_dir /scratch0/bgaujac/test --save_model --out_dir 3dshapes_scratch_test --model TCWAE_MWS_MI --cost l2sq --gamma 0.5
 
 function finish {
     rm -rf /scratch0/bgaujac/$JOB_ID.$SGE_TASK_ID
