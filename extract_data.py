@@ -30,6 +30,7 @@ def stage_to_scratch(dataset, src, dst):
     else:
         ValueError('Staging to scratch not implemented for %s' % dataset)
     # init dir, img_list, counter
+    print(dst)
     if not os.path.isdir(dst):
         os.mkdir(dst)
     dest_path = os.path.join(dst,'images')
