@@ -13,7 +13,7 @@
 
 # #$ -N xentgan3dshapes
 # #$ -N testgan3dshapes
-#$ -N migan3dshapes
+# $ -N migan3dshapes
 
 source /share/apps/examples/source_files/python/python-3.6.4.source
 source /share/apps/examples/source_files/cuda/cuda-10.0.source
