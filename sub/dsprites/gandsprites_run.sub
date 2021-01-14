@@ -9,7 +9,7 @@
 #$ -l tscratch=3.5G
 #$ -l h_rt=13:00:00
 
-#$ -t 1-30
+#$ -t 1-12
 
 #$ -N xentgandsprites
 # #$ -N testgandsprites
