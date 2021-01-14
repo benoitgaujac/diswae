@@ -122,8 +122,8 @@ config_3Dchairs['dataset_size'] = 86366
 config_3Dchairs['evaluate_num_pics'] = 5
 # Model set up
 config_3Dchairs['zdim'] = 16
-# Opt set up
-config_3Dchairs['normalization'] = 'batchnorm' #batchnorm, layernorm, none
+# # Opt set up
+# config_3Dchairs['normalization'] = 'batchnorm' #batchnorm, layernorm, none
 # lambda set up
 config_3Dchairs['lambda'] = [8,2]
 
