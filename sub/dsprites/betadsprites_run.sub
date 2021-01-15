@@ -7,9 +7,9 @@
 #$ -l gpu=true
 #$ -l tmem=16G
 #$ -l tscratch=3.5G
-#$ -l h_rt=9:00:00
+#$ -l h_rt=10:00:00
 
-#$ -t 1-6
+#$ -t 1-1
 
 #$ -N betadsprites
 
@@ -19,7 +19,8 @@ source /share/apps/examples/source_files/cuda/cuda-10.0.source
 mkdir -p /scratch0/bgaujac/$JOB_ID.$SGE_TASK_ID
 
 # python3 run_array.py --num_it 300000 --id $SGE_TASK_ID --dataset dsprites --stage_to_scratch --scratch_dir /scratch0/bgaujac/$JOB_ID.$SGE_TASK_ID --save_model --out_dir dSprites_xent --model BetaTCVAE
-python3 run_test_array.py --num_it 600000 --id $SGE_TASK_ID --dataset dsprites --stage_to_scratch --scratch_dir /scratch0/bgaujac/$JOB_ID.$SGE_TASK_ID --save_model --out_dir dSprites_testing --model BetaTCVAE
+# python3 run_test_array.py --num_it 600000 --id $SGE_TASK_ID --dataset dsprites --stage_to_scratch --scratch_dir /scratch0/bgaujac/$JOB_ID.$SGE_TASK_ID --save_model --out_dir dSprites_testing --model BetaTCVAE
+python3 run.py --num_it 600000 --dataset dsprites --stage_to_scratch --scratch_dir /scratch0/bgaujac/$JOB_ID.$SGE_TASK_ID --out_dir dSprites_weights --model BetaTCVAE --beta 6.0
 
 function finish {
     rm -rf /scratch0/bgaujac/$JOB_ID.$SGE_TASK_ID
