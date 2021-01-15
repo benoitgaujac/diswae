@@ -281,7 +281,7 @@ class WAE(BetaVAE):
         elif opts['cost'] == 'xent':
             cost = xentropy_cost(x1, logits)
         else:
-            assert False, 'Unknown cost function %s' % opts['obs_cost']
+            assert False, 'Unknown cost function %s' % opts['cost']
         return tf.reduce_mean(cost)
 
     def loss(self, inputs, loss_coeffs, is_training):

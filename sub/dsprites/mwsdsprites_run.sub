@@ -24,7 +24,7 @@ mkdir -p /scratch0/bgaujac/$JOB_ID.$SGE_TASK_ID
 # python3 run_test_array.py --num_it 600000 --id $SGE_TASK_ID --dataset dsprites --stage_to_scratch --scratch_dir /scratch0/bgaujac/$JOB_ID.$SGE_TASK_ID --save_model --out_dir dSprites_testing --model TCWAE_MWS --cost l2sq --gamma 0.1
 # python3 run_test_array.py --num_it 600000 --id $SGE_TASK_ID --dataset dsprites --stage_to_scratch --scratch_dir /scratch0/bgaujac/$JOB_ID.$SGE_TASK_ID --save_model --out_dir dSprites_testing_xent --model TCWAE_MWS --cost xent --gamma 1.
 # python3 run_MI_ablation.py --num_it 600000 --id $SGE_TASK_ID --dataset dsprites --stage_to_scratch --scratch_dir /scratch0/bgaujac/$JOB_ID.$SGE_TASK_ID --save_model --out_dir dSprites_testing --model TCWAE_MWS_MI --cost l2sq --gamma 0.1
-python3 run.py --num_it 600000 --dataset dsprites --stage_to_scratch --scratch_dir /scratch0/bgaujac/$JOB_ID.$SGE_TASK_ID --out_dir dSprites_weights --model TCWAE_MWS --beta 2.0 --gamma 0.1
+python3 run.py --num_it 600000 --dataset dsprites --stage_to_scratch --scratch_dir /scratch0/bgaujac/$JOB_ID.$SGE_TASK_ID --out_dir dSprites_weights --model TCWAE_MWS --cost l2sq --beta 2.0 --gamma 0.1
 # python3 run_MI_ablation.py --num_it 600000 --id 1 --dataset dsprites  --save_model --out_dir dSprites_test_scratch --model TCWAE_MWS_MI --cost l2sq --gamma 0.1
 # python3 run_MI_ablation.py --num_it 600000 --id 1 --dataset dsprites --stage_to_scratch --scratch_dir /Users/benoitgaujac/Documents/scratch0/bgaujac/1 --save_model --out_dir dSprites_test_scratch --model TCWAE_MWS_MI --cost l2sq --gamma 0.1
 

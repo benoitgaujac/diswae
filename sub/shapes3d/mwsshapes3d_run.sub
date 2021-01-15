@@ -9,7 +9,7 @@
 #$ -l tscratch=2.5G
 #$ -l h_rt=12:00:00
 
-#$ -t 1-11
+#$ -t 1-1
 
 # #$ -N xentmws3dshapes
 #$ -N testmws3dshapes
@@ -25,7 +25,7 @@ mkdir -p /scratch0/bgaujac/$JOB_ID.$SGE_TASK_ID
 # python3 run_test_array.py --num_it 600000 --id $SGE_TASK_ID --dataset 3dshapes --stage_to_scratch --scratch_dir /scratch0/bgaujac/$JOB_ID.$SGE_TASK_ID --save_model --out_dir 3dshapes_testing --model TCWAE_MWS --cost l2sq --gamma 0.5
 # python3 run_test_array.py --num_it 600000 --id $SGE_TASK_ID --dataset 3dshapes --stage_to_scratch --scratch_dir /scratch0/bgaujac/$JOB_ID.$SGE_TASK_ID --save_model --out_dir 3dshapes_testing_xent --model TCWAE_MWS --cost xent --gamma 2.0
 # python3 run_MI_ablation.py --num_it 600000 --id $SGE_TASK_ID --dataset 3dshapes --stage_to_scratch --scratch_dir /scratch0/bgaujac/$JOB_ID.$SGE_TASK_ID --save_model --out_dir 3dshapes_testing --model TCWAE_MWS_MI --cost l2sq --gamma 0.5
-python3 run.py --num_it 600000 --dataset 3dshapes --stage_to_scratch --scratch_dir /scratch0/bgaujac/$JOB_ID.$SGE_TASK_ID --out_dir 3dshapes_weights --model TCWAE_MWS --beta 0.75 --gamma 0.5
+python3 run.py --num_it 600000 --dataset 3dshapes --stage_to_scratch --scratch_dir /scratch0/bgaujac/$JOB_ID.$SGE_TASK_ID --out_dir 3dshapes_weights --model TCWAE_MWS --cost l2sq --beta 0.75 --gamma 0.5
 # python3 run_MI_ablation.py --num_it 600000 --id 1 --dataset 3dshapes --stage_to_scratch --scratch_dir /scratch0/bgaujac/test --save_model --out_dir 3dshapes_scratch_test --model TCWAE_MWS_MI --cost l2sq --gamma 0.5
 
 function finish {

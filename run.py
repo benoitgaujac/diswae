@@ -34,8 +34,8 @@ parser.add_argument("--num_it", type=int, default=300000,
                     help='iteration number')
 parser.add_argument("--net_archi",
                     help='networks architecture [mlp/conv_locatello/conv_rae]')
-parser.add_argument("--cost", default='xentropy',
-                    help='ground cost [l2, l2sq, l2sq_norm, l1, xentropy]')
+parser.add_argument("--cost", default='xent',
+                    help='ground cost [l2, l2sq, l2sq_norm, l1, xent]')
 parser.add_argument("--beta", type=float, default=1.0,
                     help='TC regularizer')
 parser.add_argument("--gamma", type=float, default=1.0,
