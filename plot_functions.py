@@ -455,7 +455,7 @@ def plot_interpolation(opts, interpolations, exp_dir, filename, train=True):
     plt.close()
 
 
-def save_test_smallnorb(opts, data, reconstructions, transversals, samples, exp_dir):
+def save_test_quanti(opts, data, reconstructions, transversals, samples, exp_dir):
 
     """ Generates and saves rec and samples plots"""
 

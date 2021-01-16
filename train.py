@@ -12,7 +12,7 @@ from math import ceil
 
 import utils
 from sampling_functions import sample_pz, linespace
-from plot_functions import save_train, save_test_smallnorb, save_test_celeba, save_dimwise_traversals
+from plot_functions import save_train, save_test_quanti, save_test_celeba, save_dimwise_traversals
 from plot_functions import plot_embedded, plot_encSigma, plot_interpolation
 import models
 from datahandler import datashapes
@@ -1038,7 +1038,7 @@ class Run(object):
                                         opts['exp_dir'])
             save_dimwise_traversals(opts, obs_transversal, opts['exp_dir'])
         else:
-            save_test_smallnorb(opts, self.data.data_plot[:num_pics],
+            save_test_quanti(opts, self.data.data_plot[:num_pics],
                                         reconstructions,
                                         obs_transversal,
                                         generations,
