@@ -175,9 +175,14 @@ def main():
                 beta = [1, 2, 4, 6, 8, 10]
                 gamma = [1, 2, 4, 6, 8, 10]
             else:
-                beta = [0.1, 0.25, 0.5, 0.75, 1, 2]
-                gamma = [0.1, 0.25, 0.5, 0.75, 1, 2]
-            lmba = list(itertools.product(beta,gamma))
+                beta = [2.,5.]
+                gamma = [0.1, 0.25, 0.5, 0.75, 1., 2., 5.]
+                lmba1 =  list(itertools.product(beta,gamma))
+                lmba2 =  list(itertools.product(gamma,beta))
+                lmba = lmba1+lmba2
+                # beta = [0.1, 0.25, 0.5, 0.75, 1, 2]
+                # gamma = [0.1, 0.25, 0.5, 0.75, 1, 2]
+            # lmba = list(itertools.product(beta,gamma))
             coef_id = (FLAGS.id-1) % len(lmba)
             opts['obj_fn_coeffs'] = list(lmba[coef_id])
         elif opts['model']=='TCWAE_GAN':
@@ -185,11 +190,14 @@ def main():
                 beta = [1, 10, 25, 50, 75, 100]
                 gamma = [1, 10, 25, 50, 75, 100]
             else:
-                beta = [0.1, 1, 2.5, 5, 7.5, 10]
-                gamma = [0.1, 1, 2.5, 5, 7.5, 10]
-                # beta = [1, 2, 4, 6, 8, 10]
-                # gamma = [1, 2, 4, 6, 8, 10]
-            lmba = list(itertools.product(beta,gamma))
+                beta = [0.5,20.]
+                gamma = [0.1, 0.5, 1., 2.5, 5., 7.5, 10.0, 20.]
+                lmba1 =  list(itertools.product(beta,gamma))
+                lmba2 =  list(itertools.product(gamma,beta))
+                lmba = lmba1+lmba2
+                # beta = [0.1, 1, 2.5, 5, 7.5, 10]
+                # gamma = [0.1, 1, 2.5, 5, 7.5, 10]
+            # lmba = list(itertools.product(beta,gamma))
             coef_id = (FLAGS.id-1) % len(lmba)
             opts['obj_fn_coeffs'] = list(lmba[coef_id])
         elif opts['model']=='TCWAE_MWS_MI':
