@@ -117,7 +117,8 @@ def main():
             coef_id = (FLAGS.id-1) % len(beta)
             opts['obj_fn_coeffs'] = beta[coef_id]
         elif opts['model']=='FactorVAE':
-            beta = [1, 5, 10, 25, 50, 100]
+            beta = [1, 2, 4, 6, 8, 10]
+            # beta = [1, 5, 10, 25, 50, 100]
             coef_id = (FLAGS.id-1) % len(beta)
             opts['obj_fn_coeffs'] = beta[coef_id]
         elif opts['model']=='TCWAE_MWS':
