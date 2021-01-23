@@ -175,7 +175,10 @@ def main():
             if opts['cost']=='xent':
                 beta = [1, 10, 25, 50, 75, 100]
             else:
-                beta = [0.1, 1, 2.5, 5, 7.5, 10]
+                if FLAGS.dataset == '3dshapes':
+                    beta = [0.1, 1., 2.5, 5., 7.5, 10.]
+                else:
+                    beta = [0.5, 1., 2.5, 5, 7.5, 10.]
             coef_id = (FLAGS.id-1) % len(beta)
             opts['obj_fn_coeffs'] = [beta[coef_id], FLAGS.gamma]
         else:
