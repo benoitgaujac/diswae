@@ -6,9 +6,9 @@
 
 #$ -l gpu=1
 #$ -l tmem=10G
-#$ -l h_rt=16:00:00
+#$ -l h_rt=24:00:00
 
-#$ -t 1-36
+#$ -t 1-18
 
 #$ -N ganchairs3d
 
