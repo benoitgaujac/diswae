@@ -145,7 +145,8 @@ def main():
             coef_id = (FLAGS.id-1) % len(beta)
             opts['obj_fn_coeffs'] = beta[coef_id]
         elif opts['model']=='FactorVAE':
-            beta = [1, 5, 10, 25, 50, 100]
+            beta = [1., 2., 4.]
+            # beta = [1., 5., 10., 25., 50., 100.]
             coef_id = (FLAGS.id-1) % len(beta)
             opts['obj_fn_coeffs'] = beta[coef_id]
         elif opts['model']=='TCWAE_MWS':
@@ -159,7 +160,7 @@ def main():
         elif opts['model']=='TCWAE_GAN':
             # beta = [0.1, 0.5, 1., 2., 5., 10.]
             # gamma = [0.1, 0.5, 1., 2., 5., 10.]
-            beta = [1., 2.,5.]
+            beta = [1., 2.]
             gamma = [0.1, 0.5, 1.]
             lmba = list(itertools.product(beta,gamma))
             coef_id = (FLAGS.id-1) % len(lmba)

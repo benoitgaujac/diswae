@@ -8,12 +8,13 @@
 #$ -l tmem=24G
 #$ -l h_rt=16:00:00
 
-#$ -t 1-18
+#$ -t 1-1
 
 #$ -N mwscelebA
 
 source /share/apps/examples/source_files/python/python-3.6.4.source
 source /share/apps/examples/source_files/cuda/cuda-10.0.source
 
-python3 run_array.py --num_it 600000 --id $SGE_TASK_ID --dataset celebA --cost l2sq --save_model --fid --out_dir celebA --model TCWAE_MWS
+# python3 run_array.py --num_it 600000 --id $SGE_TASK_ID --dataset celebA --cost l2sq --save_model --fid --out_dir celebA --model TCWAE_MWS
 # python3 run_test_array.py --num_it 600000 --id $SGE_TASK_ID --dataset celebA --cost l2sq --save_model --fid --out_dir celebA_testing --model TCWAE_MWS --gamma 0.25
+python3 run.py --num_it 600000 --dataset celebA --out_dir celebA_weights --model TCWAE_MWS --fid --cost l2sq --beta 2.0 --gamma 0.5
