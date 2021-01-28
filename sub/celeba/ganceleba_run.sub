@@ -6,14 +6,15 @@
 
 #$ -l gpu=True
 #$ -l tmem=24G
-#$ -l h_rt=24:00:00
+#$ -l h_rt=20:00:00
 
-#$ -t 1-30
+#$ -t 1-2
 
 #$ -N gancelebA
 
 source /share/apps/examples/source_files/python/python-3.6.4.source
 source /share/apps/examples/source_files/cuda/cuda-10.0.source
 
-python3 run_array.py --num_it 600000 --id $SGE_TASK_ID --dataset celebA --cost l2sq --save_model --fid --out_dir celebA --model TCWAE_GAN
+# python3 run_array.py --num_it 600000 --id $SGE_TASK_ID --dataset celebA --cost l2sq --save_model --fid --out_dir celebA --model TCWAE_GAN
 # python3 run_test_array.py --num_it 600000 --id $SGE_TASK_ID --dataset celebA --cost l2sq --save_model --fid --out_dir celebA_testing --model TCWAE_GAN --gamma 0.5
+python3 run.py --num_it 600000 --dataset celebA --out_dir celebA_weights --model TCWAE_GAN --fid --cost l2sq --beta 5.0 --gamma 2.0
