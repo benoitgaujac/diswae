@@ -86,12 +86,14 @@ def linespace(opts, n, anchors, std=1.0):
         stop = anchors+std_range*identity[i]
         inter = []
         for j in range(nanchors):
-            int_m = np.linspace(start[j],anchors[j],int(n/2.),endpoint=False)
-            if n%2==0:
-                int_p = np.linspace(anchors[j],stop[j],int(n/2.),endpoint=True)
-            else:
-                int_p = np.linspace(anchors[j],stop[j],int(n/2.)+1,endpoint=True)
-            inter.append(np.concatenate((int_m,int_p),axis=0))
+            interpolation = np.linspace(start[j],stop[j],n,endpoint=True)
+            inter.append(interpolation)
+            # int_m = np.linspace(start[j],anchors[j],int(n/2.),endpoint=False)
+            # if n%2==0:
+            #     int_p = np.linspace(anchors[j],stop[j],int(n/2.),endpoint=True)
+            # else:
+            #     int_p = np.linspace(anchors[j],stop[j],int(n/2.)+1,endpoint=True)
+            # inter.append(np.concatenate((int_m,int_p),axis=0))
         linespce.append(np.array(inter))
     linespce = np.stack(linespce,axis=1)
 

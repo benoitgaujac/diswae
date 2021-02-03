@@ -466,7 +466,9 @@ def save_test_quanti(opts, data, reconstructions, transversals, samples, exp_dir
         reconstructions = reconstructions / 2. + 0.5
         samples = samples / 2. + 0.5
         transversals = transversals / 2. + 0.5
-
+    ### create save_dir
+    save_path = os.path.join(exp_dir,'test_plots')
+    utils.create_dir(save_path)
     ### data
     num_cols = data.shape[0]
     obs = []
@@ -500,28 +502,11 @@ def save_test_quanti(opts, data, reconstructions, transversals, samples, exp_dir
     gen = np.array(gen)
     gen = np.concatenate(np.split(gen, num_cols), axis=2)
     gen = np.concatenate(gen, axis=0)
-    ### Latent transversal
-    num_cols = transversals.shape[2]
-    num_rows = transversals.shape[1]
-    images = []
-    names = []
-    for i in range(np.shape(transversals)[0]):
-        pics = np.concatenate(np.split(transversals[i],num_cols,axis=1),axis=3)
-        pics = pics[:,0]
-        pics = np.concatenate(np.split(pics,num_rows),axis=1)
-        pics = pics[0]
-        if greyscale:
-            image = 1. - pics
-        else:
-            image = pics
-        images.append(image)
-        names.append(opts['model'] + '_latent_transversal_' + str(i))
     ### Creating a pyplot fig
-    to_plot_list = zip([obs, rec, gen] + images,
-                         [opts['model'] + '_observation',
-                         opts['model'] + '_reconstruction',
-                         opts['model'] + '_sample',]
-                         + names)
+    to_plot_list = zip([obs, rec, gen],
+                     [opts['model'] + '_observation',
+                     opts['model'] + '_reconstruction',
+                     opts['model'] + '_sample'])
     dpi = 100
     for img, filename in to_plot_list:
         height_pic = img.shape[0]
@@ -542,15 +527,13 @@ def save_test_quanti(opts, data, reconstructions, transversals, samples, exp_dir
         plt.subplots_adjust(top = 1, bottom = 0, right = 1, left = 0,
                 hspace = 0, wspace = 0)
         # Saving
-        save_path = os.path.join(exp_dir,'test_plots')
-        utils.create_dir(save_path)
         filename = filename + '.png'
         plt.savefig(utils.o_gfile((save_path, filename), 'wb'),
                     dpi=dpi, format='png', box_inches='tight', pad_inches=0.0)
         plt.close()
 
 
-def save_test_celeba(opts, data, reconstructions, transversals, samples, exp_dir):
+def save_test_quali(opts, data, reconstructions, transversals, samples, exp_dir):
 
     """ Generates and saves rec and samples plots"""
 
@@ -561,7 +544,9 @@ def save_test_celeba(opts, data, reconstructions, transversals, samples, exp_dir
         reconstructions = reconstructions / 2. + 0.5
         samples = samples / 2. + 0.5
         transversals = transversals / 2. + 0.5
-
+    ### create save_dir
+    save_path = os.path.join(exp_dir,'test_plots')
+    utils.create_dir(save_path)
     ### Reconstruction plots
     num_pics = 100
     num_cols = 10
@@ -594,27 +579,10 @@ def save_test_celeba(opts, data, reconstructions, transversals, samples, exp_dir
     gen = np.array(gen)
     gen = np.concatenate(np.split(gen, num_cols), axis=2)
     gen = np.concatenate(gen, axis=0)
-    ### Latent transversal
-    num_rows = transversals.shape[1]
-    num_cols = transversals.shape[2]
-    images = []
-    names = []
-    for i in range(np.shape(transversals)[0]):
-        pics = np.concatenate(np.split(transversals[i],num_cols,axis=1),axis=3)
-        pics = pics[:,0]
-        pics = np.concatenate(np.split(pics,num_rows),axis=1)
-        pics = pics[0]
-        if greyscale:
-            image = 1. - pics
-        else:
-            image = pics
-        images.append(image)
-        names.append(opts['model'] + '_latent_transversal_' + str(i))
     ### Creating a pyplot fig
-    to_plot_list = zip([rec, gen] + images,
-                         [opts['model'] + '_reconstruction',
-                         opts['model'] + '_sample',]
-                         + names)
+    to_plot_list = zip([rec, gen],
+                     [opts['model'] + '_reconstruction',
+                     opts['model'] + '_sample'])
     dpi = 100
     for img, filename in to_plot_list:
         height_pic = img.shape[0]
@@ -635,22 +603,111 @@ def save_test_celeba(opts, data, reconstructions, transversals, samples, exp_dir
         plt.subplots_adjust(top = 1, bottom = 0, right = 1, left = 0,
                 hspace = 0, wspace = 0)
         # Saving
-        save_path = os.path.join(exp_dir,'test_plots')
-        utils.create_dir(save_path)
         filename = filename + '.png'
         plt.savefig(utils.o_gfile((save_path, filename), 'wb'),
                     dpi=dpi, format='png', box_inches='tight', pad_inches=0.0)
         plt.close()
 
 
-def save_dimwise_traversals(opts, transversals, exp_dir):
+def save_imgwise_traversals(opts, transversals, exp_dir):
 
-    """ Dimwise latent traversals"""
+    """ image wise latent traversals"""
 
     assert transversals.shape[1]==opts['zdim']
     greyscale = transversals.shape[-1] == 1
     if opts['input_normalize_sym']:
         transversals = transversals / 2. + 0.5
+    ### create save_dir
+    save_path = os.path.join(exp_dir,'test_plots')
+    utils.create_dir(save_path)
+    save_path = os.path.join(save_path,'imgwise_traversals')
+    utils.create_dir(save_path)
+    ### Latent transversal
+    num_cols = transversals.shape[2]
+    num_rows = transversals.shape[1]
+    images = []
+    names = []
+    for i in range(np.shape(transversals)[0]):
+        img = np.concatenate(np.split(transversals[i],num_cols,axis=1),axis=3)
+        img = img[:,0]
+        img = np.split(img,num_rows)
+        single_dim_img = [im[0] for im in img]
+        concate_dim_img = np.concatenate(img,axis=1)
+        concate_dim_img = concate_dim_img[0]
+        if greyscale:
+            concate_dim_img = 1. - concate_dim_img
+            single_dim_img = [1. - im for im in single_dim_img]
+        images.append((concate_dim_img, single_dim_img))
+        n1 = opts['model'] + '_img' + str(i)
+        n2 = [n1 + '_z' + str(j) for j in range(len(single_dim_img))]
+        names.append((n1,n2))
+    ### Creating a pyplot fig
+    to_plot_list = zip(images,names)
+    dpi = 100
+    for imgs, filenames in to_plot_list:
+        img = imgs[0]
+        filename = filenames[0]
+        height_pic = img.shape[0]
+        width_pic = img.shape[1]
+        fig_height = height_pic / 20
+        fig_width = width_pic / 20
+        fig = plt.figure(figsize=(fig_width, fig_height))
+        if greyscale:
+            image = img[:, :, 0]
+            # in Greys higher values correspond to darker colors
+            plt.imshow(image, cmap='Greys',
+                            interpolation='none', vmin=0., vmax=1.)
+        else:
+            plt.imshow(img, interpolation='none', vmin=0., vmax=1.)
+        # Removing axes, ticks, labels
+        plt.axis('off')
+        # # placing subplot
+        plt.subplots_adjust(top = 1, bottom = 0, right = 1, left = 0,
+                hspace = 0, wspace = 0)
+        filename = filename + '.png'
+        plt.savefig(utils.o_gfile((save_path, filename), 'wb'),
+                    dpi=dpi, format='png', box_inches='tight', pad_inches=0.0)
+        plt.close()
+        if opts['dataset'] not in ['3Dchairs', 'celebA']:
+            for im, name in zip(imgs[1], filenames[1]):
+                height_pic = im.shape[0]
+                width_pic = im.shape[1]
+                fig_height = height_pic / 20
+                fig_width = width_pic / 20
+                fig = plt.figure(figsize=(fig_width, fig_height))
+                if greyscale:
+                    image = im[:, :, 0]
+                    # in Greys higher values correspond to darker colors
+                    plt.imshow(image, cmap='Greys',
+                                    interpolation='none', vmin=0., vmax=1.)
+                else:
+                    plt.imshow(im, interpolation='none', vmin=0., vmax=1.)
+                # Removing axes, ticks, labels
+                plt.axis('off')
+                # placing subplot
+                plt.subplots_adjust(top = 1, bottom = 0, right = 1, left = 0,
+                        hspace = 0, wspace = 0)
+                # saving
+                filename = name + '.png'
+                plt.savefig(utils.o_gfile((save_path, filename), 'wb'),
+                            dpi=dpi, format='png', box_inches='tight', pad_inches=0.0)
+                plt.close()
+
+
+def save_dimwise_traversals(opts, transversals, exp_dir):
+
+    """ dimension wise latent traversals"""
+
+    assert transversals.shape[1]==opts['zdim']
+    greyscale = transversals.shape[-1] == 1
+    if opts['input_normalize_sym']:
+        transversals = transversals / 2. + 0.5
+    ### create save_dir
+    save_path = os.path.join(exp_dir,'test_plots')
+    utils.create_dir(save_path)
+    save_path = os.path.join(save_path,'dimwise_traversals')
+    utils.create_dir(save_path)
+    ### data
     num_rows = transversals.shape[0]
     num_cols = transversals.shape[2]
     num_im = transversals.shape[1]
@@ -688,10 +745,6 @@ def save_dimwise_traversals(opts, transversals, exp_dir):
         plt.subplots_adjust(top = 1, bottom = 0, right = 1, left = 0,
                 hspace = 0, wspace = 0)
         # Saving
-        save_path = os.path.join(exp_dir,'test_plots')
-        utils.create_dir(save_path)
-        save_path = os.path.join(save_path,'dimwise_traversals')
-        utils.create_dir(save_path)
         filename = filename + '.png'
         plt.savefig(utils.o_gfile((save_path, filename), 'wb'),
                     dpi=dpi, format='png', box_inches='tight', pad_inches=0.0)
